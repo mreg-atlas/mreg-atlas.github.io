@@ -5,7 +5,7 @@ Regulation website (user, 2026-11-08): the Atlas and new functions. When the use
 into the official site as one snapshot, and this site stays as the place to try the next round.
 
 Page code only. The map files (`_maps/`, `atlas-data/`, `atlas-downloads/`) are kept in a private repository and put
-in only when the site is built (`.github/workflows/build.yml`, secrets `DATA_REPO` and `DATA_TOKEN`), so the site shows
+in only when the site is built (`.github/workflows/build.yml`, one secret, `DATA_TOKEN`), so the site shows
 the current files and this repository holds none of them, nor their history. They are ignored here (`.gitignore`);
 never commit them.
 
