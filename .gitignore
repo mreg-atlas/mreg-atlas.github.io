@@ -1,0 +1,6 @@
+_site/
+.jekyll-cache/
+_data_in/
+_maps/
+atlas-data/
+atlas-downloads/

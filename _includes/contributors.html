@@ -1,0 +1,62 @@
+{%- comment -%}
+  Contributors of a map page, journal style: names with affiliation numbers
+  (ORCID link: off for now), then "Affiliations", closed, with the list.
+  People and affiliations are in _data/contributors.yml. The page lists
+  people in its front matter, each either as a key (the affiliations from
+  _data/contributors.yml) or as a key with its own affiliation keys, which
+  replace those for this page:
+    contributors:
+      - alexander-mazein: [lcsb]
+      - vasundra-toure
+  The affiliations are numbered in the order the people are listed.
+{%- endcomment -%}
+{%- assign people = site.data.contributors.people -%}
+{%- assign affnames = site.data.contributors.affiliations -%}
+{%- assign affs = "" | split: "" -%}
+{%- for item in page.contributors -%}
+  {%- assign t = item | jsonify -%}
+  {%- if t contains "{" -%}
+    {%- for pair in item -%}{%- assign key = pair[0] -%}{%- assign plist = pair[1] -%}{%- endfor -%}
+  {%- else -%}
+    {%- assign key = item -%}{%- assign plist = people[key].affiliations -%}
+  {%- endif -%}
+  {%- for a in plist -%}
+    {%- unless affs contains a -%}{%- assign affs = affs | push: a -%}{%- endunless -%}
+  {%- endfor -%}
+{%- endfor -%}
+<p class="contrib-names">
+{%- for item in page.contributors -%}
+  {%- assign t = item | jsonify -%}
+  {%- if t contains "{" -%}
+    {%- for pair in item -%}{%- assign key = pair[0] -%}{%- assign plist = pair[1] -%}{%- endfor -%}
+  {%- else -%}
+    {%- assign key = item -%}{%- assign plist = people[key].affiliations -%}
+  {%- endif -%}
+  {%- assign p = people[key] -%}
+  {%- if p -%}
+    <span class="contrib-person">{{ p.name }}
+    {%- if plist.size > 0 -%}<sup>
+      {%- for a in plist -%}
+        {%- for b in affs -%}{%- if b == a -%}{{ forloop.index }}{%- endif -%}{%- endfor -%}
+        {%- unless forloop.last -%},{%- endunless -%}
+      {%- endfor -%}</sup>{%- endif -%}
+    {%- comment -%} ORCID link: off for now (user, 2026-10-15); the iDs stay in _data/contributors.yml.
+      Set show_orcid to true to show it again. {%- endcomment -%}
+    {%- assign show_orcid = false -%}
+    {%- if show_orcid and p.orcid -%}<a class="contrib-orcid" href="https://orcid.org/{{ p.orcid }}" title="ORCID {{ p.orcid }}"><svg viewBox="0 0 16 16" width="14" height="14" aria-label="ORCID"><circle cx="8" cy="8" r="8" fill="#a6ce39"/><text x="8" y="11.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="700" fill="#fff">iD</text></svg></a>{%- endif -%}</span>
+  {%- else -%}
+    <span class="contrib-missing">{{ key }}</span>
+  {%- endif -%}
+  {%- unless forloop.last -%}, {% endunless -%}
+{%- endfor -%}
+</p>
+{%- if affs.size > 0 %}
+<details class="contrib-affs">
+<summary>Affiliations</summary>
+<ol>
+{%- for a in affs %}
+<li><sup>{{ forloop.index }}</sup>{% if affnames[a] %}{{ affnames[a] }}{% else %}<span class="contrib-missing">{{ a }}</span>{% endif %}</li>
+{%- endfor %}
+</ol>
+</details>
+{%- endif %}
