@@ -18,3 +18,6 @@ Names: this repository is public and names no private repository, in files, page
 - A change counts only when it is live, checked on the site itself.
 - The name in full, Metabolism Regulation Atlas, in the site's name, tab title and header (user, 2026-11-08), never
   the short MRegAtlas on the site.
+- Nothing on the pages says the site is hidden, a next version, a preview or a draft (user, 2026-11-08): such notes
+  are for these files, not for the visitor. The subtitle is the official site's, word for word. Any text, label or
+  note added to a page that the user has not asked for waits for the user's approval before it goes live.
