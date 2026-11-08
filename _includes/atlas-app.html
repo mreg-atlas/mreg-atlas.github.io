@@ -436,6 +436,17 @@ map index (index), search index (search) and name for the browser tab (name).
   viewHeight();
   window.addEventListener('resize', viewHeight);
   if (window.ResizeObserver) new ResizeObserver(draw).observe(view);
+  // the list ends where the download row ends (user, 2026-11-08): its height follows the map
+  // window and the row under it; on narrow windows (list above the map) the stylesheet's height stays
+  var list = document.getElementById('m2-list'), dlRow = document.getElementById('m2-downloads');
+  function listHeight() {
+    if (window.innerWidth <= 940) { list.style.maxHeight = ''; return; }
+    var h = (dlRow.getBoundingClientRect().bottom - list.getBoundingClientRect().top) / pz();
+    list.style.maxHeight = Math.max(150, Math.round(h)) + 'px';
+  }
+  listHeight();
+  window.addEventListener('resize', listHeight);
+  if (window.ResizeObserver) { var lro = new ResizeObserver(listHeight); lro.observe(view); lro.observe(dlRow); }
 
   // full screen: the map alone; Esc or the button returns to the page
   var full = document.getElementById('m2-full');

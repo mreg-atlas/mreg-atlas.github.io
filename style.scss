@@ -188,11 +188,11 @@ img {
 //
 
 .wrapper-masthead {
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .masthead {
-  padding: 14px 0;
+  padding: 6px 0;
 
   @include mobile {
     text-align: center;
@@ -201,9 +201,9 @@ img {
 
 .site-avatar {
   float: left;
-  width: 54px;
-  height: 54px;
-  margin-right: 12px;
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
 
   @include mobile {
     float: none;
@@ -232,15 +232,15 @@ img {
   cursor: pointer;
   font-family: $helveticaNeue;
   font-weight: 300;
-  font-size: 26px;
-  line-height: 1.35;
+  font-size: 21px;
+  line-height: 1.25;
   letter-spacing: 1px;
 }
 
 .site-description {
   margin: -1px 0 0 0;
   color: $gray;
-  font-size: 15px;
+  font-size: 13px;
 
   @include mobile {
     margin: 3px 0;
@@ -249,7 +249,7 @@ img {
 
 nav {
   float: right;
-  margin-top: 15px; // middle of the 54px logo
+  margin-top: 9px; // middle of the 40px logo
   font-family: $helveticaNeue;
   font-size: 17px;
 
