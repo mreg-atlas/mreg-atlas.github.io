@@ -191,6 +191,13 @@ img {
   margin-bottom: 12px;
 }
 
+// The header as wide as the Atlas viewer, its edges on the viewer's (user, 2026-11-09)
+.wrapper-masthead .container {
+  max-width: none;
+  width: min(100vw / var(--zoom, 1) - 32px, 2000px);
+  padding: 0;
+}
+
 .masthead {
   padding: 6px 0;
 
@@ -226,15 +233,16 @@ img {
   }
 }
 
-// The site's name in the page's own font, small letters, no logo or subtitle (user, 2026-11-09)
+// The site's name in small letters, no logo or subtitle (user, 2026-11-09)
 .site-name {
   margin: 0;
   color: $darkGray;
   cursor: pointer;
-  font-family: $helvetica; // the page's own font (headings take Helvetica Neue)
-  font-weight: 400;
+  font-family: $helveticaNeue;
+  font-weight: 300;
   font-size: 21px;
   line-height: 1.25;
+  letter-spacing: 1px;
 }
 
 .site-description {

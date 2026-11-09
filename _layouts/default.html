@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    {% comment %} Sub-sites (front matter masthead: <key>, `_data/mastheads.yml`: the pattern pages, user 2026-10-30, the Eicosanoid Atlas, user 2026-11-01) have their own name and top bar; a masthead without a name (the Converter's, user 2026-11-02) keeps the site's name, subtitle and logo and has only its own menu; every other page keeps the site's, unchanged. {% endcomment %}{% assign mh = site.data.mastheads[page.masthead] %}{% if mh.name %}{% assign mh_name = mh.name %}{% assign mh_description = mh.description %}{% assign mh_home = mh.home %}{% else %}{% assign mh_name = site.name %}{% assign mh_description = site.description %}{% assign mh_home = "/" %}{% endif %}<title>{% if page.title %}{{ page.title }} – {% endif %}{{ mh_name }} – {{ mh_description }}</title>
+    {% comment %} Sub-sites (front matter masthead: <key>, `_data/mastheads.yml`: the pattern pages, user 2026-10-30, the Eicosanoid Atlas, user 2026-11-01) have their own name and top bar; a masthead without a name (the Converter's, user 2026-11-02) keeps the site's name, subtitle and logo and has only its own menu; every other page keeps the site's, unchanged. {% endcomment %}{% assign mh = site.data.mastheads[page.masthead] %}{% if mh.name %}{% assign mh_name = mh.name %}{% assign mh_description = mh.description %}{% assign mh_home = mh.home %}{% else %}{% assign mh_name = site.name %}{% assign mh_description = site.description %}{% assign mh_home = "/" %}{% endif %}<title>{% if page.title %}{{ page.title }} – {% endif %}{{ mh_name }}{% if mh.name %} – {{ mh_description }}{% endif %}</title>
 
     {% include meta.html %}
 
