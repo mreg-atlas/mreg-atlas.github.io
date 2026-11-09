@@ -187,8 +187,10 @@ img {
 // .masthead
 //
 
+// A line where the top bar ends, across the window; name and menu in the middle of the bar (user, 2026-11-09)
 .wrapper-masthead {
   margin-bottom: 12px;
+  border-bottom: 1px solid #ddd;
 }
 
 // The header as wide as the Atlas viewer, its edges on the viewer's (user, 2026-11-09)
@@ -199,10 +201,19 @@ img {
 }
 
 .masthead {
-  padding: 6px 0;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0;
+  &:before, &:after { display: none; } // the clearfix is not needed in a flex row
+
+  nav { margin: 0 0 0 auto; }
 
   @include mobile {
     text-align: center;
+    flex-direction: column;
+    padding: 8px 0;
+    nav { margin: 6px 0 0; }
   }
 }
 
