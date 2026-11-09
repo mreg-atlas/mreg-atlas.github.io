@@ -189,7 +189,7 @@ img {
 
 // A line where the top bar ends, across the window; name and menu in the middle of the bar (user, 2026-11-09)
 .wrapper-masthead {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   border-bottom: 1px solid #ddd;
 }
 
@@ -203,7 +203,7 @@ img {
 .masthead {
   display: flex;
   align-items: center;
-  min-height: 48px;
+  min-height: 36px; // tight: the text 26 px high, 5 px above and below (user, 2026-11-09: less space wasted)
   padding: 0;
   &:before, &:after { display: none; } // the clearfix is not needed in a flex row
 
