@@ -231,6 +231,7 @@ img {
   margin: 0;
   color: $darkGray;
   cursor: pointer;
+  font-family: $helvetica; // the page's own font (headings take Helvetica Neue)
   font-weight: 400;
   font-size: 21px;
   line-height: 1.25;
