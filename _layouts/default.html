@@ -22,7 +22,7 @@
           {% if mh.name %}{% if mh.avatar %}<a href="{{ site.baseurl }}{{ mh.home }}" class="site-avatar"><img src="{{ site.baseurl }}{{ mh.avatar }}" /></a>{% endif %}{% endif %}
 
           <div class="site-info">
-            <h1 class="site-name"><a href="{{ site.baseurl }}{{ mh_home }}">{% if mh.name %}{{ mh_name }}{% else %}{{ mh_name | downcase }}{% endif %}</a></h1>
+            <h1 class="site-name"><a href="{{ site.baseurl }}{{ mh_home }}">{{ mh_name }}</a></h1>
             {% if mh.name %}<p class="site-description">{{ mh_description }}</p>{% endif %}
           </div>
 

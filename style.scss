@@ -233,17 +233,16 @@ img {
   }
 }
 
-// The site's name in small letters, no logo or subtitle, in Comfortaa at its thinnest (300), as the viewer's
-// styles page writes its name (user, 2026-11-09); grey, as Comfortaa has no lighter weight
+// The site's name, no logo or subtitle (user, 2026-11-09)
 .site-name {
   margin: 0;
+  color: $darkGray;
   cursor: pointer;
-  font-family: Comfortaa, Arial, sans-serif;
+  font-family: $helveticaNeue;
   font-weight: 300;
-  font-size: 28px;
-  line-height: 28px;
-  letter-spacing: 0;
-  a, a:hover { color: #666; }
+  font-size: 21px;
+  line-height: 1.25;
+  letter-spacing: 1px;
 }
 
 .site-description {

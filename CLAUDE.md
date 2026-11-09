@@ -21,5 +21,5 @@ Names: this repository is public and names no private repository, in files, page
 - The name in full, Metabolism Regulation Atlas, in the site's name, tab title and header (user, 2026-11-08), never
   the short MRegAtlas on the site.
 - Nothing on the pages says the site is hidden, a next version, a preview or a draft (user, 2026-11-08): such notes
-  are for these files, not for the visitor. The menu has no link to the official site (user: it does not belong here). The header (user, 2026-11-09): the name alone in small letters in Comfortaa 300, grey #666 (as the viewer's styles page), no logo, no subtitle (not in the tab title either); the menu as large as the name; as wide as the viewer, its edges on the viewer's. Any text, label or
+  are for these files, not for the visitor. The menu has no link to the official site (user: it does not belong here). The header (user, 2026-11-09): the name alone, capitalised, in Helvetica Neue light (Comfortaa and small letters tried and not kept), no logo, no subtitle (not in the tab title either); the menu as large as the name; as wide as the viewer, its edges on the viewer's. Any text, label or
   note added to a page that the user has not asked for waits for the user's approval before it goes live.
