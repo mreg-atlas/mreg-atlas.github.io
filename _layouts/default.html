@@ -19,11 +19,11 @@
     <div class="wrapper-masthead">
       <div class="container">
         <header class="masthead clearfix">
-          {% if mh.name %}{% if mh.avatar %}<a href="{{ site.baseurl }}{{ mh.home }}" class="site-avatar"><img src="{{ site.baseurl }}{{ mh.avatar }}" /></a>{% endif %}{% else %}<a href="{{ site.baseurl }}/" class="site-avatar"><img src="{{ site.avatar }}" /></a>{% endif %}
+          {% if mh.name %}{% if mh.avatar %}<a href="{{ site.baseurl }}{{ mh.home }}" class="site-avatar"><img src="{{ site.baseurl }}{{ mh.avatar }}" /></a>{% endif %}{% endif %}
 
           <div class="site-info">
-            <h1 class="site-name"><a href="{{ site.baseurl }}{{ mh_home }}">{{ mh_name }}</a></h1>
-            <p class="site-description">{{ mh_description }}</p>
+            <h1 class="site-name"><a href="{{ site.baseurl }}{{ mh_home }}">{% if mh.name %}{{ mh_name }}{% else %}{{ mh_name | downcase }}{% endif %}</a></h1>
+            {% if mh.name %}<p class="site-description">{{ mh_description }}</p>{% endif %}
           </div>
 
           <nav{% if mh.plain %} class="plain"{% endif %}>{% if mh %}{% for l in mh.nav %}{% if l.items %}{% assign here = false %}{% for i in l.items %}{% if i.url == page.url %}{% assign here = true %}{% endif %}{% endfor %}
