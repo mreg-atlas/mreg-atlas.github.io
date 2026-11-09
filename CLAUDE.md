@@ -18,7 +18,7 @@ Names: this repository is public and names no private repository, in files, page
 - Hidden: `noindex` on every page, linked from nowhere public.
 - After the data change, the workflow is started by hand or by the session that pushed them; a push here starts it too.
 - A change counts only when it is live, checked on the site itself.
-- The name in full, Metabolism Regulation Atlas, in the site's name, tab title and header (user, 2026-11-08), never
+- The name in full, Metabolism Regulation Atlas 2.0 (user, 2026-11-10; was Metabolism Regulation Atlas), in the site's name, tab title and header (user, 2026-11-08), never
   the short MRegAtlas on the site.
 - Nothing on the pages says the site is hidden, a next version, a preview or a draft (user, 2026-11-08): such notes
   are for these files, not for the visitor. The menu has no link to the official site (user: it does not belong here). The header (user, 2026-11-09): the name alone, capitalised, in Helvetica Neue light (Comfortaa and small letters tried and not kept), no logo, no subtitle (not in the tab title either); the menu smaller than the name, 17 px (user, 2026-11-10); as wide as the viewer, its edges on the viewer's; a thin line across the window where the bar ends, name and menu in the bar's middle. Any text, label or
