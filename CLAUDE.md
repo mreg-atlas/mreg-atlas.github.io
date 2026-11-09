@@ -11,8 +11,10 @@ never commit them.
 
 Names: this repository is public and names no private repository, in files, pages, code comments or commit messages.
 
-- The page code (`_includes/atlas-app.html`, layouts, styles, `meta.html`) is a copy of the Metabolism Regulation
-  website's (2026-11-08); a change made there is copied here, and the other way round, until the viewer has one source.
+- The viewer (`_includes/atlas-app.html`, `_includes/atlas-tags.css`) is a copy of the viewer's source
+  (https://viewer-source.github.io, since 2026-11-09; `_includes/VERSION` names its commit): never edited here, a change
+  is made in the source and copied with its `copy-to-site.sh`. The layouts, styles and `meta.html` are this site's own
+  (from the Metabolism Regulation website, 2026-11-08).
 - Hidden: `noindex` on every page, linked from nowhere public.
 - After the data change, the workflow is started by hand or by the session that pushed them; a push here starts it too.
 - A change counts only when it is live, checked on the site itself.
