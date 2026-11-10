@@ -26,7 +26,7 @@ jobs:
           path: _data_in
       - name: Put the data in place
         run: |
-          for d in _maps atlas-data atlas-downloads; do rm -rf "$d"; cp -r "_data_in/$d" "$d"; done
+          for d in _maps atlas-data atlas-downloads lists-data; do rm -rf "$d"; if [ -d "_data_in/$d" ]; then cp -r "_data_in/$d" "$d"; fi; done
           rm -rf _data_in
       - uses: actions/configure-pages@v5
       - uses: actions/jekyll-build-pages@v1

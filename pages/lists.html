@@ -1,0 +1,37 @@
+---
+layout: default
+title: Lists
+permalink: /lists/
+sitemap: false
+noindex: true
+---
+<style>
+  .lists-intro { max-width: 820px; }
+  .lists-intro td { padding: 3px 14px 3px 0; vertical-align: top; }
+  .lists-intro td.n { text-align: right; white-space: nowrap; }
+</style>
+<div class="lists-intro">
+<h2>Lists</h2>
+<p>Connections between signalling and metabolic enzymes, found automatically and compared with the Atlas maps. Each list shows only what the lists before it do not contain. Connections already drawn on an Atlas map are left out.</p>
+<ol>
+  <li><a href="/lists/reactome/">Metabolic enzymes in Reactome signalling</a>: enzymes of the human metabolic model Human-GEM that take part in Reactome signalling processes, with the proteins that catalyse or regulate each process.</li>
+  <li><a href="/lists/additions/">Additions to Atlas maps</a>: enzymes modified by a regulator, from OmniPath, where the enzyme is on an Atlas map and the regulator is not.</li>
+  <li><a href="/lists/leads/">Leads for new maps</a>: enzymes modified by a regulator, from OmniPath, where the enzyme is on no Atlas map.</li>
+</ol>
+<table id="lists-counts"></table>
+<p>Lists 2 and 3 hold OmniPath connections that Reactome does not contain, each supported by at least two curated databases.</p>
+</div>
+<script>
+fetch('/lists-data/summary.json', {cache: 'no-cache'}).then(function (r) { return r.json(); }).then(function (s) {
+  var c = s.counts, rows = [
+    ['Human-GEM enzyme proteins in Reactome signalling', c['Human-GEM enzyme proteins in Reactome signalling']],
+    ['Reactome signalling processes with a Human-GEM enzyme', c['Signalling processes with a Human-GEM enzyme']],
+    ['Enzyme-process pairs (list 1)', c['Enzyme-process pairs']],
+    ['Connections, Reactome and OmniPath', c['Links (regulator, metabolic enzyme), all']],
+    ['Supported connections already drawn on an Atlas map', c['list already drawn: links']],
+    ['Additions to Atlas maps (list 2)', c['list additions to Atlas maps: links'] + ' connections, ' + c['list additions to Atlas maps: enzymes'] + ' enzymes'],
+    ['Leads for new maps (list 3)', c['list leads for new maps: links'] + ' connections, ' + c['list leads for new maps: enzymes'] + ' enzymes']
+  ];
+  document.getElementById('lists-counts').innerHTML = rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td class="n">' + r[1] + '</td></tr>'; }).join('');
+});
+</script>

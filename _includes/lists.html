@@ -1,0 +1,83 @@
+{% comment %}
+The list pages (user, 2026-11-10): a table built from /lists-data/<list>.json, put into the site at build from the
+data repository. include.list: reactome, additions or leads. Filter box, sort by a click on a column header. The
+table is built off screen and swapped in whole (web practice: never shown loading).
+{% endcomment %}
+<style>
+  #main.container { max-width: 1400px; }
+  .ls-bar { display: flex; gap: 12px; align-items: center; margin: 8px 0 10px; flex-wrap: wrap; }
+  .ls-bar input { font: inherit; font-size: 14px; padding: 4px 8px; width: 280px; max-width: 100%; }
+  .ls-count { color: #777; font-size: 14px; }
+  .ls-wrap { overflow-x: auto; }
+  table.ls { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.4; }
+  table.ls th, table.ls td { text-align: left; vertical-align: top; padding: 5px 8px; border-bottom: 1px solid #eee; }
+  table.ls th { position: sticky; top: 0; background: #fafafa; border-bottom: 1px solid #ccc; cursor: pointer;
+                white-space: nowrap; user-select: none; }
+  table.ls th.sorted::after { content: " \25B4"; color: #999; }
+  table.ls th.sorted.desc::after { content: " \25BE"; }
+  table.ls td.n { text-align: right; white-space: nowrap; }
+  table.ls a { text-decoration: none; }
+  table.ls .muted { color: #888; }
+  table.ls .gene { font-weight: 600; }
+</style>
+<div class="ls-bar"><input type="search" id="ls-filter" placeholder="Filter, e.g. AMPK, NOS3, glycolysis" aria-label="Filter"><span class="ls-count" id="ls-count"></span></div>
+<div class="ls-wrap" id="ls-wrap"></div>
+<script>
+(function () {
+  var LIST = '{{ include.list }}';
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); };
+  var uni = function (u) { return '<a href="https://www.uniprot.org/uniprotkb/' + esc(u) + '" target="_blank" rel="noopener" class="muted">' + esc(u) + '</a>'; };
+  var protein = function (g, u) { return '<span class="gene">' + esc(g || u) + '</span> ' + uni(u); };
+  var maps = {};
+  var mapLinks = function (ids) { return ids.map(function (id) { return '<a href="/atlas/#' + esc(id) + '">' + esc(maps[id] || id) + '</a>'; }).join('<br>'); };
+  var short = function (list, n) { return list.length > n ? esc(list.slice(0, n).join(', ')) + ' <span class="muted">+' + (list.length - n) + '</span>' : esc(list.join(', ')); };
+  var COLUMNS = {
+    reactome: [
+      ['Enzyme', function (r) { return r.g; }, function (r) { return protein(r.g, r.u); }],
+      ['Reactome process', function (r) { return r.p; }, function (r) { return '<a href="https://reactome.org/content/detail/' + esc(r.s) + '" target="_blank" rel="noopener">' + esc(r.p) + '</a>'; }],
+      ['Class', function (r) { return r.c; }, function (r) { return esc(r.c); }],
+      ['Catalysts and regulators', function (r) { return r.a.length; }, function (r) { return short(r.a, 12); }],
+      ['Atlas maps with the enzyme', function (r) { return r.m.map(function (id) { return maps[id] || id; }).join(' '); }, function (r) { return mapLinks(r.m); }]
+    ],
+    additions: [
+      ['Atlas map', function (r) { return r.m.map(function (id) { return maps[id] || id; }).join(' '); }, function (r) { return mapLinks(r.m); }],
+      ['Enzyme', function (r) { return r.g; }, function (r) { return protein(r.g, r.u); }],
+      ['Regulator', function (r) { return r.r; }, function (r) { return protein(r.r, r.ru); }],
+      ['Family', function (r) { return r.f; }, function (r) { return esc(r.f); }],
+      ['Mechanism', function (r) { return r.x; }, function (r) { return esc(r.x); }],
+      ['Residues', function (r) { return r.res; }, function (r) { return esc(r.res); }],
+      ['Resources', function (r) { return r.src; }, function (r) { return esc(r.src); }],
+      ['References', function (r) { return r.n; }, function (r) { return r.n; }, 'n']
+    ],
+    leads: [
+      ['Enzyme', function (r) { return r.g; }, function (r) { return protein(r.g, r.u); }],
+      ['Human-GEM subsystems', function (r) { return r.sub; }, function (r) { return esc(r.sub); }],
+      ['Regulator', function (r) { return r.r; }, function (r) { return protein(r.r, r.ru); }],
+      ['Family', function (r) { return r.f; }, function (r) { return esc(r.f); }],
+      ['Mechanism', function (r) { return r.x; }, function (r) { return esc(r.x); }],
+      ['Residues', function (r) { return r.res; }, function (r) { return esc(r.res); }],
+      ['Resources', function (r) { return r.src; }, function (r) { return esc(r.src); }],
+      ['References', function (r) { return r.n; }, function (r) { return r.n; }, 'n']
+    ]
+  }[LIST];
+  var rows = [], sortCol = 0, desc = false;
+  var text = function (r) { return COLUMNS.map(function (c) { return String(c[1](r)); }).join(' ') + ' ' + (r.u || '') + ' ' + (r.ru || '') + ' ' + (r.a || []).join(' '); };
+  function render() {
+    var q = document.getElementById('ls-filter').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    var shown = rows.filter(function (r) { return q.every(function (w) { return r._t.indexOf(w) >= 0; }); });
+    var key = COLUMNS[sortCol][1];
+    shown.sort(function (a, b) { var x = key(a), y = key(b); var c = typeof x === 'number' ? x - y : String(x).localeCompare(String(y)); return desc ? -c : c; });
+    var table = document.createElement('table');
+    table.className = 'ls';
+    table.innerHTML = '<thead><tr>' + COLUMNS.map(function (c, i) { return '<th data-i="' + i + '"' + (i === sortCol ? ' class="sorted' + (desc ? ' desc' : '') + '"' : '') + '>' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      shown.map(function (r) { return '<tr>' + COLUMNS.map(function (c) { return '<td' + (c[3] ? ' class="' + c[3] + '"' : '') + '>' + c[2](r) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody>';
+    table.querySelector('thead').addEventListener('click', function (e) { var i = +e.target.getAttribute('data-i'); if (isNaN(i)) return; desc = i === sortCol ? !desc : false; sortCol = i; render(); });
+    var wrap = document.getElementById('ls-wrap');
+    wrap.replaceChildren(table);
+    document.getElementById('ls-count').textContent = shown.length === rows.length ? rows.length + ' rows' : shown.length + ' of ' + rows.length + ' rows';
+  }
+  Promise.all(['summary', LIST].map(function (n) { return fetch('/lists-data/' + n + '.json', {cache: 'no-cache'}).then(function (r) { return r.json(); }); }))
+    .then(function (d) { maps = d[0].maps; rows = d[1]; rows.forEach(function (r) { r._t = text(r).toLowerCase(); }); render(); });
+  document.getElementById('ls-filter').addEventListener('input', render);
+})();
+</script>
