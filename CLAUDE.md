@@ -13,7 +13,8 @@ Names: this repository is public and names no private repository, in files, page
 
 - The viewer (`_includes/atlas-app.html`, `_includes/atlas-tags.css`) is a copy of the viewer's source
   (https://viewer-source.github.io, since 2026-11-09; `_includes/VERSION` names its commit): never edited here, a change
-  is made in the source and copied with its `copy-to-site.sh`. The layouts, styles and `meta.html` are this site's own
+  is made in the source and copied with its `copy-to-site.sh`. The Atlas page takes the newest default of the styles
+  experiment, Default Panel, with `look="panel"` on the include (user, 2026-11-10). The layouts, styles and `meta.html` are this site's own
   (from the Metabolism Regulation website, 2026-11-08).
 - Hidden: `noindex` on every page, linked from nowhere public.
 - After the data change, the workflow is started by hand or by the session that pushed them; a push here starts it too.
