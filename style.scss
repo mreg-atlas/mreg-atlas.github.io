@@ -332,8 +332,8 @@ nav .navdd-menu {
   }
   @include mobile { right: auto; left: 0; }
 }
-nav a.active, nav .navdd.active summary { font-weight: 500; }
-nav.plain a.active, nav.plain .navdd.active summary { font-weight: 300; } // as the Eicosanoid Atlas (masthead plain: true)
+// No bold in the menu (user, 2026-11-10): the current page's link looks like the others, quiet, never marked
+nav a.active, nav .navdd.active summary { font-weight: 300; }
 
 //
 // .main
