@@ -254,6 +254,7 @@ img {
   font-size: 21px;
   line-height: 1.25;
   letter-spacing: 1px;
+  a, a:hover { color: $gray; } // grey as the viewer's own pages (user, 2026-11-11)
 }
 
 .site-description {
@@ -282,7 +283,7 @@ nav {
 
   a {
     margin-left: 15px;
-    color: $darkGray;
+    color: $gray; // grey as the site's name (user, 2026-11-11)
     text-align: right;
     font-weight: 300;
     letter-spacing: 1px;
