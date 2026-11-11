@@ -49,6 +49,13 @@ look="panel" (user, 2026-11-10): Default Panel of the styles experiment, its own
     --m2-drag-shift: 1;
     --m2-menu: 0;                /* Search and Downloads as two rows at the top of the list in place of the search field and
                                     the download buttons (user, 2026-11-10, as in Claude's app): off, a style turns it on */
+    --m2-icons: 0;               /* a narrow column of icons on the left, each opening its window in the list's place (user,
+                                    2026-11-11, from MINERVA's): off, a style turns it on */
+    --m2-info-float: 0;          /* the molecule's panel floating over the map's right side on wide windows too, so the map
+                                    never moves or shrinks when it opens; it slides in (user, 2026-11-11): off, a style turns it on */
+    --m2-nav-float: 0;           /* with the icon column: its windows (Maps, Search, ...) float over the map's left side as a
+                                    temporary panel, so the map window keeps its whole width and never moves when one opens or
+                                    closes (user, 2026-11-11): off, a style turns it on */
     --m2-separator-below: 0;     /* the separator under the map window (its height): off for now (user, 2026-11-09: to think about) */
     --m2-split: 32px;            /* the gap between the list and the map: its separator can be dragged */
     --m2-split-h: 14px;          /* the gap under the map window, down to the download buttons: its separator too */
@@ -149,6 +156,96 @@ look="panel" (user, 2026-11-10): Default Panel of the styles experiment, its own
   #m2-menu-list a svg { width: 13px; height: 13px; margin-left: 8px; flex: none; }
   #m2-menu-list a.m2-bad { color: var(--m2-error); cursor: help; }
   #m2-menu-list .m2-sep { border-top: 1px solid var(--m2-line); margin: 4px 0; }
+  /* --m2-icons: 1 (user, 2026-11-11, from MINERVA's icon column, narrower): a column of small icons at the page's left
+     edge, each opening its own window in the list's place: the list of maps, the search (its field over the list),
+     the downloads (user, 2026-11-11; the symbols window tried the same day, for later: in the history). A click on
+     the icon of the open window, or its cross, closes it and the map takes the room; the window's width is the list's
+     (its separator). The download row under the map goes, its files are in the Downloads window. Wide windows only. */
+  #m2-rail, .m2 .m2-winhead, #m2-dlwin, #m2-extwin, #m2-infowin, #m2-setwin { display: none; }
+  @media (min-width: 941px) {
+    .m2.m2-icons-on { box-sizing: border-box; padding-left: 52px; }
+    .m2-icons-on #m2-rail { display: flex; flex-direction: column; align-items: center; gap: 4px; position: absolute; left: 0; top: 0; bottom: 0; width: 52px;
+      box-sizing: border-box; padding-top: 8px; border-right: 1px solid var(--m2-frame); }
+    /* the icon column goes too when the list's separator is dragged out of sight (user, 2026-11-11: "do not frozen left
+       column, it should be removable, collapsible too, as the overall style"); a click on the separator brings both back */
+    .m2.m2-icons-on.m2-rail-shut { padding-left: 0; }
+    .m2-icons-on.m2-rail-shut #m2-rail { display: none; }
+    .m2-icons-on #m2-downloads, .m2-icons-on #m2-menu { display: none; }
+    .m2-icons-on #m2-view { max-height: calc(200vh / var(--zoom, 1)); }
+    .m2-icons-on .m2-winhead { display: flex; }
+    .m2-icons-on .m2-winhead h3 { font-size: 14px; font-weight: 400;   /* no bold anywhere (user, 2026-11-11) */ }
+    .m2-win-list #m2-search, .m2-win-dl #m2-search, .m2-win-dl #m2-list, .m2-win-ext #m2-search, .m2-win-ext #m2-list,
+    .m2-win-info #m2-search, .m2-win-info #m2-list, .m2-win-set #m2-search, .m2-win-set #m2-list { display: none; }
+    .m2-win-dl #m2-dlwin, .m2-win-ext #m2-extwin, .m2-win-info #m2-infowin, .m2-win-set #m2-setwin { display: block; }
+    .m2-win-search:not(.m2-q) #m2-list { display: none; }   /* Search shows results only, not the Maps list again (user, 2026-11-11) */
+    /* --m2-nav-float: 1 (user, 2026-11-11: "it should not modify the usable window, a temporary panel"): the list's
+       column 0 wide, the window over the map from the icon column, as tall as the map window, sliding in; its width
+       (--m2-float-w) and height (--m2-float-h) set by the page; its separator on its right edge */
+    .m2.m2-nav-float { --m2-list-w: 0px !important; }
+    .m2-nav-float .m2-nav { position: absolute; grid-column: auto; left: 52px; top: 0; z-index: 3; width: var(--m2-float-w, 240px);
+      height: var(--m2-float-h, auto); overflow: hidden; background: var(--m2-bg); box-sizing: border-box; animation: m2-slide-l .16s ease-out; }
+    .m2-nav-float #m2-split { left: calc(var(--m2-float-w, 240px) - 4px) !important; z-index: 4; }
+    .m2-nav-float.m2-list-shut #m2-split { left: 0 !important; }
+    @keyframes m2-slide-l { from { opacity: 0; transform: translateX(-16px); } }
+    /* annotations on the left (Settings, user 2026-11-11, as MINERVA): the panel in the left window's place, its width,
+       the window under it out of sight until the panel closes; the right side stays free */
+    .m2-info-left.m2-info-float .m2-info.m2-over { left: 0; right: auto; width: var(--m2-float-w, 240px); border-left: 0; border-right: 1px solid var(--m2-frame); animation: m2-slide-l .16s ease-out; }
+    .m2-info-left-open .m2-nav, .m2-info-left-open #m2-split { visibility: hidden; }
+    .m2-info-left-open .m2-ri.m2-open { background: none; color: #80868b; }
+    @media (prefers-reduced-motion: reduce) { .m2-nav-float .m2-nav { animation: none; } }
+    #m2-infowin { overflow-y: auto; max-height: calc(100vh / var(--zoom, 1) - 110px); font-size: 14px; line-height: 1.45; color: var(--m2-text-soft); overflow-wrap: anywhere; }
+    #m2-infowin p { margin: 0 0 8px; padding: 0 4px; }
+    #m2-infowin .m2-pi-name { font-size: 16px; font-weight: 400; color: var(--m2-text); }
+    #m2-infowin .m2-k { color: var(--m2-muted); }
+  }
+  /* larger and grey (user, 2026-11-11: "a bit larger, more comfortable, also grey-ish"): 40 px buttons, 23 px signs in
+     a soft grey at rest; under the pointer and open the accent fill with a white sign, as before (user, the same day:
+     the grey was not meant for the selection) */
+  .m2-ri { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 8px; background: none; color: #80868b; cursor: pointer; }
+  .m2-ri svg { width: 23px; height: 23px; stroke-width: 1.6; }
+  .m2-ri:hover, .m2-ri.m2-open, .m2-ri.m2-leg-on { background: var(--m2-accent); color: var(--m2-on-accent); }
+  .m2-ri:focus { outline: none; }
+  /* plain links in the Downloads and Open in windows, no button look and no download or outside sign on each, the
+     window's icon says it already (user, 2026-11-11) */
+  /* easy to click (user, 2026-11-11: "make download buttons so easy to click"): each a full-width button, 28 px tall
+     (36 made the list too long, user, the same day), a light grey edge, the accent fill with white text under the pointer, as the icons */
+  #m2-dlwin, #m2-extwin { padding: 0 4px; }
+  /* the download buttons of the page under the map, full width (user, 2026-11-11: "use buttons from the default page") */
+  #m2-dlwin a, #m2-extwin a { display: block; box-sizing: border-box; font-size: 14px; line-height: 20px; padding: 4px 10px; margin: 0 0 8px;   /* 8 px apart (user, 2026-11-11: "a bit more space") */
+    background: var(--m2-bg); border: 1px solid var(--m2-button); border-radius: var(--m2-radius-button); color: var(--m2-button); text-decoration: none; }
+  #m2-dlwin a:hover, #m2-extwin a:hover { background: var(--m2-accent); border-color: var(--m2-accent); color: var(--m2-on-accent); }   /* a strong fill, never a light tint (user) */
+  #m2-dlwin a svg, #m2-extwin a svg { display: none; }
+  #m2-dlwin a.m2-bad { color: var(--m2-error); cursor: help; }
+  #m2-dlwin .m2-sep { border-top: 1px solid var(--m2-line); margin: 6px 0; }
+  /* Settings (user, 2026-11-11): the reader's map size, what 100% is, and how a map opens; kept in the reader's browser.
+     Choices as the page's download buttons in a row, the chosen one in the accent fill */
+  /* Legend (user, 2026-11-11): SBGN's PD learner's reference card (sbgn.github.io, CC0) in a window over the page, as
+     the pop-up windows in Claude's app: too wide for the left window; loaded only when opened; closed by its icon, the
+     cross, Esc or a click outside */
+  #m2-legend { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; background: #00000033; }
+  #m2-legend.m2-open { display: flex; }
+  #m2-legend .m2-leg-box { display: flex; flex-direction: column; width: min(1600px, 94vw); max-height: 92vh; box-sizing: border-box;
+    background: var(--m2-bg); border: 1px solid var(--m2-frame, var(--m2-line)); border-radius: 10px; box-shadow: 0 8px 32px #0000002e; animation: m2-pop .14s ease-out; }
+  @keyframes m2-pop { from { opacity: 0; transform: scale(.98); } }
+  #m2-legend .m2-info-head { padding: 12px 16px 0; margin: 0; }
+  #m2-legend .m2-leg-src { font-size: 12px; color: var(--m2-muted); }
+  #m2-legend .m2-leg-body { overflow: auto; min-height: 0; padding: 8px 16px 16px; }
+  #m2-legend .m2-leg-body img { display: block; width: 100%; height: auto; }
+  /* the switch between the two legends (user, 2026-11-11): it opens on the legend that suits the map (SBGN for a
+     GraphML map, CellDesigner for a CellDesigner one), the reader switches inside */
+  #m2-legend .m2-leg-tabs { display: inline-flex; margin: 0 10px; vertical-align: 2px; border: 1px solid var(--m2-button, var(--m2-line)); border-radius: var(--m2-radius-button, 6px); overflow: hidden; }
+  #m2-legend .m2-leg-tabs button { font: inherit; font-size: 12px; padding: 2px 10px; border: 0; background: none; color: var(--m2-text); cursor: pointer; }
+  #m2-legend .m2-leg-tabs button + button { border-left: 1px solid var(--m2-button, var(--m2-line)); }
+  #m2-legend .m2-leg-tabs button.m2-on { background: var(--m2-accent); color: var(--m2-on-accent, #fff); }
+  #m2-legend [data-leg]:not(button):not(.m2-on) { display: none; }
+  #m2-setwin { padding: 0 4px; font-size: 14px; line-height: 1.45; color: var(--m2-text-soft); }
+  #m2-setwin .m2-set-k { margin: 4px 0 6px; }
+  #m2-setwin .m2-set-note { font-size: 12px; color: var(--m2-muted); margin: 6px 0 14px; }
+  #m2-setwin .m2-set-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  #m2-setwin .m2-set-row button { font: inherit; font-size: 13px; line-height: 18px; padding: 4px 8px; min-width: 46px; cursor: pointer;
+    background: var(--m2-bg); border: 1px solid var(--m2-button); border-radius: var(--m2-radius-button); color: var(--m2-button); }
+  #m2-setwin .m2-set-row button:hover, #m2-setwin .m2-set-row button.m2-on { background: var(--m2-accent); border-color: var(--m2-accent); color: var(--m2-on-accent); }
+  #m2-setwin .m2-set-row button:focus { outline: none; }
   .m2-item { display: block; width: 100%; text-align: left; font-size: 14px; line-height: 18px; padding: 2px 4px; border: 1px solid transparent; border-radius: var(--m2-radius); background: none; cursor: pointer; color: var(--m2-text); }
   /* the chosen map: a filled box in the site's link blue, white text */
   /* under the pointer: --m2-hover (none since 2026-11-09; was a very light grey) */
@@ -263,6 +360,12 @@ look="panel" (user, 2026-11-10): Default Panel of the styles experiment, its own
   .m2-info { grid-column: 3; font-size: 14px; line-height: 1.45; color: var(--m2-text-soft); max-height: calc(100vh / var(--zoom, 1) - 140px); overflow-y: auto; overflow-wrap: anywhere; }
   .m2-info.m2-over { position: absolute; z-index: 2; top: 36px; right: 8px; bottom: 8px; width: min(260px, 70%); max-height: none; padding: 10px 12px; background: var(--m2-bg); border: 1px solid var(--m2-line); border-radius: var(--m2-radius); box-shadow: 0 2px 8px #0002; cursor: auto; user-select: text; }
   .m2-info:empty { display: none; }
+  /* --m2-info-float: 1 (user, 2026-11-11): the panel as a card over the map, the list's width (its own --m2-info-w),
+     sliding in from the right when it opens; switching molecules keeps it still */
+  .m2-info-float .m2-info.m2-over { top: 8px; right: 8px; bottom: auto; max-height: calc(100% - 16px); width: var(--m2-info-w, 240px); max-width: 70%;
+    box-sizing: border-box; padding: 12px 16px; border-color: var(--m2-frame, var(--m2-line)); box-shadow: 0 4px 16px #0000001f; animation: m2-slide .16s ease-out; }
+  @keyframes m2-slide { from { opacity: 0; transform: translateX(16px); } }
+  @media (prefers-reduced-motion: reduce) { .m2-info-float .m2-info.m2-over { animation: none; } }
   .m2-info-head { display: flex; align-items: baseline; gap: 6px; margin-bottom: 8px; }
   .m2-info-head h3 { font-size: 16px; font-weight: 400; margin: 0; flex: 1; }
   /* close: a thin cross in the soft grey of the group chevrons */
@@ -465,13 +568,29 @@ html .m2-list-shut #m2-split { left: 0; }
 </style>{% endif %}
 
 <div class="m2">
+<div id="m2-rail">
+<button type="button" class="m2-ri" data-win="search" title="Search" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button>
+<button type="button" class="m2-ri" data-win="list" title="Maps" aria-label="Maps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".6" fill="currentColor"/><circle cx="4.5" cy="12" r=".6" fill="currentColor"/><circle cx="4.5" cy="18" r=".6" fill="currentColor"/></svg></button>
+<button type="button" class="m2-ri" data-win="dl" title="Downloads" aria-label="Downloads"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 15v5h16v-5"/></svg></button>
+<button type="button" class="m2-ri" data-win="ext" title="Open in" aria-label="Open in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
+<button type="button" class="m2-ri" data-win="leg" data-opt="a" title="Legend (A: 6 squares)" aria-label="Legend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5" width="4.6" height="4.6" rx="1" fill="currentColor" stroke="none"/><rect x="10" y="5" width="4.6" height="4.6" rx="1" fill="currentColor" stroke="none"/><rect x="16.5" y="5" width="4.6" height="4.6" rx="1" fill="currentColor" stroke="none"/><rect x="3.5" y="11.5" width="4.6" height="4.6" rx="1" fill="currentColor" stroke="none"/><rect x="10" y="11.5" width="4.6" height="4.6" rx="1" fill="currentColor" stroke="none"/><rect x="16.5" y="11.5" width="4.6" height="4.6" rx="1" fill="currentColor" stroke="none"/><path d="M3 20.5h18"/></svg></button>
+<button type="button" class="m2-ri" data-win="leg" data-opt="c2" title="Legend (C2: 4 empty squares, gap 2.8)" aria-label="Legend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g stroke-width="1.4"><rect x="4.6" y="3.0" width="6.0" height="6.0" rx="1.5"/><rect x="13.4" y="3.0" width="6.0" height="6.0" rx="1.5"/><rect x="4.6" y="11.8" width="6.0" height="6.0" rx="1.5"/><rect x="13.4" y="11.8" width="6.0" height="6.0" rx="1.5"/><path d="M3.1 21.4H20.9"/></g></svg></button>
+<button type="button" class="m2-ri" data-win="leg" data-opt="e" title="Legend (E: 6 dots)" aria-label="Legend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="5.5" cy="7.5" r="2.1" fill="currentColor" stroke="none"/><circle cx="12" cy="7.5" r="2.1" fill="currentColor" stroke="none"/><circle cx="18.5" cy="7.5" r="2.1" fill="currentColor" stroke="none"/><circle cx="5.5" cy="14" r="2.1" fill="currentColor" stroke="none"/><circle cx="12" cy="14" r="2.1" fill="currentColor" stroke="none"/><circle cx="18.5" cy="14" r="2.1" fill="currentColor" stroke="none"/><path d="M3 20.5h18"/></svg></button>
+<button type="button" class="m2-ri" data-win="set" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+<button type="button" class="m2-ri" data-win="info" title="Info" aria-label="Info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".7" fill="currentColor"/></svg></button>
+</div>
 <div class="m2-nav">
+<div class="m2-winhead m2-info-head"><h3 id="m2-wintitle">Maps</h3><button type="button" class="m2-info-close" id="m2-winclose" title="Close" aria-label="Close"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12"/></svg></button></div>
 <div id="m2-menu">
 <button type="button" class="m2-mi" id="m2-menu-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>Search</button>
 <div id="m2-menu-dl"><button type="button" class="m2-mi" id="m2-menu-dl-button" aria-haspopup="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 15v5h16v-5"/></svg>Downloads</button><div id="m2-menu-list"></div></div>
 </div>
 <input type="search" id="m2-search" placeholder="Search" autocomplete="off">
 <div id="m2-list"></div>
+<div id="m2-dlwin"></div>
+<div id="m2-extwin"></div>
+<div id="m2-infowin"><p class="m2-pi-name">{{ include.name | default: site.name | default: site.title }}</p>{% assign about = include.about | default: site.description %}{% if about %}<p>{{ about }}</p>{% endif %}<p class="m2-k" id="m2-info-count"></p></div>
+<div id="m2-setwin"><p class="m2-set-k">Map size</p><div class="m2-set-row" id="m2-set-size"></div><p class="m2-set-note">What 100% is for every map: closer or further.</p><p class="m2-set-k">Maps open</p><div class="m2-set-row" id="m2-set-open"><button type="button" data-open="fit">Whole map</button><button type="button" data-open="read">At map size</button></div><div class="m2-set-side"><p class="m2-set-k" style="margin-top:14px">Annotations</p><div class="m2-set-row" id="m2-set-side"><button type="button" data-side="left">Left</button><button type="button" data-side="right">Right</button></div></div></div>
 </div>
 <div class="m2-main">
 <div id="m2-view" tabindex="0">
@@ -491,6 +610,7 @@ html .m2-list-shut #m2-split { left: 0; }
 <div id="m2-text"></div>
 </div>
 <aside class="m2-info" id="m2-info"></aside>
+<div id="m2-legend" role="dialog" aria-label="Legend"><div class="m2-leg-box"><div class="m2-info-head"><h3>Legend<span class="m2-leg-tabs"><button type="button" data-leg="sbgn">SBGN</button><button type="button" data-leg="celldesigner">CellDesigner</button></span><span class="m2-leg-src" data-leg="sbgn">SBGN Process Description, <a href="https://sbgn.github.io/learnerscards" target="_blank" rel="noopener">learner's reference card</a></span><span class="m2-leg-src" data-leg="celldesigner">CellDesigner's symbols, after MINERVA's legend</span></h3><button type="button" class="m2-info-close" id="m2-leg-close" title="Close" aria-label="Close"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12"/></svg></button></div><div class="m2-leg-body"><img data-leg="sbgn" alt="SBGN Process Description symbols" data-src="{{ '/images/legend/sbgn-pd-learners-card.svg' | relative_url }}"><img data-leg="celldesigner" alt="CellDesigner symbols" data-src="{{ '/images/legend/celldesigner-legend.svg' | relative_url }}"></div></div></div>
 </div>
 
 <script>
@@ -522,6 +642,10 @@ html .m2-list-shut #m2-split { left: 0; }
   // button and remembered by the browser where it can
   var mode = 'fit';
   try { if (localStorage.getItem('atlas-view') === 'read') mode = 'read'; } catch (e) {}
+  // the reader's map size (Settings, user 2026-11-11): what 100% is, a factor on the standard zoom, kept in the browser;
+  // the reading size and the cap of the whole-map view follow it, the % shown is against it
+  var SIZES = [0.75, 0.9, 1, 1.1, 1.25, 1.5], SIZE = 1;
+  try { var sv = parseFloat(localStorage.getItem('atlas-map-size')); if (SIZES.indexOf(sv) >= 0) SIZE = sv; } catch (e) {}
   // current: the map on screen; chosen: the map last asked for (the list, the arrow keys, the address), which
   // becomes current once its files are loaded. The list marks chosen, so a click or an arrow key shows at once
   var maps = [], byId = {}, topics = [], current = null, chosen = null;
@@ -579,8 +703,19 @@ html .m2-list-shut #m2-split { left: 0; }
   function prefetch() {
     var here = Math.max(0, maps.indexOf(current));
     maps.slice().sort(function (a, b) { return Math.abs(maps.indexOf(a) - here) - Math.abs(maps.indexOf(b) - here); })
-      .forEach(function (m) { files(m, true); });
+      .forEach(function (m, i) { files(m, true); if (i === 4) legendCard(); });
+    legendCard();   // fewer than five maps
   }
+  // the legend's card loads quietly with the maps, after the nearest ones, so it shows at once when opened (user,
+  // 2026-11-11: "immediately seeing what they expect to see, even on the first load")
+  function legendCard() {   // both legends, the one that suits the map first
+    if (!document.querySelector('#m2-rail .m2-ri[data-win="leg"]') || getComputedStyle(document.getElementById('m2-rail')).display === 'none') return;
+    var imgs = [].slice.call(document.querySelectorAll('#m2-legend img'));
+    imgs.sort(function (a, b) { return (b.dataset.leg === suitedLegend()) - (a.dataset.leg === suitedLegend()); }).forEach(function (i) {
+      get(i.dataset.src + BUILD, true).then(function () { if (!i.src) i.src = i.dataset.src + BUILD; });
+    });
+  }
+  window.addEventListener('resize', function () { if (current) legendCard(); });   // a style turning the icon column on later
   var view = document.getElementById('m2-view'), img = document.getElementById('m2-img');
   var z = STANDARD, tx = 0, ty = 0;
   var moved = false; // zoomed or panned away from the mode's view
@@ -616,11 +751,14 @@ html .m2-list-shut #m2-split { left: 0; }
     if (!menuDl.contains(e.target) || e.target.closest('#m2-menu-list a:not(.m2-bad)')) menuDlOpen(false);
   });
   // the menu holds what the download row holds, built from it: files, the images one by one, then the outside viewers
-  function fillMenu(dl) {
+  // part (the icon column's windows): 'files' leaves out the outside viewers, 'ext' takes only them, so no link shows twice
+  function fillMenu(dl, into, part) {
+    var menuList = into || document.getElementById('m2-menu-list');
     menuList.innerHTML = '';
     var ext = false;
     Array.prototype.forEach.call(dl.children, function (c) {
       if (c.tagName === 'DETAILS') {
+        if (part === 'ext') return;
         c.querySelectorAll('.m2-list a').forEach(function (a) {
           var b = el('a', null, 'Image ' + a.textContent);
           b.href = a.href; b.setAttribute('download', ''); b.insertAdjacentHTML('beforeend', DL_ICON);
@@ -629,13 +767,14 @@ html .m2-list-shut #m2-split { left: 0; }
         return;
       }
       if (c.tagName !== 'A') return;
+      if (part && (part === 'ext') !== c.classList.contains('m2-ext')) return;
       if (c.classList.contains('m2-ext') && !ext) { ext = true; if (menuList.children.length) menuList.appendChild(el('div', 'm2-sep')); }
       var b = c.cloneNode(true);
       b.className = c.classList.contains('m2-bad') ? 'm2-bad' : '';
       if (b.className) b.addEventListener('click', function (e) { e.preventDefault(); });
       menuList.appendChild(b);
     });
-    menuDl.style.display = menuList.children.length ? '' : 'none';
+    if (!into) menuDl.style.display = menuList.children.length ? '' : 'none';
   }
 
   document.addEventListener('click', function (e) {
@@ -678,7 +817,7 @@ html .m2-list-shut #m2-split { left: 0; }
     img.style.height = s.h * z + 'px';
     img.style.transform = 'translate(' + tx + 'px,' + ty + 'px)';
     drawPin();
-    document.getElementById('m2-zoom').textContent = Math.round(z / STANDARD * 100) + '%';
+    document.getElementById('m2-zoom').textContent = Math.round(z / (STANDARD * SIZE) * 100) + '%';
   }
   function zoomAt(nz, cx, cy) {
     nz = Math.max(MIN, Math.min(MAX, nz));
@@ -720,7 +859,7 @@ html .m2-list-shut #m2-split { left: 0; }
   var TOP = 36;
   function standard() {
     var s = size(current);
-    z = STANDARD / bz;
+    z = STANDARD * SIZE / bz;
     tx = (view.clientWidth - s.w * z) / 2;
     ty = TOP;
     moved = false;
@@ -731,7 +870,7 @@ html .m2-list-shut #m2-split { left: 0; }
   var FIT_MAX = 1;
   function fit() {
     var s = size(current);
-    z = Math.min(fitZoom(), STANDARD * FIT_MAX / bz);
+    z = Math.min(fitZoom(), STANDARD * SIZE * FIT_MAX / bz);
     tx = (view.clientWidth - s.w * z) / 2;
     ty = (view.clientHeight - s.h * z) / 2; // centred
     moved = false;
@@ -746,12 +885,52 @@ html .m2-list-shut #m2-split { left: 0; }
     showMode();
     if (m === 'fit') fit(); else standard();
   }
+  // Settings: the map size and how a map opens; a choice shows the map at once in the mode's view
+  // where the annotations open (Settings, user 2026-11-11): right, the default, or left in the list window's place as in
+  // MINERVA, keeping the right side free; only with the floating windows (--m2-nav-float), kept in the browser
+  var SIDE = 'right';
+  try { if (localStorage.getItem('atlas-info-side') === 'left') SIDE = 'left'; } catch (e) {}
+  function sideMark() {
+    var g = document.querySelector('.m2'), i = document.getElementById('m2-info'), on = SIDE === 'left' && g.classList.contains('m2-nav-float');
+    g.classList.toggle('m2-info-left', on);
+    g.classList.toggle('m2-info-left-open', on && i.classList.contains('m2-over') && i.childNodes.length > 0);
+    var box = document.querySelector('.m2-set-side'); if (box) box.style.display = g.classList.contains('m2-nav-float') ? '' : 'none';
+  }
+  document.querySelectorAll('#m2-set-side button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      SIDE = b.dataset.side;
+      try { if (SIDE === 'right') localStorage.removeItem('atlas-info-side'); else localStorage.setItem('atlas-info-side', SIDE); } catch (e) {}
+      showSettings(); sideMark();
+    });
+  });
+  if (window.MutationObserver) new MutationObserver(sideMark).observe(document.getElementById('m2-info'), { childList: true, attributes: true, attributeFilter: ['class'] });
+  window.addEventListener('resize', function () { setTimeout(sideMark, 0); });
+  function showSettings() {
+    document.querySelectorAll('#m2-set-side button').forEach(function (b) { b.classList.toggle('m2-on', b.dataset.side === SIDE); });
+    document.querySelectorAll('#m2-set-size button').forEach(function (b) { b.classList.toggle('m2-on', parseFloat(b.dataset.size) === SIZE); });
+    document.querySelectorAll('#m2-set-open button').forEach(function (b) { b.classList.toggle('m2-on', b.dataset.open === mode); });
+  }
+  SIZES.forEach(function (v) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.dataset.size = v; b.textContent = Math.round(v * 100) + '%';
+    b.addEventListener('click', function () {
+      SIZE = v;
+      try { if (v === 1) localStorage.removeItem('atlas-map-size'); else localStorage.setItem('atlas-map-size', v); } catch (e) {}
+      showSettings();
+      if (current) { if (mode === 'fit') fit(); else standard(); }
+    });
+    document.getElementById('m2-set-size').appendChild(b);
+  });
+  document.querySelectorAll('#m2-set-open button').forEach(function (b) {
+    b.addEventListener('click', function () { setMode(b.dataset.open); });
+  });
   function showMode() {
     var b = document.getElementById('m2-mode');
     b.textContent = mode === 'fit' ? 'Fit' : 'Read';
     b.title = mode === 'fit'
       ? 'Whole map. Click for reading size, the same for every map'
       : 'Reading size, the same for every map. Click for the whole map';
+    showSettings();
   }
   showMode();
   // after zooming or panning, a click returns to the mode's view;
@@ -774,6 +953,10 @@ html .m2-list-shut #m2-split { left: 0; }
     // (sent as the wheel with Ctrl) and the zoom buttons still zoom
     if (!e.ctrlKey && !e.metaKey && r.height > window.innerHeight + 1) return;
     e.preventDefault();
+    // Shift with the wheel scrolls the page from anywhere over the map (user, 2026-11-11: the map takes most of the
+    // screen, so the text under it was reached only from the edges); browsers send Shift with the wheel as a sideways
+    // scroll, so either direction is taken as the page's
+    if (e.shiftKey && !e.ctrlKey && !e.metaKey) { var d = e.deltaY || e.deltaX; window.scrollBy(0, e.deltaMode === 1 ? d * 16 : e.deltaMode === 2 ? d * window.innerHeight : d); return; }
     zoomAt(z * Math.exp(-e.deltaY * (e.deltaMode ? 0.05 : 0.0015)), (e.clientX - r.left) / pz(), (e.clientY - r.top) / pz());
   }, { passive: false });
   view.addEventListener('dblclick', function (e) {
@@ -916,6 +1099,8 @@ html .m2-list-shut #m2-split { left: 0; }
       ? Math.min(window.innerHeight, listBox.parentNode.getBoundingClientRect().bottom) - 8 * pz() : bottom;
     listBox.style.maxHeight = Math.max(120, Math.floor((listBottom - listBox.getBoundingClientRect().top) / pz())) + 'px';
     split.style.height = Math.max(0, Math.floor((bottom - split.parentNode.getBoundingClientRect().top) / pz())) + 'px';
+    // a floating list window (--m2-nav-float) as tall as the map window
+    if (grid && grid.classList.contains('m2-nav-float')) grid.style.setProperty('--m2-float-h', Math.max(0, Math.floor((vb.bottom - grid.getBoundingClientRect().top) / pz())) + 'px');
   }
   // the separator between the list and the map: dragged sideways it sets the list's width (under 60 px the list is
   // out of sight, the separator stays at the page's edge), a click on it then brings the list back, a double click
@@ -926,18 +1111,33 @@ html .m2-list-shut #m2-split { left: 0; }
   document.querySelector('.m2-main').insertBefore(split, document.querySelector('.m2-main').firstChild);
   var widthKey = 'atlas-list-width:' + location.pathname, LIST_W = 240, listW = LIST_W, lastW = LIST_W;
   try { var savedW = parseFloat(localStorage.getItem(widthKey)); if (savedW >= 0) listW = savedW; } catch (e) {}
+  // with the icon column: the column itself out of sight too, by the separator alone (the icons and the cross keep it)
+  var railKey = 'atlas-rail-shut:' + location.pathname, railShut = false;
+  try { railShut = localStorage.getItem(railKey) === '1' && listW === 0; } catch (e) {}
+  function setRailShut(v) {
+    railShut = v; grid.classList.toggle('m2-rail-shut', v);
+    try { if (v) localStorage.setItem(railKey, '1'); else localStorage.removeItem(railKey); } catch (e) {}
+  }
   function setListWidth(w, save) {
     w = Math.max(0, Math.min(600, Math.round(w)));
-    var shut = w < 60;
+    // with the icon column the list is never a narrow strip: under 160 px it closes (user, 2026-11-11: "two narrow
+    // things, not nice"), as the panel's 160 px
+    var minW = setting('icons') ? 160 : 60;
+    if (w >= minW && railShut) setRailShut(false);
+    var shut = w < minW;
     listW = shut ? 0 : w; if (!shut) lastW = w;
     var on = setting('separators');
     grid.classList.toggle('m2-seps', on);
     grid.classList.toggle('m2-below', on && setting('separator-below'));
     grid.classList.toggle('m2-list-shut', on && shut);
+    grid.classList.toggle('m2-nav-float', setting('icons') && setting('nav-float'));
+    if (!shut) grid.style.setProperty('--m2-float-w', listW + 'px');
+    railMark();
     if (!on || listW === LIST_W) grid.style.removeProperty('--m2-list-w'); else grid.style.setProperty('--m2-list-w', listW + 'px');
     if (save) { try { if (listW === LIST_W) localStorage.removeItem(widthKey); else localStorage.setItem(widthKey, listW); } catch (e) {} }
     listHeight();
   }
+  grid.classList.toggle('m2-rail-shut', railShut);
   setListWidth(listW, false);
   // a style chosen later (the styles page) turns the separators on or off: the page measures again on resize
   window.addEventListener('resize', function () { setListWidth(listW, false); grid.classList.toggle('m2-shift-drag', setting('drag-shift')); });
@@ -949,7 +1149,7 @@ html .m2-list-shut #m2-split { left: 0; }
       if (e.button !== 0) return;
       e.preventDefault();
       split.setPointerCapture(e.pointerId);
-      drag = { x: e.clientX, w: listW, moved: false };
+      drag = { x: e.clientX, w: listW, moved: false, rail: railShut };
     });
     split.addEventListener('pointermove', function (e) {
       if (!drag) return;
@@ -957,24 +1157,83 @@ html .m2-list-shut #m2-split { left: 0; }
       if (!drag.moved && Math.abs(dx) < 3) return;
       if (!drag.moved) { drag.moved = true; split.classList.add('m2-moving-split'); document.body.classList.add('m2-splitting'); }
       setListWidth(drag.w + dx, false);
+      // the icon column goes with the list when the drag ends out of sight, or when the list was already closed and the
+      // separator is dragged further left
+      if (setting('icons')) { if (listW === 0 && (drag.w >= 60 || dx < -20)) setRailShut(true); else if (listW === 0 && dx > 20 && !drag.rail) setRailShut(false); }
     });
     function end() {
       if (!drag) return;
       if (drag.moved) { if (listW === 0 && drag.w >= 60) lastW = drag.w; setListWidth(listW, true); } // shut: the width it had before comes back
-      else if (listW === 0) setListWidth(lastW, true); // a click on the separator of a list out of sight
+      else if (listW === 0) { setRailShut(false); setListWidth(Math.max(lastW, setting('icons') ? LIST_W : 0), true); } // a click on the separator of a list out of sight (and of the icon column)
       drag = null; split.classList.remove('m2-moving-split'); document.body.classList.remove('m2-splitting');
     }
     split.addEventListener('pointerup', end);
     split.addEventListener('pointercancel', end);
     split.addEventListener('dblclick', function () { setListWidth(LIST_W, true); });
   })();
+  // --m2-icons: 1 (user, 2026-11-11): the icon column (Maps, Search, Downloads); one window at a time in the list's place, a click on the icon of
+  // the open window or its cross closes it (the list's width 0, as its separator does), another icon opens its window
+  // railMark runs from setListWidth before this point is reached at load, so its names live inside it (a var here is
+  // still undefined then: the page stopped with "Cannot read properties of undefined", 2026-11-11)
+  var win = 'list';
+  function railMark() {
+    var WIN_NAMES = { list: 'Maps', search: 'Search', info: 'Info', dl: 'Downloads', ext: 'Open in', set: 'Settings' };
+    var g = document.querySelector('.m2'), on = setting('icons'), open = !g.classList.contains('m2-list-shut');
+    var w = win || 'list';
+    g.classList.toggle('m2-icons-on', on);
+    g.classList.toggle('m2-win-dl', on && w === 'dl');
+    g.classList.toggle('m2-win-list', on && w === 'list');
+    g.classList.toggle('m2-win-search', on && w === 'search');
+    var q = document.getElementById('m2-search'); g.classList.toggle('m2-q', !!(q && q.value.trim()));
+    g.classList.toggle('m2-win-ext', on && w === 'ext');
+    g.classList.toggle('m2-win-info', on && w === 'info');
+    g.classList.toggle('m2-win-set', on && w === 'set');
+    // Info is about the whole project, briefly, as MINERVA's (user, 2026-11-11: "brief info only on the whole project,
+    // not map"): its name, its description, how many maps; the map's name and text stay under the map
+    var pc = document.getElementById('m2-info-count');
+    if (pc && typeof maps !== 'undefined' && maps && maps.length) pc.textContent = maps.length + (maps.length === 1 ? ' map' : ' maps');
+    var t = document.getElementById('m2-wintitle'); if (t) t.textContent = WIN_NAMES[w];
+    document.querySelectorAll('#m2-rail .m2-ri').forEach(function (b) { b.classList.toggle('m2-open', on && open && b.dataset.win === w); });
+  }
+  document.querySelectorAll('#m2-rail .m2-ri').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (b.dataset.win === 'leg') { legBtn = b; legend(!document.getElementById('m2-legend').classList.contains('m2-open')); return; }
+      // annotations on the left cover the window: an icon closes them and shows its window
+      if (grid.classList.contains('m2-info-left-open')) { closeInfo(); if (!grid.classList.contains('m2-list-shut')) { win = b.dataset.win; railMark(); window.dispatchEvent(new Event('resize')); return; } }
+      var open = !grid.classList.contains('m2-list-shut');
+      if (open && win === b.dataset.win) setListWidth(0, true);
+      else { win = b.dataset.win; if (open) railMark(); else setListWidth(lastW >= 160 ? lastW : LIST_W, true); }
+      var field = document.getElementById('m2-search');
+      // Maps shows the whole list: a search left in the field is emptied; Search puts the cursor in the field
+      if (win === 'list' && field.value) { field.value = ''; buildList(''); }
+      if (win === 'search' && !grid.classList.contains('m2-list-shut')) field.focus();
+      window.dispatchEvent(new Event('resize'));
+    });
+  });
+  // every icon stays in the column whatever the map (user, 2026-11-11: the Open in icon looked missing on maps with no
+  // outside viewer); its window then says so
+  function railFill() {
+    ['dl', 'ext'].forEach(function (k) {
+      var box = document.getElementById('m2-' + k + 'win');
+      if (!box.children.length) box.innerHTML = '<div class="m2-none">' + (k === 'ext' ? 'Not in an outside viewer yet.' : 'No files for this map.') + '</div>';
+    });
+  }
+  document.getElementById('m2-winclose').addEventListener('click', function () { setListWidth(0, true); window.dispatchEvent(new Event('resize')); });
+  railMark();
   window.addEventListener('resize', listHeight);
   window.addEventListener('scroll', function () { if (getComputedStyle(listBox).position === 'sticky') listHeight(); }, { passive: true });
   if (window.ResizeObserver) {
     new ResizeObserver(listHeight).observe(view);
     new ResizeObserver(listHeight).observe(document.getElementById('m2-downloads'));
   }
-  if (window.ResizeObserver) new ResizeObserver(draw).observe(view);
+  // with the floating list (--m2-nav-float) a map not yet zoomed or panned is fitted again when the map window's width
+  // changes (the style's file arriving, the icon column closed), so a small map stays centred in the whole width
+  var viewW = 0;
+  if (window.ResizeObserver) new ResizeObserver(function () {
+    var w = view.clientWidth, again = w !== viewW && viewW && current && !moved && grid.classList.contains('m2-nav-float');
+    viewW = w;
+    if (again) { if (mode === 'fit') fit(); else standard(); } else draw();
+  }).observe(view);
 
   // full screen: the map alone; Esc or the button returns to the page
   var full = document.getElementById('m2-full');
@@ -1031,7 +1290,8 @@ html .m2-list-shut #m2-split { left: 0; }
   // wide windows: the right column; narrower: over the right side of the map
   var wide = window.matchMedia('(min-width: 1030px)');
   function placeInfo() {
-    var over = !wide.matches || isFull();
+    var float = setting('info-float'), over = !wide.matches || isFull() || float;
+    document.querySelector('.m2').classList.toggle('m2-info-float', float);
     info.classList.toggle('m2-over', over);
     var home = over ? view : document.querySelector('.m2');
     if (info.parentNode !== home) home.appendChild(info);
@@ -1154,7 +1414,22 @@ html .m2-list-shut #m2-split { left: 0; }
     member = -1;
     renderInfo();
     if (sel) reopenInfo();
+    clearOfCard();
     drawPin();
+  }
+  // a molecule under the floating card (--m2-info-float): the drawing shifts left just enough to show it beside the
+  // card (MINERVA's rule as the user noted it, 2026-11-11); otherwise nothing moves
+  function clearOfCard() {
+    if (!sel || !info.classList.contains('m2-over') || !info.childNodes.length) return;
+    var k = scaleOf(current), b = sel.box, z0 = pz();
+    var r = info.getBoundingClientRect(), v = view.getBoundingClientRect();
+    if (grid.classList.contains('m2-info-left')) {   // annotations on the left: the drawing shifts right just enough
+      var left = tx + b[0] / k * z, edgeL = (r.right - v.left) / z0 + 16;
+      if (left < edgeL) { tx += edgeL - left; draw(); }
+      return;
+    }
+    var right = tx + (b[0] + b[2]) / k * z, edge = (r.left - v.left) / z0 - 16;
+    if (right > edge) { tx -= right - edge; draw(); }
   }
   function closeInfo() { sel = null; renderInfo(); drawPin(); }
   // a search result chosen: its node is selected and centred at reading size
@@ -1166,7 +1441,7 @@ html .m2-list-shut #m2-split { left: 0; }
     if (!n) return;
     sel = n; member = -1;
     var k = scaleOf(current), b = n.box;
-    z = STANDARD / bz;
+    z = STANDARD * SIZE / bz;
     tx = view.clientWidth / 2 - (b[0] + b[2] / 2) / k * z;
     ty = view.clientHeight / 2 - (b[1] + b[3] / 2) / k * z;
     moved = true;
@@ -1174,6 +1449,31 @@ html .m2-list-shut #m2-split { left: 0; }
     reopenInfo();
     draw();
   }
+  // the legend window: SBGN or CellDesigner, each picture loaded the first time it shows
+  var legBtn = null;   // the Legend icon clicked (three candidate signs side by side for now: 6 squares, 4 empty squares (C2), 6 dots, user 2026-11-11)
+  function suitedLegend() { return current && current.legend === 'celldesigner' ? 'celldesigner' : 'sbgn'; }
+  function showLegend(which) {   // SBGN or CellDesigner: its tab lit, its picture and source line shown
+    var box = document.getElementById('m2-legend');
+    box.querySelectorAll('[data-leg]').forEach(function (e) { e.classList.toggle('m2-on', e.dataset.leg === which); });
+    var img = box.querySelector('img[data-leg="' + which + '"]');
+    if (!img.src) img.src = img.dataset.src + BUILD;
+  }
+  document.querySelectorAll('#m2-legend .m2-leg-tabs button').forEach(function (b) {
+    b.addEventListener('click', function () { showLegend(b.dataset.leg); });
+  });
+  function legend(open) {
+    var box = document.getElementById('m2-legend');
+    if (open) showLegend(suitedLegend());   // each opening starts on the legend that suits the map
+    box.classList.toggle('m2-open', open);
+    document.querySelectorAll('#m2-rail .m2-ri[data-win="leg"]').forEach(function (b) { b.classList.toggle('m2-leg-on', open && b === legBtn); });
+  }
+  // under the page's body: the viewer's grid is centred with a transform, which would place a fixed window from the grid
+  document.body.appendChild(document.getElementById('m2-legend'));
+  document.getElementById('m2-leg-close').addEventListener('click', function () { legend(false); });
+  document.getElementById('m2-legend').addEventListener('click', function (e) { if (e.target === this) legend(false); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && document.getElementById('m2-legend').classList.contains('m2-open')) { legend(false); e.stopImmediatePropagation(); }
+  }, true);
   // Esc closes the annotation too; in a family member's record it first returns to the cards
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape' || !sel) return;
@@ -1186,6 +1486,8 @@ html .m2-list-shut #m2-split { left: 0; }
     pin.style.transform = 'translate(' + (tx + (b[0] + b[2] / 2) / k * z) + 'px,' + (ty + (b[1] + b[3] / 2) / k * z) + 'px)';
   }
   function renderInfo() {
+    // --m2-info-float read again here: a style's file can arrive after the panel was first placed (the styles page)
+    if (wide.matches && !isFull() && setting('info-float') !== info.classList.contains('m2-over')) { placeInfo(); return; }
     info.innerHTML = '';
     if (!nodes || !sel) return;
     var p = props(sel.props);
@@ -1656,7 +1958,7 @@ html .m2-list-shut #m2-split { left: 0; }
       box.scrollTop = Math.max(0, Math.min(box.scrollTop, top - room), top + on.offsetHeight + room - box.clientHeight);
     }
   }
-  document.getElementById('m2-search').addEventListener('input', function () { buildList(this.value); });
+  document.getElementById('m2-search').addEventListener('input', function () { buildList(this.value); grid.classList.toggle('m2-q', !!this.value.trim()); });
   // arrow keys step through the listed maps, as on the Colours page; wraps around.
   // In the search box only up and down, so left and right still move the cursor
   document.addEventListener('keydown', function (e) {
@@ -1749,6 +2051,9 @@ html .m2-list-shut #m2-split { left: 0; }
       dl.appendChild(a);
     });
     fillMenu(dl);
+    fillMenu(dl, document.getElementById('m2-dlwin'), 'files');
+    fillMenu(dl, document.getElementById('m2-extwin'), 'ext');
+    railFill();
     var source = textOf(m), box = document.getElementById('m2-text');
     box.innerHTML = '';
     if (source) get(source.data + ver(source)).then(function (d) { if (current === m && d) box.innerHTML = d.html; });
@@ -1776,6 +2081,7 @@ html .m2-list-shut #m2-split { left: 0; }
 
   function setMaps(list) {
     maps = arrange(list); byId = {}; topics = [];
+    railMark(); // the map count in the Info window
     maps.forEach(function (m) {
       byId[m.id] = m;
       var t = topics.filter(function (x) { return x.name === m.topic; })[0];
