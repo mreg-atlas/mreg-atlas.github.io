@@ -19,6 +19,7 @@ table is built off screen and swapped in whole (web practice: never shown loadin
   table.ls td.one { white-space: nowrap; }
   table.ls td.wide { min-width: 360px; }
   table.ls td.maps { max-width: 220px; }
+  table.ls td.maps2 { min-width: 290px; }
   table.ls a { text-decoration: none; }
   table.ls .muted { color: #888; }
   table.ls .gene { font-weight: 600; }
@@ -44,7 +45,6 @@ table is built off screen and swapped in whole (web practice: never shown loadin
       ['Atlas maps with the enzyme', function (r) { return r.m.map(function (id) { return maps[id] || id; }).join(' '); }, function (r) { return mapLinks(r.m); }, 'maps']
     ],
     additions: [
-      ['Atlas map', function (r) { return r.m.map(function (id) { return maps[id] || id; }).join(' '); }, function (r) { return mapLinks(r.m); }],
       ['Enzyme', function (r) { return r.g; }, function (r) { return gene(r.g, r.u); }, 'one'],
       ['UniProt', function (r) { return r.u; }, function (r) { return uni(r.u); }, 'one'],
       ['Regulator', function (r) { return r.r; }, function (r) { return gene(r.r, r.ru); }, 'one'],
@@ -53,7 +53,8 @@ table is built off screen and swapped in whole (web practice: never shown loadin
       ['Mechanism', function (r) { return r.x; }, function (r) { return esc(r.x); }],
       ['Residues', function (r) { return r.res; }, function (r) { return esc(r.res); }],
       ['Resources', function (r) { return r.src; }, function (r) { return esc(r.src); }],
-      ['References', function (r) { return r.n; }, function (r) { return r.n; }, 'n']
+      ['References', function (r) { return r.n; }, function (r) { return r.n; }, 'n'],
+      ['Atlas maps with the enzyme', function (r) { return r.m.map(function (id) { return maps[id] || id; }).join(' '); }, function (r) { return mapLinks(r.m); }, 'maps2']
     ],
     leads: [
       ['Enzyme', function (r) { return r.g; }, function (r) { return gene(r.g, r.u); }, 'one'],
