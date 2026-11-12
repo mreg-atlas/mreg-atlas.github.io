@@ -6,7 +6,7 @@
      draft dark grey, new blue, image error red, copy (and the white draft) light grey with a
      lighter edge. On the chosen map (blue) every tag is clear with a white edge and word. */
   .m2-draft { display: inline-block; box-sizing: border-box; height: 16px; line-height: 14px; padding: 0 5px; margin-left: 6px; font-size: 11px; color: #555; background: var(--m2-bg); border: 1px solid #555; border-radius: 2px; }
-  .m2-on .m2-draft, .m2-on .m2-draft.m2-new, .m2-on .m2-draft.m2-ext, .m2-on .m2-draft.m2-white, .m2-on .m2-draft.m2-copy, .m2-on .m2-draft.m2-error { color: var(--m2-on-accent); background: transparent; border-color: var(--m2-on-accent); }
+  .m2-on .m2-draft, .m2-on .m2-draft.m2-new, .m2-on .m2-draft.m2-ext, .m2-on .m2-draft.m2-neo, .m2-on .m2-draft.m2-white, .m2-on .m2-draft.m2-copy, .m2-on .m2-draft.m2-error { color: var(--m2-on-accent); background: transparent; border-color: var(--m2-on-accent); }
   /* set by hand (TAGS in make_maps.py, user 2026-10-18): new in blue, a map not on the official
      site; draft in white, the same biology as the official map with small changes to its file */
   .m2-draft.m2-new { color: var(--m2-accent); border-color: var(--m2-accent); }
@@ -15,6 +15,12 @@
   .m2-draft.m2-ext { color: var(--m2-accent); border-color: var(--m2-accent); }
   .m2-ext .m2-name { color: var(--m2-accent); }
   .m2-on.m2-ext .m2-name { color: var(--m2-on-accent); }
+  /* the third round (user, 2026-11-12: "not in blue, but in some new color, like green, so I could see what comes
+     from a different kind of analysis"): drafts selected by the regulator-enzyme analysis, an extension map in
+     green; on the chosen map white like the others */
+  .m2-draft.m2-neo { color: var(--m2-neo, #2a8a4a); border-color: var(--m2-neo, #2a8a4a); }
+  .m2-neo .m2-name { color: var(--m2-neo, #2a8a4a); }
+  .m2-on.m2-neo .m2-name { color: var(--m2-on-accent); }
   /* copy: the official version kept in the Atlas for comparison (user, 2026-10-18), the same
      style as the white draft */
   .m2-draft.m2-white, .m2-draft.m2-copy { color: var(--m2-faint); border-color: #bbb; }
