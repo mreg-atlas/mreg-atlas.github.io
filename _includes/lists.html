@@ -10,12 +10,15 @@ table is built off screen and swapped in whole (web practice: never shown loadin
   .ls-count { color: #777; font-size: 14px; }
   .ls-wrap { overflow-x: auto; }
   table.ls { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.4; }
-  table.ls th, table.ls td { text-align: left; vertical-align: top; padding: 5px 8px; border-bottom: 1px solid #eee; }
+  table.ls th, table.ls td { text-align: left; vertical-align: top; padding: 3px 8px; border-bottom: 1px solid #eee; }
   table.ls th { position: sticky; top: 0; background: #fafafa; border-bottom: 1px solid #ccc; cursor: pointer;
                 white-space: nowrap; user-select: none; }
   table.ls th.sorted::after { content: " \25B4"; color: #999; }
   table.ls th.sorted.desc::after { content: " \25BE"; }
   table.ls td.n { text-align: right; white-space: nowrap; }
+  table.ls td.one { white-space: nowrap; }
+  table.ls td.wide { min-width: 360px; }
+  table.ls td.maps { max-width: 220px; }
   table.ls a { text-decoration: none; }
   table.ls .muted { color: #888; }
   table.ls .gene { font-weight: 600; }
@@ -27,22 +30,25 @@ table is built off screen and swapped in whole (web practice: never shown loadin
   var LIST = '{{ include.list }}';
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); };
   var uni = function (u) { return '<a href="https://www.uniprot.org/uniprotkb/' + esc(u) + '" target="_blank" rel="noopener" class="muted">' + esc(u) + '</a>'; };
-  var protein = function (g, u) { return '<span class="gene">' + esc(g || u) + '</span> ' + uni(u); };
+  var gene = function (g, u) { return '<span class="gene">' + esc(g || u) + '</span>'; };
   var maps = {};
   var mapLinks = function (ids) { return ids.map(function (id) { return '<a href="/atlas/#' + esc(id) + '">' + esc(maps[id] || id) + '</a>'; }).join('<br>'); };
-  var short = function (list, n) { return list.length > n ? esc(list.slice(0, n).join(', ')) + ' <span class="muted">+' + (list.length - n) + '</span>' : esc(list.join(', ')); };
+  var short = function (list, n) { return list.length > n ? esc(list.slice(0, n).join(', ')) + '&nbsp;<span class="muted">+' + (list.length - n) + '</span>' : esc(list.join(', ')); };
   var COLUMNS = {
     reactome: [
-      ['Enzyme', function (r) { return r.g; }, function (r) { return protein(r.g, r.u); }],
+      ['Enzyme', function (r) { return r.g; }, function (r) { return gene(r.g, r.u); }, 'one'],
+      ['UniProt', function (r) { return r.u; }, function (r) { return uni(r.u); }, 'one'],
       ['Reactome process', function (r) { return r.p; }, function (r) { return '<a href="https://reactome.org/content/detail/' + esc(r.s) + '" target="_blank" rel="noopener">' + esc(r.p) + '</a>'; }],
-      ['Class', function (r) { return r.c; }, function (r) { return esc(r.c); }],
-      ['Catalysts and regulators', function (r) { return r.a.length; }, function (r) { return short(r.a, 12); }],
-      ['Atlas maps with the enzyme', function (r) { return r.m.map(function (id) { return maps[id] || id; }).join(' '); }, function (r) { return mapLinks(r.m); }]
+      ['Class', function (r) { return r.c; }, function (r) { return esc(r.c); }, 'one'],
+      ['Catalysts and regulators', function (r) { return r.a.length; }, function (r) { return short(r.a, 12); }, 'wide'],
+      ['Atlas maps with the enzyme', function (r) { return r.m.map(function (id) { return maps[id] || id; }).join(' '); }, function (r) { return mapLinks(r.m); }, 'maps']
     ],
     additions: [
       ['Atlas map', function (r) { return r.m.map(function (id) { return maps[id] || id; }).join(' '); }, function (r) { return mapLinks(r.m); }],
-      ['Enzyme', function (r) { return r.g; }, function (r) { return protein(r.g, r.u); }],
-      ['Regulator', function (r) { return r.r; }, function (r) { return protein(r.r, r.ru); }],
+      ['Enzyme', function (r) { return r.g; }, function (r) { return gene(r.g, r.u); }, 'one'],
+      ['UniProt', function (r) { return r.u; }, function (r) { return uni(r.u); }, 'one'],
+      ['Regulator', function (r) { return r.r; }, function (r) { return gene(r.r, r.ru); }, 'one'],
+      ['UniProt', function (r) { return r.ru; }, function (r) { return uni(r.ru); }, 'one'],
       ['Family', function (r) { return r.f; }, function (r) { return esc(r.f); }],
       ['Mechanism', function (r) { return r.x; }, function (r) { return esc(r.x); }],
       ['Residues', function (r) { return r.res; }, function (r) { return esc(r.res); }],
@@ -50,9 +56,11 @@ table is built off screen and swapped in whole (web practice: never shown loadin
       ['References', function (r) { return r.n; }, function (r) { return r.n; }, 'n']
     ],
     leads: [
-      ['Enzyme', function (r) { return r.g; }, function (r) { return protein(r.g, r.u); }],
+      ['Enzyme', function (r) { return r.g; }, function (r) { return gene(r.g, r.u); }, 'one'],
+      ['UniProt', function (r) { return r.u; }, function (r) { return uni(r.u); }, 'one'],
       ['Human-GEM subsystems', function (r) { return r.sub; }, function (r) { return esc(r.sub); }],
-      ['Regulator', function (r) { return r.r; }, function (r) { return protein(r.r, r.ru); }],
+      ['Regulator', function (r) { return r.r; }, function (r) { return gene(r.r, r.ru); }, 'one'],
+      ['UniProt', function (r) { return r.ru; }, function (r) { return uni(r.ru); }, 'one'],
       ['Family', function (r) { return r.f; }, function (r) { return esc(r.f); }],
       ['Mechanism', function (r) { return r.x; }, function (r) { return esc(r.x); }],
       ['Residues', function (r) { return r.res; }, function (r) { return esc(r.res); }],
