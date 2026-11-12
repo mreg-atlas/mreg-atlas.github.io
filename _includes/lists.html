@@ -1,6 +1,7 @@
 {% comment %}
 The list pages (user, 2026-11-10): a table built from /lists-data/<list>.json, put into the site at build from the
-data repository. include.list: reactome, additions or leads. Filter box, sort by a click on a column header. The
+data repository. include.list: reactome, additions or leads. One order for all (user, 2026-11-13): enzyme and UniProt,
+what is said about it, the evidence, last where the enzyme sits (Atlas maps; Human-GEM subsystems on leads). Filter box, sort by a click on a column header. The
 table is built off screen and swapped in whole (web practice: never shown loading).
 {% endcomment %}
 <style>
@@ -20,6 +21,9 @@ table is built off screen and swapped in whole (web practice: never shown loadin
   table.ls td.wide { min-width: 360px; }
   table.ls td.maps { max-width: 220px; }
   table.ls td.maps2 { min-width: 290px; }
+  table.ls td.sub { min-width: 260px; max-width: 300px; }
+  table.ls td.res { min-width: 250px; }
+  table.ls td.site { min-width: 120px; }
   table.ls a { text-decoration: none; }
   table.ls .muted { color: #888; }
   table.ls .gene { font-weight: 600; }
@@ -51,22 +55,22 @@ table is built off screen and swapped in whole (web practice: never shown loadin
       ['UniProt', function (r) { return r.ru; }, function (r) { return uni(r.ru); }, 'one'],
       ['Family', function (r) { return r.f; }, function (r) { return esc(r.f); }],
       ['Mechanism', function (r) { return r.x; }, function (r) { return esc(r.x); }],
-      ['Residues', function (r) { return r.res; }, function (r) { return esc(r.res); }],
-      ['Resources', function (r) { return r.src; }, function (r) { return esc(r.src); }],
+      ['Residues', function (r) { return r.res; }, function (r) { return esc(r.res); }, 'site'],
+      ['Resources', function (r) { return r.src; }, function (r) { return esc(r.src); }, 'res'],
       ['References', function (r) { return r.n; }, function (r) { return r.n; }, 'n'],
       ['Atlas maps with the enzyme', function (r) { return r.m.map(function (id) { return maps[id] || id; }).join(' '); }, function (r) { return mapLinks(r.m); }, 'maps2']
     ],
     leads: [
       ['Enzyme', function (r) { return r.g; }, function (r) { return gene(r.g, r.u); }, 'one'],
       ['UniProt', function (r) { return r.u; }, function (r) { return uni(r.u); }, 'one'],
-      ['Human-GEM subsystems', function (r) { return r.sub; }, function (r) { return esc(r.sub); }],
       ['Regulator', function (r) { return r.r; }, function (r) { return gene(r.r, r.ru); }, 'one'],
       ['UniProt', function (r) { return r.ru; }, function (r) { return uni(r.ru); }, 'one'],
       ['Family', function (r) { return r.f; }, function (r) { return esc(r.f); }],
       ['Mechanism', function (r) { return r.x; }, function (r) { return esc(r.x); }],
-      ['Residues', function (r) { return r.res; }, function (r) { return esc(r.res); }],
-      ['Resources', function (r) { return r.src; }, function (r) { return esc(r.src); }],
-      ['References', function (r) { return r.n; }, function (r) { return r.n; }, 'n']
+      ['Residues', function (r) { return r.res; }, function (r) { return esc(r.res); }, 'site'],
+      ['Resources', function (r) { return r.src; }, function (r) { return esc(r.src); }, 'res'],
+      ['References', function (r) { return r.n; }, function (r) { return r.n; }, 'n'],
+      ['Human-GEM subsystems', function (r) { return r.sub; }, function (r) { return esc(r.sub); }, 'sub']
     ]
   }[LIST];
   var rows = [], sortCol = 0, desc = false;
