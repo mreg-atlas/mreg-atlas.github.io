@@ -23,7 +23,10 @@ look="panel" (user, 2026-11-10): Default Panel of the styles experiment, its own
      them by redefining them on :root (this :where() has no weight, so any later :root wins). */
   :where(:root) {
     --m2-accent: #4183c4;        /* the chosen map, chips, hover edges, new tags, the map pin */
-    --m2-neo: #2a8a4a;           /* drafts selected by the regulator-enzyme analysis (user, 2026-11-12: green) */
+    /* where a map came from (user, 2026-11-12), its name and draft tag in the list: literature curation blue (the
+       accent), the regulator-enzyme analysis green, the Reactome-Recon lists purple */
+    --m2-src-regulator-enzyme: #2a8a4a;
+    --m2-src-reactome-recon: #8e44ad;
     --m2-on-accent: #fff;        /* text and tag edges on the accent */
     --m2-link: #1c47a9;          /* links in the text and the panel (MINERVA's link blue) */
     --m2-text: #000;             /* map list and group names */
@@ -794,7 +797,6 @@ html .m2-icons-on:not(.m2-icon-row) #m2-rail { width: 52px; gap: 14px; padding-t
     'draft-white': ['<span class="m2-draft m2-white"><span>draft</span></span>', 'Draft map, the same biology as the official map'],
     'new': ['<span class="m2-draft m2-new"><span>new</span></span>', 'New map, not on the official site'],
     'draft-ext': ['<span class="m2-draft m2-ext"><span>draft</span></span>', 'Draft map of the Atlas extension'],
-    'draft-neo': ['<span class="m2-draft m2-ext m2-neo"><span>draft</span></span>', 'Draft map of the Atlas extension, selected by the regulator-enzyme analysis'],
     'copy': ['<span class="m2-draft m2-copy"><span>copy</span></span>', 'Copy of the official map, for comparison']
   };
   // a red tag when the map's images could not be drawn from its current GraphML (make_images.py)
@@ -2213,7 +2215,7 @@ html .m2-icons-on:not(.m2-icon-row) #m2-rail { width: 52px; gap: 14px; padding-t
         heading(group, shut);
       }
       if (shut) return;
-      var b = el('button', 'm2-item m2-map' + (m.group ? ' m2-sub' : '') + (m.tag === 'draft-ext' ? ' m2-ext' : m.tag === 'draft-neo' ? ' m2-ext m2-neo' : '') + (m === (chosen || current) ? ' m2-on' : ''));
+      var b = el('button', 'm2-item m2-map' + (m.group ? ' m2-sub' : '') + (m.tag === 'draft-ext' ? ' m2-ext' : '') + (m.source ? ' m2-src-' + m.source : '') + (m === (chosen || current) ? ' m2-on' : ''));
       b.appendChild(el('span', 'm2-name', label(m)));
       b.type = 'button';
       b.setAttribute('data-id', m.id);
