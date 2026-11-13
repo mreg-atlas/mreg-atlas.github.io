@@ -187,9 +187,10 @@
       if (!drawn && !force) { localTimer = setTimeout(local, 300); return; }
       localFor = null;
       var t = src();
-      if (atSite()) { V.draftDrop(s.id); dirty = false; localBox(); return; }
+      if (atSite()) { V.draftDrop(s.id); dirty = false; localBox(); toFolder(s.id, name, t, true); return; }   // a file in the folder back to the site's map too
       if (!lastSvg) return;
-      V.draftPut(s.id, { v: s.v, text: t, svg: lastSvg, width: map.width, height: map.height, x0: picX0(), y0: picY0(), ref: siteRef, cur: nowRef(), at: Date.now() })
+      toFolder(s.id, name, t);   // layer 2: the same file into the reader's folder, when there is one
+      V.draftPut(s.id, { file: name, v: s.v, text: t, svg: lastSvg, width: map.width, height: map.height, x0: picX0(), y0: picY0(), ref: siteRef, cur: nowRef(), at: Date.now() })
         .then(function () { if (site === s && src() === t) dirty = false; })
         .catch(function (e) { if (site === s) warn('Not kept in this browser: ' + (e && e.message ? e.message : e) + '. Download the map to keep your changes.'); });
     }
@@ -200,18 +201,97 @@
       if (localFor && localFor.id === id) { clearTimeout(localTimer); localTimer = null; localFor = null; }
       return V.draftDrop(id);
     }
-    // the first layer said in the Edit window while a map of the site is edited with no token, once a move is made: the
-    // explanation the first time in this browser, the download always (texts approved by the user, 2026-11-13)
+    // layer 2 (user, 2026-11-13: "saved automatically in a certain folder they choose"): a folder on the reader's computer,
+    // chosen once (Chrome, Edge: showDirectoryPicker), where every map kept in this browser is also written as its file, a
+    // moment after the last move. A file this browser did not write is never overwritten: one there already, or changed
+    // since by another program, gets the next free name beside it (acly-2.graphml). After a reload the browser may ask
+    // again (Allow), unless it keeps the permission (Chrome 122 and later can). The folder kept by the viewer (V.folder)
+    var canFolder = 'showDirectoryPicker' in window, folderOk = null, fq = Promise.resolve();   // folderOk null: not known yet (no text 3 or 4)
+    function folderCheck() {   // whether the page may write into the folder now (the Edit window's texts follow it)
+      folderOk = null; localBox();
+      return V.folder().then(function (f) {
+        if (!f) return V.folderForget().then(function () { return null; });   // its record lost: Choose a folder again
+        return f.dir.queryPermission({ mode: 'readwrite' });
+      }).then(function (p) { folderOk = p === 'granted'; localBox(); }, function () { folderOk = false; localBox(); });
+    }
+    function lost(e) {   // the folder moved, deleted or refused for good: said, and Choose a folder offered again
+      V.folderForget().then(function () { folderOk = null; localBox(); });
+      warn('Not saved to the folder: ' + (e && e.message ? e.message : e) + '.');
+    }
+    function freeName(dir, file, n) {
+      var nm = file.replace(/(\.[^.]+)?$/, '-' + n + '$1');
+      return dir.getFileHandle(nm).then(function () { return freeName(dir, file, n + 1); }, function () { return nm; });
+    }
+    function toFolder(id, file, t, ours) {   // one at a time, in the order asked; ours: only into a file written here before
+      if (!canFolder || !V.folderName() || !file) return fq;
+      fq = fq.then(function () {
+        return V.folder().then(function (f) {
+          if (!f) return;
+          var w = f.files[id];
+          if (ours && !w) return;
+          return f.dir.queryPermission({ mode: 'readwrite' }).then(function (p) {
+            folderOk = p === 'granted';
+            if (!folderOk) { localBox(); return; }
+            var nm = w ? w.name : file;
+            return f.dir.getFileHandle(nm).then(function (h) { return h.getFile(); }, function () { return null; }).then(function (old) {
+              // not ours (there before, or changed since by another program): beside it
+              return old && !(w && old.lastModified === w.mod && old.size === w.size) ? freeName(f.dir, file, 2) : nm;
+            }).then(function (nm2) {
+              var h;
+              return f.dir.getFileHandle(nm2, { create: true }).then(function (x) { h = x; return h.createWritable(); })
+                .then(function (wr) { return wr.write(t).then(function () { return wr.close(); }); })
+                .then(function () { return h.getFile(); })
+                .then(function (fl) { return V.folderFile(id, { name: nm2, mod: fl.lastModified, size: fl.size }); });
+            });
+          });
+        });
+      }).catch(function (e) { if (e && (e.name === 'NotFoundError' || e.name === 'NotAllowedError')) lost(e); else warn('Not saved to the folder: ' + (e && e.message ? e.message : e) + '.'); });
+      return fq;
+    }
+    function allToFolder() {   // every map kept in this browser, once a folder is chosen or allowed again
+      var d = V.drafts;
+      Object.keys(d).forEach(function (id) {
+        var m = V.byId[id], f = d[id].file || (graphmlOf(m) || '').split('?')[0].split('/').pop();
+        toFolder(id, f, d[id].text);
+      });
+      return fq;
+    }
+    function chooseFolder() {
+      if (!canFolder) return Promise.resolve();
+      return window.showDirectoryPicker({ id: 'atlas-maps', mode: 'readwrite' })
+        .then(function (dir) { return V.folderSet(dir); })
+        .then(function () { folderOk = true; localBox(); return allToFolder(); })
+        .catch(function (e) { if (e && e.name === 'AbortError') return; warn('No folder chosen: ' + (e && e.message ? e.message : e) + '.'); throw e; });
+    }
+    function allowFolder() {
+      return V.folder().then(function (f) { return f ? f.dir.requestPermission({ mode: 'readwrite' }) : 'denied'; })
+        .then(function (p) {
+          if (p === 'granted') { folderOk = true; localBox(); return allToFolder(); }
+          lost('the browser did not allow it');   // refused for good (or its record lost): Choose a folder again
+        })
+        .catch(lost);
+    }
+    box.querySelector('#m2-ed-l-folder').addEventListener('click', function () { chooseFolder().catch(function () {}); });
+    box.querySelector('#m2-ed-l-allow').addEventListener('click', allowFolder);
+    // what the Edit window says while a map of the site is edited with no token, once a move is made (texts approved by
+    // the user, 2026-11-13): no folder, text 1 the first time in this browser and Choose a folder (Chrome, Edge) or
+    // Download the map with text 2 (other browsers); the folder allowed, text 3; the folder to allow again, text 4 and Allow
     function localBox() {
       var b = box.querySelector('#m2-ed-local'), show = !!(on && site && site.pending && (undo.length || site.fromDraft));
       b.hidden = !show;
       if (!show) return;
-      var n = b.querySelector('.m2-set-note');
-      if (!n.dataset.seen) {
+      if (!b.dataset.seen) {
         var told = null; try { told = localStorage.getItem('atlas-edit-told'); localStorage.setItem('atlas-edit-told', '1'); } catch (e) {}
-        n.dataset.seen = told ? 'before' : 'now';
+        b.dataset.seen = told ? 'before' : 'now';
       }
-      n.hidden = n.dataset.seen === 'before';
+      var first = b.dataset.seen === 'now', fn = canFolder ? V.folderName() : '', q = function (k) { return b.querySelector(k); };
+      q('#m2-ed-l1').hidden = !first || !!fn;
+      q('#m2-ed-l2').hidden = !first || canFolder;
+      q('#m2-ed-local-dl').hidden = canFolder;
+      q('#m2-ed-l-folder').hidden = !canFolder || !!fn;
+      q('#m2-ed-l3').hidden = !fn || folderOk !== true;
+      q('#m2-ed-l4').hidden = q('#m2-ed-l-allow').hidden = !fn || folderOk !== false;
+      q('#m2-ed-l3 span').textContent = q('#m2-ed-l4 span').textContent = fn;
     }
     function download() {   // the map's file as it is now, where the browser puts downloads
       var a = document.createElement('a');
@@ -670,6 +750,7 @@
       try { text = g; parse(); } catch (e) { warn('Cannot edit ' + n + ': ' + e); return; }
       siteRef = null; name = n; handle = h; site = s || null;
       if (site) { site.base = site.pending && site.pub != null ? site.pub : t; site.fromDraft = t !== site.base; }   // no token: the site's text, a draft on top of it
+      if (site && site.pending && canFolder && V.folderName()) folderCheck();
       stuck = false; dirty = false; undo = []; redo = []; selN = []; selP = []; selE = [];
       map = { id: 'edit', title: openTitle || n, width: 0, height: 0, scale: 1, downloads: [] };
       if (same) {   // editing starts on the picture as it is: no redraw, the map stays where it is (user, 2026-11-12)
