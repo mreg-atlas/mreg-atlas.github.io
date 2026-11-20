@@ -120,28 +120,9 @@
       out.push(svg.slice(at));
       return out.join('');
     }
-    function liveDraw() {   // the compartments' outlines and labels on the picture follow their live boxes (GraphML)
-      if (!gN || cd) return;
-      if (liveOrig) Object.keys(liveOrig).forEach(function (i) { if (!liveC || !liveC[i]) undraw(+i); });
-      if (!liveC) return;
-      liveOrig = liveOrig || {};
-      Object.keys(liveC).forEach(function (k) {
-        var i = +k, n = nodes2[i], g = gN[n.id], b = liveC[i], o = boxOf(i);
-        if (!g || !n.comp) return;   // a node resized is drawn by sizeLive (create.js)
-        var first = g.firstElementChild && g.firstElementChild.localName === 'a' ? g.firstElementChild : g;
-        var paths = Array.prototype.filter.call(first.querySelectorAll(':scope > path'), function (x) { return !x.classList.contains('m2-ed-dark'); });
-        if (!liveOrig[i]) liveOrig[i] = paths.map(function (x) { return [x, x.getAttribute('d')]; });
-        var d = outlineD(n.shape, b[0], b[1], b[2], b[3]);
-        paths.forEach(function (x) { x.setAttribute('d', d); });
-        var pos = n.labPos || 'c', h = pos.charAt(pos.length - 1), v = pos.charAt(0);
-        var ddx = /l$/.test(pos) ? b[0] - o[0] : /r$/.test(pos) ? b[0] + b[2] - o[0] - o[2] : b[0] + b[2] / 2 - o[0] - o[2] / 2;
-        var ddy = v === 't' ? b[1] - o[1] : v === 'b' ? b[1] + b[3] - o[1] - o[3] : b[1] + b[3] / 2 - o[1] - o[3] / 2;
-        first.querySelectorAll(':scope > text').forEach(function (t) { t.setAttribute('transform', 'translate(' + f1(ddx) + ' ' + f1(ddy) + ')'); });
-      });
-    }
     // no negative places (negative coordinates are invalid in CellDesigner, so corrected in every format):
     // a map moved past the left or the top edge is shifted right or down, each on its own, by whole blocks of the grid
-    // (16, so a map on the grid stays on it) to start at 40 or a little more; the drawing stays where it is on screen
+    // (gridBlock, 16 on a grid of 8, so a map on the grid stays on it) to start at 40 or a little more; the drawing stays where it is on screen
     // (the renderer's frame follows). A GraphML here; a CellDesigner file in cd_edit.place
     // the same shift worked out ahead from a document alone (read ahead while the map is shown): the text it gives,
     // or the text itself when nothing moves; were it ever to differ from noNegative's, the drawing made ahead is simply
@@ -157,7 +138,7 @@
         mx = Math.min(mx, num(g, 'x')); my = Math.min(my, num(g, 'y'));
       });
       Array.prototype.forEach.call(d.getElementsByTagNameNS(Y, 'Point'), function (p) { mx = Math.min(mx, num(p, 'x')); my = Math.min(my, num(p, 'y')); });
-      var block = function (m) { return m < 0 ? Math.ceil((40 - m) / 16) * 16 : 0; }, sx = block(mx), sy = block(my);
+      var B = gridBlock(), block = function (m) { return m < 0 ? Math.ceil((40 - m) / B) * B : 0; }, sx = block(mx), sy = block(my);
       if (!sx && !sy) return t;
       return t.replace(re, function (tag) { return shiftTag(tag, sx, sy); });
     }
@@ -171,7 +152,7 @@
       var mx = Infinity, my = Infinity, re = /<y:(?:Geometry|Point)\s[^>]*>/g;
       nodes2.forEach(function (n, i) { var b = boxOf(i); mx = Math.min(mx, b[0]); my = Math.min(my, b[1]); });
       points.forEach(function (p) { mx = Math.min(mx, num(p, 'x')); my = Math.min(my, num(p, 'y')); });
-      var block = function (m) { return m < 0 ? Math.ceil((40 - m) / 16) * 16 : 0; }, sx = block(mx), sy = block(my);
+      var B = gridBlock(), block = function (m) { return m < 0 ? Math.ceil((40 - m) / B) * B : 0; }, sx = block(mx), sy = block(my);
       if (!sx && !sy) return null;
       text = text.replace(re, function (tag) { return shiftTag(tag, sx, sy); });
       return [sx, sy];

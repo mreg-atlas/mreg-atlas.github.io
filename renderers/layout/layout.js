@@ -4,12 +4,13 @@
 // the editor; tidy.py is its twin); complex_pack and snap_grid keep their master in the layout skill (Python, used by its
 // other scripts): a new copy of them (get_layout.sh) is made here too, and the comparison run. The rules and their reasons are in
 // the Python files, function by function, under the same names; comments here are short.
-//   browser: layout.tidy(text, what, ids, keepPorts) -> [new text, how many attributes changed]   (as tidy.tidy)
+//   browser: layout.tidy(text, what, ids, keepPorts, opt) -> [new text, how many attributes changed]   (as tidy.tidy;
+//            opt.grid and opt.route, JavaScript only: Snap map to grid's steps for nodes and bend points, 8 and 4 by default as snap_grid.py)
 //   node:    require('./layout.js').tidy(text, ..., { DOMParser })
 (function (root) {
   'use strict';
   var GNS = 'http://graphml.graphdrawing.org/xmlns', YNS = 'http://www.yworks.com/xml/graphml';
-  var GAP = 8.0, LEFT = 12.0, TOP = 16.0, RIGHT = 12.0, BOTTOM = 16.0, GAP_COMPLEX = 10.0, TOL = 5.0, SHORT = 2.0;
+  var GAP = 8.0, LEFT = 12.0, TOP = 16.0, RIGHT = 12.0, BOTTOM = 16.0, NAMED = 6.0, GAP_COMPLEX = 10.0, TOL = 5.0, SHORT = 2.0;
   var INSETS = [['left', 10], ['top', 12], ['right', 10], ['bottom', 16]];
 
   // ---- Python's arithmetic where JavaScript's differs ----
@@ -118,7 +119,13 @@
   function isComplex(n) { return get(n, 'yfiles.foldertype') === 'group' && (get(realizer(n), 'configuration') || '').indexOf('omplex') >= 0; }
   function labelXY(l, w, h) {
     var mp = descendant(l, YNS, 'SmartNodeLabelModelParameter');
-    if (!mp) return get(l, 'x') === null ? null : [F(get(l, 'x')), F(get(l, 'y'))];
+    if (!mp) {   // an internal label at its model position, as yEd puts it on loading
+      if (get(l, 'x') === null) return null;
+      if (get(l, 'modelName') !== 'internal') return [F(get(l, 'x')), F(get(l, 'y'))];
+      var lw0 = F(get(l, 'width')), lh0 = F(get(l, 'height')), pos = get(l, 'modelPosition') || 'c', bd = F(get(l, 'borderDistance') || '0');
+      var hz = 'lr'.indexOf(pos.slice(-1)) >= 0 ? pos.slice(-1) : 'c', vt = 'tb'.indexOf(pos.charAt(0)) >= 0 ? pos.charAt(0) : 'c';
+      return [{ l: bd, r: w - lw0 - bd, c: (w - lw0) / 2 }[hz], { t: bd, b: h - lh0 - bd, c: (h - lh0) / 2 }[vt]];
+    }
     var f = function (a) { return F(get(mp, a)); }, lw = F(get(l, 'width')), lh = F(get(l, 'height'));
     return [w / 2 + f('nodeRatioX') * w - f('labelRatioX') * lw + f('offsetX') - lw / 2, h / 2 + f('nodeRatioY') * h - f('labelRatioY') * lh + f('offsetY') - lh / 2];
   }
@@ -236,23 +243,24 @@
       kids(realizer(k), YNS, 'NodeLabel').forEach(function (l) { if (state.has(get(l, 'iconData')) && labelXY(l, kw, kh)) tops.push(labelXY(l, kw, kh)[1]); });
       cs.push([cx, cy, [e[0] - cx, e[1] - cy, e[2] - cx, e[3] - cy], Math.min.apply(null, tops) - kh / 2, kw, kh]);
     });
+    var labH = function (side) { return maxOr0(kids(realizer(n), YNS, 'NodeLabel').filter(function (l) {
+      return get(l, 'modelName') === 'internal' && get(l, 'visible') !== 'false' && (get(l, 'modelPosition') || '').slice(0, 1) === side && strip(leadText(l));
+    }).map(function (l) { return F(get(l, 'height')); })); };
+    var name = labH('b'), nameT = labH('t'), topM = nameT ? nameT + NAMED : TOP;   // a name inside at the bottom: NAMED under the members; at the top: NAMED above them, the name above that
     var xs, wn, ys, hn;
     if (ks.some(scaffold)) {
       var x0 = Math.min.apply(null, cs.map(function (c) { return c[0] + c[2][0]; }));
       var y0 = Math.min.apply(null, cs.map(function (c) { return c[1] + Math.min(c[2][1], c[3]); }));
       xs = cs.map(function (c) { return c[0] - x0 + LEFT; }); wn = Math.max.apply(null, cs.map(function (c) { return c[0] + c[2][2]; })) - x0 + LEFT;
-      ys = cs.map(function (c) { return c[1] - y0 + TOP; }); hn = Math.max.apply(null, cs.map(function (c) { return c[1] + c[2][3]; })) - y0 + TOP;
+      ys = cs.map(function (c) { return c[1] - y0 + topM; }); hn = Math.max.apply(null, cs.map(function (c) { return c[1] + c[2][3]; })) - y0 + topM;
     } else {
       var px = placed(cs.map(function (c) { return [c[0], [c[2][0], c[2][2]], [c[1] + c[2][1], c[1] + c[2][3]], c[2][0], c[4] / 2]; }), LEFT);
       xs = px[0]; wn = px[1];
       var wide = new Set(); ks.forEach(function (k, i) { if (isComplex(k)) wide.add(i); });
-      var py = placed(cs.map(function (c) { return [c[1], [c[2][1], c[2][3]], [c[0] + c[2][0], c[0] + c[2][2]], c[3], c[5] / 2]; }), TOP, wide);
+      var py = placed(cs.map(function (c) { return [c[1], [c[2][1], c[2][3]], [c[0] + c[2][0], c[0] + c[2][2]], c[3], c[5] / 2]; }), topM, wide);
       ys = py[0]; hn = py[1];
     }
-    var name = maxOr0(kids(realizer(n), YNS, 'NodeLabel').filter(function (l) {
-      return get(l, 'modelName') === 'internal' && get(l, 'visible') !== 'false' && (get(l, 'modelPosition') || '').slice(0, 1) === 'b' && strip(leadText(l));
-    }).map(function (l) { return F(get(l, 'height')); }));
-    wn = wn + RIGHT; hn = hn + BOTTOM + name;
+    wn = wn + RIGHT; hn = hn + (name ? NAMED + name : BOTTOM);   // a name shown inside: its label NAMED under the members
     var nx = x + w / 2 - wn / 2, ny = y + h / 2 - hn / 2;
     ks.forEach(function (k, i) { shift(k, nx + xs[i] - cs[i][0], ny + ys[i] - cs[i][1]); });
     setBox(n, [nx, ny, wn, hn]);
@@ -260,7 +268,7 @@
     if (!rs) throw new Error('TypeError: NoneType is not iterable');
     rs.forEach(function (r) {
       var ins = kid(r, YNS, 'Insets');
-      INSETS.forEach(function (q) { ins.setAttribute(q[0], String(q[1])); ins.setAttribute(q[0] + 'F', R(q[1])); });
+      INSETS.forEach(function (q) { var v = (q[0] === 'bottom' && name) || (q[0] === 'top' && nameT) ? NAMED : q[1]; ins.setAttribute(q[0], String(v)); ins.setAttribute(q[0] + 'F', R(v)); });
     });
   }
   function pack(rootEl) {
@@ -434,11 +442,11 @@
     centre.forEach(function (c, u) { most = Math.max(most, Math.max(Math.abs(mx.get(u)), Math.abs(my.get(u)))); });
     return most;
   }
-  function snap(rootEl) {
-    var most = 0.0;
+  function snap(rootEl, grid, route) {   // grid: node centres on it (8 by default, the layout rules' step); route: bend
+    var most = 0.0, node = grid > 0 ? grid : 8.0, rt = route > 0 ? route : node / 2;   // points on it (half of grid by default); how close points count as one line (4, 12) stays the map's own
     for (var i = 0; i < 4; i++) {
       var before = numbers(rootEl);
-      most = Math.max(most, onePass(rootEl, 8.0, 4.0, 4.0, 12.0));
+      most = Math.max(most, onePass(rootEl, node, rt, 4.0, 12.0));
       if (numbers(rootEl) === before) break;
     }
     return most;
@@ -490,7 +498,7 @@
     var doc = new DP().parseFromString(text, 'application/xml'), rootEl = doc.documentElement;
     var els = [rootEl].concat(Array.prototype.slice.call(rootEl.getElementsByTagName('*')));
     var before = els.map(attrs);
-    if (what === 'grid') snap(rootEl);
+    if (what === 'grid') snap(rootEl, opt && opt.grid, opt && opt.route);
     else if (what === 'fit') fit(rootEl, ids && ids.resize, (ids && ids.moved) || []);
     else pack(rootEl);
     var after = els.map(attrs);
@@ -535,6 +543,7 @@
     return [out.join(''), changed];
   }
 
-  var api = { tidy: tidy, pyRound: pyRound, pySum: pySum, floorDiv: floorDiv, num: num, extent: extent };   // extent: what a node draws round its box, for the editor's growing (grown, refit), as room() measures it
+  var api = { tidy: tidy, pyRound: pyRound, pySum: pySum, floorDiv: floorDiv, num: num, extent: extent,
+    room: { left: LEFT, top: TOP, right: RIGHT, bottom: BOTTOM, named: NAMED } };   // room: what Pack leaves round a complex's members (the editor's complex padding As Repack)   // extent: what a node draws round its box, for the editor's growing (grown, refit), as room() measures it
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.layout = api;
 })(typeof window !== 'undefined' ? window : globalThis);

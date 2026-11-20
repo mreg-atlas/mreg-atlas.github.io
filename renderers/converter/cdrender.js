@@ -178,6 +178,17 @@
   function pts(p) { return p.map(function (q) { return fmt(q[0]) + ',' + fmt(q[1]); }).join(' '); }
   function editPoints(s) { return (s || '').split(/\s+/).filter(function (q) { return q; }).map(function (q) { return q.split(',').map(F); }); }
   function unit(dx, dy) { var L = hypot(dx, dy) || 1; return [dx / L, dy / L]; }
+  function counts(rx) {   // a reactant's or product's stoichiometry other than 1 (SBGN's cardinality), by r: or p: and its alias (cdrender.py's counts)
+    var out = {};
+    [['s:listOfReactants', 'r'], ['s:listOfProducts', 'p']].forEach(function (lk) {
+      findall(rx, lk[0] + '/s:speciesReference').forEach(function (sr) {
+        var v = get(sr, 'stoichiometry'), a = findtext(sr, 's:annotation/cd:extension/cd:alias', null), n = v === null ? NaN : Number(v);
+        if (v === null || String(v).trim() === '' || !isFinite(n) || a === null || !(n > 0) || n === 1) return;
+        out[lk[1] + ':' + a] = String(n);   // as the converter's count_text writes it (2.50: 2.5)
+      });
+    });
+    return out;
+  }
   function ellipse(x, y, w, h, n) {
     n = n || 48; var o = [];
     for (var i = 0; i < n; i++) o.push([x + w / 2 * (1 + Math.cos(2 * Math.PI * i / n)), y + h / 2 * (1 + Math.sin(2 * Math.PI * i / n))]);
@@ -278,39 +289,81 @@
   }
   var D = Drawing.prototype;
   D.al = function (i) { if (!this.alias.has(i)) throw new Error('KeyError: ' + i); return this.alias.get(i); };
+  // a compartment's two lines and the band between them, its colour at a quarter (a light colour's lines in black): the
+  // map's drawing and the editor's sign dragged from the palette, so a compartment keeps its look on the drop
+  function compartmentShape(x, y, w, h, t, ow, iw, fill, oval) {
+    var rgb = [1, 3, 5].map(function (k) { return parseInt(fill.slice(k, k + 2), 16); }), ink = Math.min.apply(null, rgb) > 230 ? '#000' : fill;
+    if (oval) return ['<ellipse cx="' + fmt(x + w / 2) + '" cy="' + fmt(y + h / 2) + '" rx="' + fmt(w / 2 - t / 2) + '" ry="' + fmt(h / 2 - t / 2) + '" fill="none" stroke="' + fill + '" stroke-opacity="0.25" stroke-width="' + fmt(t) + '"/>',
+      '<ellipse cx="' + fmt(x + w / 2) + '" cy="' + fmt(y + h / 2) + '" rx="' + fmt(w / 2) + '" ry="' + fmt(h / 2) + '" fill="none" stroke="' + ink + '" stroke-width="' + fmt(ow) + '"/>',
+      '<ellipse cx="' + fmt(x + w / 2) + '" cy="' + fmt(y + h / 2) + '" rx="' + fmt(w / 2 - t) + '" ry="' + fmt(h / 2 - t) + '" fill="none" stroke="' + ink + '" stroke-width="' + fmt(iw) + '"/>'].join('\n');
+    var ri = Math.max(20 - t, 0);   // inner corners concentric with the outer ones
+    return ['<path d="' + rrect(x, y, w, h, 20) + ' ' + rrect(x + t, y + t, w - 2 * t, h - 2 * t, ri) + '" fill="' + fill + '" fill-opacity="0.25" fill-rule="evenodd"/>',
+      '<rect x="' + fmt(x) + '" y="' + fmt(y) + '" width="' + fmt(w) + '" height="' + fmt(h) + '" rx="20" fill="none" stroke="' + ink + '" stroke-width="' + fmt(ow) + '"/>',
+      '<rect x="' + fmt(x + t) + '" y="' + fmt(y + t) + '" width="' + fmt(w - 2 * t) + '" height="' + fmt(h - 2 * t) + '" rx="' + fmt(ri) + '" fill="none" stroke="' + ink + '" stroke-width="' + fmt(iw) + '"/>'].join('\n');
+  }
   D.compartments = function () {
     var self = this, cs = findall(this.ext, 'cd:listOfCompartmentAliases/cd:compartmentAlias');
     var key = function (a) { var b = find(a, 'cd:bounds'); return -F(get(b, 'w')) * F(get(b, 'h')); };
     cs = cs.map(function (a) { return [a, key(a)]; }).sort(function (p, q) { return p[1] - q[1]; }).map(function (p) { return p[0]; });
     cs.forEach(function (a) {
-      var b = find(a, 'cd:bounds');
-      if (!b) return;
+      if (!find(a, 'cd:bounds')) return;
       if (self.GROUPS) self.out.push('<g data-n="' + escape(get(a, 'id')) + '">');
-      var x = F(get(b, 'x')), y = F(get(b, 'y')), w = F(get(b, 'w')), h = F(get(b, 'h'));
-      var dl = find(a, 'cd:doubleLine');
-      var t = dl ? F(get(dl, 'thickness', 12)) : 12, ow = dl ? F(get(dl, 'outerWidth', 2)) : 2, iw = dl ? F(get(dl, 'innerWidth', 1)) : 1;
-      var fill = colour(get(find(a, 'cd:paint'), 'color'))[0];
-      var rgb = [1, 3, 5].map(function (k) { return parseInt(fill.slice(k, k + 2), 16); }), ink = Math.min.apply(null, rgb) > 230 ? '#000' : fill;
-      if (text(find(a, 'cd:class')) === 'OVAL') {
-        self.out.push('<ellipse cx="' + fmt(x + w / 2) + '" cy="' + fmt(y + h / 2) + '" rx="' + fmt(w / 2 - t / 2) + '" ry="' + fmt(h / 2 - t / 2) + '" fill="none" stroke="' + fill + '" stroke-opacity="0.25" stroke-width="' + fmt(t) + '"/>');
-        self.out.push('<ellipse cx="' + fmt(x + w / 2) + '" cy="' + fmt(y + h / 2) + '" rx="' + fmt(w / 2) + '" ry="' + fmt(h / 2) + '" fill="none" stroke="' + ink + '" stroke-width="' + fmt(ow) + '"/>');
-        self.out.push('<ellipse cx="' + fmt(x + w / 2) + '" cy="' + fmt(y + h / 2) + '" rx="' + fmt(w / 2 - t) + '" ry="' + fmt(h / 2 - t) + '" fill="none" stroke="' + ink + '" stroke-width="' + fmt(iw) + '"/>');
-      } else {
-        self.out.push('<path d="' + rrect(x, y, w, h, 20) + ' ' + rrect(x + t, y + t, w - 2 * t, h - 2 * t, 14) + '" fill="' + fill + '" fill-opacity="0.25" fill-rule="evenodd"/>');
-        self.out.push('<rect x="' + fmt(x) + '" y="' + fmt(y) + '" width="' + fmt(w) + '" height="' + fmt(h) + '" rx="20" fill="none" stroke="' + ink + '" stroke-width="' + fmt(ow) + '"/>');
-        self.out.push('<rect x="' + fmt(x + t) + '" y="' + fmt(y + t) + '" width="' + fmt(w - 2 * t) + '" height="' + fmt(h - 2 * t) + '" rx="14" fill="none" stroke="' + ink + '" stroke-width="' + fmt(iw) + '"/>');
-      }
-      var np = find(a, 'cd:namePoint');
-      if (np) self.nameLines(has(self.cnames, get(a, 'compartment')) ? self.cnames[get(a, 'compartment')] : '').forEach(function (line, k) {
-        self.text(line, F(get(np, 'x')), F(get(np, 'y')) + 15.5 + 14 * k, 12, 'start');
-      });
+      self.compartment(a);
       if (self.GROUPS) self.out.push('</g>');
+    });
+  };
+  // one compartment, at its bounds or at box (the editor's live drawing of one growing during a drag: its name moved
+  // with its corner, as cd_edit's place() moves the namePoint)
+  D.compartment = function (a, box) {
+    var self = this, b = find(a, 'cd:bounds'), x0 = F(get(b, 'x')), y0 = F(get(b, 'y'));
+    var x = box ? box[0] : x0, y = box ? box[1] : y0, w = box ? box[2] : F(get(b, 'w')), h = box ? box[3] : F(get(b, 'h'));
+    var dl = find(a, 'cd:doubleLine');
+    var t = dl ? F(get(dl, 'thickness', 12)) : 12, ow = dl ? F(get(dl, 'outerWidth', 2)) : 2, iw = dl ? F(get(dl, 'innerWidth', 1)) : 1;
+    self.out.push(compartmentShape(x, y, w, h, t, ow, iw, colour(get(find(a, 'cd:paint'), 'color'))[0], text(find(a, 'cd:class')) === 'OVAL'));
+    var np = find(a, 'cd:namePoint'), nm = has(self.cnames, get(a, 'compartment')) ? self.cnames[get(a, 'compartment')] : '';
+    // a name at the top middle of its bounds stays at the top middle of a live box (cd_edit's place() keeps it so)
+    // a name at one of the nine places stays there in a live box; one at the top middle by an older rule stays centred
+    var b0 = [x0, y0, F(get(b, 'w')), F(get(b, 'h'))], oval = text(find(a, 'cd:class')) === 'OVAL', pl = np && box && namePlaceOf(b0, nm, t, [F(get(np, 'x')), F(get(np, 'y'))], oval, true), at = pl && namePoint(box, nm, t, pl, oval);
+    var nx = at ? at[0] : np && box && Math.abs(F(get(np, 'x')) - nameLeft(b0, nm)) < 1 ? nameLeft(box, nm) : np && F(get(np, 'x')) + (x - x0);
+    var ny = at ? at[1] : np && F(get(np, 'y')) + (y - y0);
+    if (np) self.nameLines(nm).forEach(function (line, k) {
+      self.text(line, nx, ny + 15.5 + 14 * k, 12, 'start');
     });
   };
   D.text = function (s, x, y, size, anchor, family, extra) {
     if (size === undefined) size = 12;
     this.out.push('<text x="' + fmt(x) + '" y="' + fmt(y) + '" font-family="' + (family || FONT) + '" font-size="' + fmt(size) + '" text-anchor="' + (anchor || 'middle') + '"' + (extra || '') + '>' + escape(s) + '</text>');
   };
+  // the left of a compartment's name (its namePoint x, where the text starts) that puts it at the top middle of box: its
+  // widest line centred (the name drawn at 12, as D.compartment draws it)
+  function nameLeft(box, name) {
+    var w = Math.max.apply(null, plainName(name || '').split('_br_').join('\n').split('\n').map(function (l) { return width(l, 12); }));
+    return box[0] + box[2] / 2 - w / 2;
+  }
+  // a compartment's name at one of nine places in box (NAME_PLACES: top left, top, top right, left, centre, right,
+  // bottom left, bottom, bottom right), as CellDesigner 4.4 leaves a name dragged to an edge: its box (the widest line,
+  // 23 high and 14 more a line) the membrane's thickness + 5 from a side and + 0.5 from the top and bottom (17 and 12.5
+  // at its default 12), centred otherwise; on an oval a corner's box has its outer corner on the inner ellipse, at 45
+  // degrees from the centre. The namePoint is the box's top left, to 0.1 (CellDesigner writes halves)
+  var NAME_PLACES = ['tl', 't', 'tr', 'l', 'c', 'r', 'bl', 'b', 'br'];
+  function namePoint(box, name, th, p, oval) {
+    var ls = plainName(name || '').split('_br_').join('\n').split('\n'), w = Math.max.apply(null, ls.map(function (l) { return width(l, 12); })), h = 23 + 14 * (ls.length - 1);
+    var c = p.slice(-1), r = p.charAt(0), x, y;
+    if (oval && p.length === 2) {
+      var cx = box[0] + box[2] / 2, cy = box[1] + box[3] / 2, a = Math.max(box[2] / 2 - th, 0) / Math.SQRT2, e = Math.max(box[3] / 2 - th, 0) / Math.SQRT2;
+      x = c === 'l' ? cx - a : cx + a - w; y = r === 't' ? cy - e : cy + e - h;
+    } else {
+      x = c === 'l' ? box[0] + th + 5 : c === 'r' ? box[0] + box[2] - th - 5 - w : box[0] + box[2] / 2 - w / 2;
+      y = r === 't' ? box[1] + th + 0.5 : r === 'b' ? box[1] + box[3] - th - 0.5 - h : box[1] + box[3] / 2 - h / 2;
+    }
+    return [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
+  }
+  // which of the nine places a namePoint is at (within 1 on each axis), else null; one: null also where two or more
+  // places meet there (a box too short or narrow to tell them apart), so a move or resize keeps the name as it is
+  function namePlaceOf(box, name, th, np, oval, one) {
+    var hit = NAME_PLACES.filter(function (p) { var q = namePoint(box, name, th, p, oval); return Math.abs(q[0] - np[0]) < 1 && Math.abs(q[1] - np[1]) < 1; });
+    return hit.length && !(one && hit.length > 1) ? hit[0] : null;
+  }
   D.nameLines = function (name) { return plainName(name || '').split('_br_').join('\n').split('\n'); };
   D.species = function () {
     var self = this, depth = new Map();
@@ -347,7 +400,7 @@
       var lines = cls !== 'DEGRADED' ? this.nameLines(name) : [];
       var cy = y + fh / 2 - z * 7 / 12 * (lines.length - 1), mid = cls === 'ION_CHANNEL' ? x + (fw - 20) / 2 : x + fw / 2;
       lines.forEach(function (line, k2) { self.text(line, mid, cy + z / 3 + z * 7 / 6 * k2, z, 'middle', null, self.CLASSES ? ' class="t-' + (ROLE[cls] || 'white') + '"' : ''); });
-    } else this.text(this.nameLines(name).join(' '), x + fw / 2, y + fh - z * 7 / 12, z, 'middle', null, this.CLASSES ? ' class="t-complex"' : '');
+    } else this.text(this.nameLines(name).join(' '), x + fw / 2, y + fh - 7, z, 'middle', null, this.CLASSES ? ' class="t-complex"' : '');
   };
   D.shape = function (cls, b, fill, alpha, dash) {
     var x = b[0], y = b[1], w = b[2], h = b[3], self = this;
@@ -377,22 +430,26 @@
     var pref = find(si, 'cd:proteinReference'), mods = new Map();
     findall(si, 'cd:state/cd:listOfModifications/cd:modification').forEach(function (m) { mods.set(get(m, 'residue'), m); });
     var pid = pref ? text(pref) : null;
-    var siteName = function (site, px, py) {
+    // a residue's name inside the shape, as CellDesigner 4.4 draws it (its PDF of residues all round four proteins): at
+    // the same angle on the outline 9 in, 2 more in from a side the circle sits on, its middle level with that point;
+    // left-aligned left of the middle, right-aligned right of it, centred in the middle
+    var siteName = function (site, ang) {
       if (!site || !front) return;
-      var tw = width(site, 10), tx = px + (px <= x + 1 ? 11 : px >= x + w - 1 ? -11 : 0), ty = py + (py < y + h / 2 ? 11 : -11);
-      tx = Math.min(Math.max(tx, x + 2 + tw / 2), x + w - 2 - tw / 2);
-      self.text(site, tx, ty + 3.5, 10);
+      var e = 1e-6, o = onBorder(b, ang), fx = w ? (o[0] - x) / w - 0.5 : 0, fy = h ? (o[1] - y) / h - 0.5 : 0;
+      var p = onBorder([x + 9, y + 9, Math.max(w - 18, 0), Math.max(h - 18, 0)], ang);
+      var tx = p[0] + (fx <= -0.5 + e ? 2 : fx >= 0.5 - e ? -2 : 0), ty = p[1] + (fy <= -0.5 + e ? 2 : fy >= 0.5 - e ? -2 : 0);
+      self.text(site, tx, ty + 3.5, 10, fx < -e ? 'start' : fx > e ? 'end' : 'middle');
     };
     this.residues.forEach(function (r) {
       if (r[2] === pid && !mods.has(r[3])) {
         var p = onBorder(b, r[0]);
         self.out.push('<circle cx="' + fmt(p[0]) + '" cy="' + fmt(p[1]) + '" r="8" fill="#fff" stroke="#000"/>');
-        siteName(r[1], p[0], p[1]);
+        siteName(r[1], r[0]);
       }
     });
     mods.forEach(function (m) {
       var r = self.residues.get(pid + '\u0001' + get(m, 'residue')) || [0.0, null], p = onBorder(b, r[0]);
-      siteName(r[1], p[0], p[1]);
+      siteName(r[1], r[0]);
       self.out.push('<circle cx="' + fmt(p[0]) + '" cy="' + fmt(p[1]) + '" r="8" fill="#fff" stroke="#000"/>');
       var sym = has(SYMBOL, get(m, 'state')) ? SYMBOL[get(m, 'state')] : get(m, 'state');
       if (sym) self.text(sym, p[0], p[1] + 3.5, 9, 'middle', 'sans-serif');
@@ -400,7 +457,7 @@
     findall(si, 'cd:state/cd:listOfStructuralStates/cd:structuralState').forEach(function (st) {
       var sa = find(a, 'cd:structuralState'), ang = sa ? F(get(sa, 'angle')) : -Math.PI / 2, p = onBorder(b, ang), label = get(st, 'structuralState');
       self.out.push('<ellipse cx="' + fmt(p[0]) + '" cy="' + fmt(p[1]) + '" rx="' + Math.trunc(width(label, 10) / 2 + 12) + '" ry="8" fill="#fff" stroke="#000"/>');
-      self.text(label, p[0], p[1] + 3, 10);
+      self.text(label, p[0], p[1] + 3, 9);  // drawn at 9 (CellDesigner 4.4 PDF); the ellipse is sized from the text width at 10
     });
     var info = find(a, 'cd:info');
     if (front && info && get(info, 'state') === 'open') {
@@ -415,26 +472,30 @@
   D.box = function (i) { return this.al(i)[1]; };
   D.front = function (i) {
     var A = this.al(i), b = A[1], si = A[4], hd = si ? find(si, 'cd:state/cd:homodimer') : null, t = hd ? text(hd) : null;
-    var s = t && isdigit(t) ? 6 * (I(t) - 1) : 0;
-    return [b[0], b[1], b[2] - s, b[3] - s];
+    return frontBox(b, t && isdigit(t) ? I(t) : 1);
   };
+  function frontBox(b, n) { var s = 6 * (n - 1); return [b[0], b[1], b[2] - s, b[3] - s]; }   // a multimer of n drawn as its copies: the front one
   D.end = function (e, i) {
     var b = e ? find(e, 'cd:linkAnchor') : null, bx = this.box(i), x = bx[0], y = bx[1], w = bx[2], h = bx[3];
     var side = b ? get(b, 'position') : null;
     if (!side || !has(ANCHOR, side)) return [[x + w / 2, y + h / 2], false];
     return [this.at(i, side), true];
   };
-  D.at = function (i, side) {   // anchor side's point on alias i (cdrender.py's at)
-    var f = this.front(i), x = f[0], y = f[1], w = f[2], h = f[3];
-    var cls = this.al(i)[0];
+  D.at = function (i, side) { return anchorAt(this.al(i)[0], this.front(i), side); };   // anchor side's point on alias i (cdrender.py's at)
+  function anchorAt(cls, f, side) {   // anchor side's point on a species of class cls drawn in box f (the editor's landing places too)
+    var x = f[0], y = f[1], w = f[2], h = f[3];
     if (cls === 'RNA') {
       var fx = ANCHOR[side][0], fy = ANCHOR[side][1];
       if (fy === 0 || fy === 1) return [x + (fy === 0 ? h : 0) + fx * (w - h), y + fy * h];
       return [fx === 0 ? x + h * (1 - fy) : x + w - h * fy, y + fy * h];
     }
+    if (cls === 'COMPLEX' && /^(NE|SE|SW|NW)$/.test(side)) {   // a corner on the middle of its cut (the cut 5)
+      var cx = ANCHOR[side][0], cy = ANCHOR[side][1];
+      return [x + cx * w + (cx === 0 ? 2.5 : -2.5), y + cy * h + (cy === 0 ? 2.5 : -2.5)];
+    }
     if (cls === 'DEGRADED') { x += w / 8; y += h / 8; w *= 3 / 4; h *= 3 / 4; }  // on its drawn circle, 3/4 of the box (AsthmaMap mast cell PDF: no gap)
     return anchorPoint([x, y, w, h], side, ROUND.indexOf(cls) >= 0, cls === 'PHENOTYPE');
-  };
+  }
   D.clip = function (i, P, anchored, Q, shapeOnly) {   // the visual end (cdrender.py's clip)
     if (!anchored) P = leave(outline(this.al(i)[0], this.box(i)), P, Q);
     return shapeOnly ? P : enter(this.extras(i), Q, P);
@@ -484,10 +545,9 @@
     var line = function (p, q) { return '<line x1="' + fmt(p[0]) + '" y1="' + fmt(p[1]) + '" x2="' + fmt(q[0]) + '" y2="' + fmt(q[1]) + '" stroke="#000"/>'; };
     if (kind === 'production') { L.push('<polygon points="' + pts([T, at(15, 5), at(15, -5)]) + '" fill="#000"/>'); return at(14, 0); }
     if (kind === 'stimulation') { L.push('<polygon points="' + pts([T, at(8, 4), at(8, -4)]) + '" fill="#fff" stroke="#000"/>'); return at(8, 0); }
-    if (kind === 'stimulation-reduced') {
-      L.push('<polygon points="' + pts([T, at(15, 5), at(15, -5)]) + '" fill="#000"/>');
-      L.push('<polygon points="' + pts([at(4.8, 0), at(12, 2), at(12, -2)]) + '" fill="#fff"/>');
-      return at(15, 0);
+    if (kind === 'stimulation-reduced') {   // SBGN's open triangle, as yrender's white_delta
+      L.push('<polygon points="' + pts([T, at(16, 6), at(16, -6)]) + '" fill="#fff" stroke="#000"/>');
+      return at(16, 0);
     }
     if (kind === 'trigger') {
       L.push('<polygon points="' + pts([T, at(15, 5), at(15, -5)]) + '" fill="#fff" stroke="#000"/>');
@@ -509,6 +569,14 @@
   };
   var REDUCED_HEAD = { PHYSICAL_STIMULATION: 'stimulation-reduced', REDUCED_PHYSICAL_STIMULATION: 'stimulation-reduced', NEGATIVE_INFLUENCE: 'inhibition',
     REDUCED_MODULATION: 'modulation', REDUCED_TRIGGER: 'trigger', POSITIVE_INFLUENCE: 'production', CATALYSIS: 'catalysis', INHIBITION: 'inhibition' };
+  D.count = function (t, P, Q, head) {   // a cardinality (the converter's layout.count_box): a box beside the line from the entity's visual end P toward Q (cdrender.py's count)
+    var u = unit(Q[0] - P[0], Q[1] - P[1]), nx = -u[1], ny = u[0];
+    if (Math.abs(ny) < 0.2 ? nx < 0 : ny > 0) { nx = -nx; ny = -ny; }
+    var w = 6 * t.length + 6, h = 13, a = 4 + Math.abs(u[0]) * w / 2 + Math.abs(u[1]) * h / 2 + (head ? 16 : 0), b = 1 + Math.abs(nx) * w / 2 + Math.abs(ny) * h / 2;
+    var cx = P[0] + u[0] * a + nx * b, cy = P[1] + u[1] * a + ny * b;
+    this.lines.push('<rect x="' + fmt(cx - w / 2) + '" y="' + fmt(cy - h / 2) + '" width="' + fmt(w) + '" height="' + fmt(h) + '" fill="#fff" stroke="#000" stroke-width="0.8"/>' +
+      '<text x="' + fmt(cx) + '" y="' + fmt(cy + 3.2) + '" font-family="' + FONT + '" font-size="9" text-anchor="middle">' + escape(t) + '</text>');
+  };
   D.reaction = function (rx) {
     var x = find(rx, 's:annotation/cd:extension'), typ = text(find(x, 'cd:reactionType'));
     var br = findall(x, 'cd:baseReactants/cd:baseReactant'), bp = findall(x, 'cd:baseProducts/cd:baseProduct');
@@ -544,27 +612,31 @@
     k = Math.min(k, L - 2);
     var P = line[k], Q = line[k + 1], sq = [(P[0] + Q[0]) / 2, (P[1] + Q[1]) / 2], fl = unit(Q[0] - P[0], Q[1] - P[1]);
     this.ends(line, ra, pa);
-    var reversible = get(rx, 'reversible') !== 'false';
+    var reversible = get(rx, 'reversible') !== 'false', nums = counts(rx);
     u = unit(line[L - 1][0] - line[L - 2][0], line[L - 1][1] - line[L - 2][1]);
     if (this.GROUPS) {
       this.open(this.cur + '|a');
       var half = line.slice(0, k + 1).concat([sq]);
       if (reversible) half[0] = this.head('production', line[0], unit(line[0][0] - line[1][0], line[0][1] - line[1][1]));
       this.path(half, col, wd, dash, true, false);
+      if (nums.hasOwnProperty('r:' + ra)) this.count(nums['r:' + ra], line[0], line[1], reversible);
       this.close();
       this.open(this.cur + '|b');
       half = [sq].concat(line.slice(k + 1));
       half[half.length - 1] = this.head('production', line[L - 1], u);
       this.path(half, col, wd, dash, false, true);
+      if (nums.hasOwnProperty('p:' + pa)) this.count(nums['p:' + pa], line[L - 1], line[L - 2], true);
       this.close();
-      this.linksAndModifiers(x, P, Q, sq, fl, col, wd, dash, typ);
+      this.linksAndModifiers(x, P, Q, sq, fl, col, wd, dash, typ, nums);
       return;
     }
     var main = line.slice();
     main[L - 1] = this.head('production', line[L - 1], u);
     if (reversible) main[0] = this.head('production', line[0], unit(line[0][0] - line[1][0], line[0][1] - line[1][1]));
     this.path(main, col, wd, dash);
-    this.linksAndModifiers(x, P, Q, sq, fl, col, wd, dash, typ);
+    if (nums.hasOwnProperty('r:' + ra)) this.count(nums['r:' + ra], line[0], line[1], reversible);
+    if (nums.hasOwnProperty('p:' + pa)) this.count(nums['p:' + pa], line[L - 1], line[L - 2], true);
+    this.linksAndModifiers(x, P, Q, sq, fl, col, wd, dash, typ, nums);
   };
   D.branched = function (rx, x, typ, br, bp, ep, q, col, wd) {
     var self = this, ends = br.concat(bp);
@@ -622,7 +694,7 @@
     var seq = [G].concat(gbend.map(function (p) { return fromFrame(G, B, p); }), [B]), L = seq.length;
     seq[L - 1] = B = this.clip(pa, B, Bb[1], seq[L - 2]);
     var u = unit(B[0] - seq[L - 2][0], B[1] - seq[L - 2][1]);
-    var stop = this.head(GATE_HEAD[get(top[0], 'modificationType')] || 'stimulation', B, u);
+    var ot = get(top[0], 'modificationType'), stop = this.head(GATE_HEAD[ot] || REDUCED_HEAD[ot] || 'stimulation', B, u);
     var u0 = unit(seq[1][0] - G[0], seq[1][1] - G[1]);
     this.open(this.cur + '|a');
     this.path([[G[0] + 6 * u0[0], G[1] + 6 * u0[1]]].concat(seq.slice(1, -1), [stop]), col, wd, false, false, true);
@@ -644,7 +716,7 @@
     var tli = (get(m, 'targetLineIndex') || '-1,2').split(',')[1], k = I(tli), spot = has(SQUARE, k) ? SQUARE[k] : SQUARE[3];
     return [sq[0] + 5 * (spot[0] * fl[0] - spot[1] * fl[1]), sq[1] + 5 * (spot[0] * fl[1] + spot[1] * fl[0])];
   }
-  D.linksAndModifiers = function (x, P, Q, sq, fl, col, wd, dash, typ) {
+  D.linksAndModifiers = function (x, P, Q, sq, fl, col, wd, dash, typ, nums) {
     var self = this;
     var joins = [0.375, 0.625].map(function (t) { return [P[0] + t * (Q[0] - P[0]), P[1] + t * (Q[1] - P[1])]; });
     [['cd:listOfReactantLinks/cd:reactantLink', true], ['cd:listOfProductLinks/cd:productLink', false]].forEach(function (tg) {
@@ -657,13 +729,17 @@
         var bends = editPoints(get(l, 'editPoints') || findtext(l, 'cd:editPoints', '')).map(function (p) { return into ? fromFrame(O, J, p) : fromFrame(J, O, p); });
         var seq = [O].concat(into ? bends : bends.slice().reverse(), [J]);
         seq[0] = self.clip(i, O, Oo[1], seq[1]);
-        var lc = find(l, 'cd:line'), lcol = lc ? colour(get(lc, 'color'))[0] : col;
-        if (into) self.path(seq, lcol, wd, dash, true, false);
-        else {
+        var lc = find(l, 'cd:line'), lcol = lc ? colour(get(lc, 'color'))[0] : col, lwd = lc ? F(get(lc, 'width', wd)) : wd;   // an added reactant or product in its own colour and width, as CellDesigner keeps one for each
+        var nk = (into ? 'r:' : 'p:') + i;
+        if (into) {
+          self.path(seq, lcol, lwd, dash, true, false);
+          if (nums && nums.hasOwnProperty(nk)) self.count(nums[nk], seq[0], seq[1]);
+        } else {
           seq = seq.reverse();
           var L = seq.length, w_ = unit(seq[L - 1][0] - seq[L - 2][0], seq[L - 1][1] - seq[L - 2][1]);
           var stop = self.head('production', seq[L - 1], w_);
-          self.path(seq.slice(0, -1).concat([stop]), lcol, wd, dash, false, true);
+          self.path(seq.slice(0, -1).concat([stop]), lcol, lwd, dash, false, true);
+          if (nums && nums.hasOwnProperty(nk)) self.count(nums[nk], seq[L - 1], seq[L - 2], true);
         }
         self.close();
       });
@@ -707,7 +783,7 @@
       u = unit(seq[seq.length - 1][0] - seq[seq.length - 2][0], seq[seq.length - 1][1] - seq[seq.length - 2][1]);
       stop = self.head(HEADS[t] || 'stimulation', T, u);
       var mc = find(m, 'cd:line');
-      self.path(seq.slice(0, -1).concat([stop]), mc ? colour(get(mc, 'color'))[0] : col, wd, t.indexOf('UNKNOWN') === 0, true, false);
+      self.path(seq.slice(0, -1).concat([stop]), mc ? colour(get(mc, 'color'))[0] : col, mc ? F(get(mc, 'width', wd)) : wd, t.indexOf('UNKNOWN') === 0, true, false);
       self.close();
     });
     var ang = Math.atan2(fl[1], fl[0]) * 180 / Math.PI;
@@ -746,7 +822,7 @@
     return [svg, { aliases: aliases, reactions: reactions }];
   }
   var api = { render: render, renderHits: renderHits, Drawing: Drawing, py: py, xml: xml, SQUARE: SQUARE, ANCHOR: ANCHOR, fromFrame: fromFrame, toFrame: toFrame,
-    editPoints: editPoints, unit: unit, onBorder: onBorder, width: width, target: target, plainName: plainName, NAME: NAME, GATE: GATE };   // GATE: the editor's palette checks its signs against it   // NAME: cd_make.js writes names
+    editPoints: editPoints, unit: unit, onBorder: onBorder, width: width, target: target, plainName: plainName, NAME: NAME, GATE: GATE, SYMBOL: SYMBOL, ROLE: ROLE, ANCHOR: ANCHOR, anchorAt: anchorAt, frontBox: frontBox, compartmentShape: compartmentShape, nameLeft: nameLeft, NAME_PLACES: NAME_PLACES, namePoint: namePoint, namePlaceOf: namePlaceOf };   // GATE: the editor's palette checks its signs against it   // NAME: cd_make.js writes names
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.cdrender = api;
 
   if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {   // node cdrender.js map.xml out.svg

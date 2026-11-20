@@ -31,9 +31,9 @@
         // two presets in place of the bare one (conceptual type gene and conceptual type mRNA, so the kind is always clear
         // and compatible: CellDesigner has a gene and an RNA, no nucleic acid feature): each
         // made with its unit of information (PRESET), which can be retyped or deleted as any other; the signs' words centred
-        // in the shape, mRNA's as rna for compactness (the unit made stays ct:mRNA)
-        ['nucleic acid feature ct:gene', 'Nucleic acid feature, ct:gene', '<path d="M1.5 5h21v9.5q0 4.5-4.5 4.5h-12q-4.5 0-4.5-4.5z"/><text x="12" y="13.8" text-anchor="middle" font-size="7">gene</text>'],
-        ['nucleic acid feature ct:mRNA', 'Nucleic acid feature, ct:mRNA', '<path d="M1.5 5h21v9.5q0 4.5-4.5 4.5h-12q-4.5 0-4.5-4.5z"/><text x="12" y="13.8" text-anchor="middle" font-size="7">mrna</text>'],
+        // in the shape at one size, mRNA in its own capitals (the unit made stays ct:mRNA)
+        ['nucleic acid feature ct:gene', 'Nucleic acid feature, ct:gene', '<path d="M1.5 5h21v9.5q0 4.5-4.5 4.5h-12q-4.5 0-4.5-4.5z"/><text x="12" y="14" text-anchor="middle" font-size="5.5">gene</text>'],
+        ['nucleic acid feature ct:mRNA', 'Nucleic acid feature, ct:mRNA', '<path d="M1.5 5h21v9.5q0 4.5-4.5 4.5h-12q-4.5 0-4.5-4.5z"/><text x="12" y="14" text-anchor="middle" font-size="5.5">mRNA</text>'],
         ['unspecified entity', 'Unspecified entity', '<ellipse cx="12" cy="12" rx="10.5" ry="7"/>'],
         ['complex', 'Complex', '<path d="M6 4h12l4 4v8l-4 4h-12l-4-4v-8z"/>'],
         ['perturbing agent', 'Perturbing agent', '<path d="M1.5 5h21l-3.5 7 3.5 7h-21l3.5-7z"/>'],
@@ -47,7 +47,10 @@
       // the card's one-sign sections (Container Nodes, Encapsulation Node) joined, as Newt's Other nodes (no
       // group of a single sign)
       ['Other nodes', [['compartment', 'Compartment', '<rect x="1.5" y="3" width="21" height="18" rx="4.5" stroke-width="2.2"/>'],
-        ['submap', 'Submap', '<rect x="1.5" y="4" width="21" height="16"/>']]],
+        ['submap', 'Submap', '<rect x="1.5" y="4" width="21" height="16"/>'],
+        // a tag: dropped on a submap's border it is that submap's terminal, sliding along it; elsewhere a free tag. Only
+        // with Settings, Editing, CellDesigner compatible unticked (CellDesigner has neither; compat())
+        ['tag', 'Tag', '<path d="M1.5 7h15l6 5-6 5h-15z"/>']]],
       // logic gates (with SBGN's equivalence operator), a
       // circle with its word or sign, made bare as a process, its antennas grown by its arcs; marks inside a sign are class
       // 'in', a dot class 'dot', letters plain <text>: their weight is the Edit window's one rule (atlas-app.html, Sign weights)
@@ -55,16 +58,15 @@
         ['or', 'OR', '<circle cx="12" cy="12" r="10"/><text x="12" y="14.9" text-anchor="middle" font-size="8.2">OR</text>'],
         ['not', 'NOT', '<circle cx="12" cy="12" r="10"/><text x="12" y="14.7" text-anchor="middle" font-size="7.4" letter-spacing="-.1">NOT</text>'],
         ['equivalence', 'Equivalence', '<circle cx="12" cy="12" r="10"/><path d="M7.5 8.8h9M7.5 12h9M7.5 15.2h9" class="in"/>']]],
-      // arcs: drawn by a drag from a node, the kind
-      // guessed from its two ends; a sign picked is used as it is
+      // arcs: drawn by a drag from a node with the arc's sign picked
       ['Connecting arcs', [['consumption', 'Consumption / logic arc', '<path d="M3 12h18"/>'],
         ['production', 'Production', '<path d="M3 12h11"/><path d="M13 7.5l8 4.5-8 4.5z" fill="currentColor"/>'],
-        // the modulations, the card's order
-        ['modulation', 'Modulation', '<path d="M3 12h10"/><path d="M13 12l4-4 4 4-4 4z"/>'],
-        ['stimulation', 'Stimulation', '<path d="M3 12h10"/><path d="M13 7.5l8 4.5-8 4.5z"/>'],
+        // the modulations, by use: catalysis, the most used, first; modulation, the least used, last
         ['catalysis', 'Catalysis', '<path d="M3 12h12"/><circle cx="18" cy="12" r="3"/>'],
+        ['stimulation', 'Stimulation', '<path d="M3 12h10"/><path d="M13 7.5l8 4.5-8 4.5z"/>'],
         ['inhibition', 'Inhibition', '<path d="M3 12h17M20 6v12"/>'],
-        ['necessary stimulation', 'Necessary stimulation', '<path d="M3 12h7M10 7v10"/><path d="M13 7.5l8 4.5-8 4.5z"/>']]]
+        ['necessary stimulation', 'Necessary stimulation', '<path d="M3 12h10M10 7v10"/><path d="M13 7.5l8 4.5-8 4.5z"/>'],
+        ['modulation', 'Modulation', '<path d="M3 12h10"/><path d="M13 12l4-4 4 4-4 4z"/>']]]
     ];
     // Activity Flow (two tabs, PD and AF, and under AF the
     // view, Reduced notation (CellDesigner) or SBGN: one set of rules, two ways of drawing the nodes). A node made in either
@@ -105,13 +107,13 @@
     // a nucleic acid feature's activity as two presets, in both views (gene told apart
     // from mRNA; the AF specification's conceptual types, text in the unit as SBGN-ML keeps it): made with the unit's
     // text ct:gene or ct:mRNA (PRESET), retyped or removed from its right-click menu; the signs' words as the PD presets'
-    var NAF_ACT = 'nucleic acid feature activity', NAF_CT = [['ct:gene', 'gene'], ['ct:mRNA', 'mrna']];   // the conceptual types and their signs' words
+    var NAF_ACT = 'nucleic acid feature activity', NAF_CT = [['ct:gene', 'gene'], ['ct:mRNA', 'mRNA']];   // the conceptual types and their signs' words
     NAF_CT.forEach(function (q) { PRESET[NAF_ACT + ' ' + q[0]] = [NAF_ACT, [q[0]]]; });
     var nafSplit = function (set, sbgnLook) {
       return [].concat.apply([], set.map(function (q) {
         if (q[0] !== NAF_ACT) return [q];
         return NAF_CT.map(function (c) {
-          var sign = sbgnLook ? q[2] + '<text x="11" y="15.6" text-anchor="middle" font-size="6.6">' + c[1] + '</text>' : PAL_PD[0][1].filter(function (p) { return p[0] === 'nucleic acid feature ' + c[0]; })[0][2];
+          var sign = sbgnLook ? q[2] + '<text x="12" y="15.9" text-anchor="middle" font-size="5.5">' + c[1] + '</text>' : PAL_PD[0][1].filter(function (p) { return p[0] === 'nucleic acid feature ' + c[0]; })[0][2];
           return [NAF_ACT + ' ' + c[0], q[1] + ', ' + c[0], sign];
         });
       }));
@@ -155,20 +157,17 @@
       return { lang: af ? 'af' : 'pd', look: af ? 'sbgn' : 'rn', strict: false };
     }
     function palKeep() { var all = palStore(), id = palId(); if (!id) return; all[id] = palSet; try { localStorage.setItem(PAL_KEY, JSON.stringify(all)); } catch (e) {} }
-    // one list by default, as yEd's palette, the groups' signs one after another (grouping is of little use to experienced
-    // curators, and the Edit window scrolls less); Settings' Grouped palette tick box puts
-    // the group names back (atlas-app.html)
-    function palGrouped() { try { return localStorage.getItem('atlas-edit-palette-groups') === 'on'; } catch (e) { return false; } }
     function palSign(q) {
-      return '<button type="button" data-make="' + q[0] + '" title="' + q[1] + (ARCS[q[0]] ? ': drag from one node to another (click: once; double click: several)' : CD_GATE[q[0]] ? ': click its inputs, then the reaction\u2019s square or the target species (click: once; double click: several)' : ' (click: once; double click: several)') + '" aria-label="' + q[1] + '" aria-pressed="false">' +
+      return '<button type="button" data-make="' + q[0] + '" title="' + q[1] + (ARCS[q[0]] ? ': picked, a drag from one node to another draws it (click: once; double click: several)' : CD_GATE[q[0]] ? ': click its inputs, then the reaction\u2019s square or the target species (click: once; double click: several)' : ' (click: once; double click: several)') + '" aria-label="' + q[1] + '" aria-pressed="false">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">' + q[2] + '</svg></button>';
     }
+    // the one list in blocks: a group marked as starting a block (its third item, true) begins a new row, so the list reads
+    // as a few small groups with no names; kept while the blocks cost no row more than the plain list would at the panel's
+    // width and at every width up to its usual one (palBlocks), else the plain list, so a narrowed panel stays compact
     function palSigns(set) {
-      if (!palGrouped()) return '<div class="m2-ed-prow">' + set.map(function (s) { return s[1].map(palSign).join(''); }).join('') + '</div>';
-      return set.map(function (s) {
-      var info = s[0] === 'Connecting arcs' || s[0] === 'Arcs' ? ' <button type="button" class="m2-ed-pinfo" aria-label="How arcs are drawn" title="How arcs are drawn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="8" cy="8" r="7.2" stroke-width="1.1"/><path d="M8 7.3v4.2" stroke-width="1.8" stroke-linecap="round"/><circle cx="8" cy="4.6" r="1.2" fill="currentColor" stroke="none"/></svg></button>' : '';
-      return '<p>' + s[0] + info + '</p><div class="m2-ed-prow">' + s[1].map(palSign).join('') + '</div>';
-      }).join('');
+      var blocks = [];
+      set.forEach(function (s, i) { if (!i || s[2]) blocks.push(0); blocks[blocks.length - 1] += s[1].length; });
+      return '<div class="m2-ed-prow" data-blocks="' + blocks.join(',') + '">' + set.map(function (s, i) { return (i && s[2] ? '<span class="m2-ed-pbr" aria-hidden="true"></span>' : '') + s[1].map(palSign).join(''); }).join('') + '</div>';
     }
     // the notation, PD or AF, and with AF its look, as sign buttons in one row (icons that stay pressed,
     // so nothing in the Edit window draws the eye): PD and AF as letters at
@@ -199,7 +198,7 @@
     function palLookNow() { return palViews() && palSet.look === 'sbgn' ? 'sbgn' : 'rn'; }
     function palBtn(attr, title, sign) { return '<button type="button" ' + attr + ' title="' + title + '" aria-label="' + title + '" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">' + sign + '</svg></button>'; }
     function palView(look, name, title) { return '<button type="button" role="radio" data-look="' + look + '" title="' + title + '" aria-label="' + title + '" aria-checked="false"><span class="m2-ed-radio" aria-hidden="true"></span>' + name + '</button>'; }
-    // the circled i beside the views and the tick boxes: its text in the title, and shown under the line by a click, hidden by the next (phones have no hover)
+    // the circled i beside the views and the tick boxes: its text in data-info, shown in the page's info window (.m2-itip, atlas-app.html)
     var INFO = {
       strict: 'Corresponds to CellDesigner\'s Reduced Notation: stimulation, inhibition, necessary stimulation and modulation may also end on entities, which makes a hybrid map. Such links are outside the SBGN Process Description specification, and some tools may not read or save the SBGN-ML file correctly.',
       rn: 'Corresponds to CellDesigner\'s Reduced Notation palette, which enables an Activity Flow type of representation.',
@@ -207,12 +206,13 @@
       prot: 'When ticked, shows the auxiliary unit on protein activities. An activity with no auxiliary unit is by default a protein activity.'
     };
     function palTip(line, name, t) {
-      return '<div class="m2-ed-pline">' + line + '<button type="button" class="m2-ed-pinfo m2-ed-ptip" aria-label="About ' + name + '" title="' + t + '" aria-expanded="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="8" cy="8" r="7.2" stroke-width="1.1"/><path d="M8 7.3v4.2" stroke-width="1.8" stroke-linecap="round"/><circle cx="8" cy="4.6" r="1.2" fill="currentColor" stroke="none"/></svg></button></div>' +
-        '<div class="m2-ed-ptext" hidden>' + t + '</div>';
+      t = t.replace(/&/g, '&amp;').replace(/"/g, '&quot;');   // into attributes
+      return '<div class="m2-ed-pline">' + line + '<button type="button" class="m2-ed-pinfo m2-ed-ptip m2-itip" aria-label="About ' + name + '" title="About ' + name + '" data-info="' + t + '" aria-expanded="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="8" cy="8" r="7.2" stroke-width="1.1"/><path d="M8 7.3v4.2" stroke-width="1.8" stroke-linecap="round"/><circle cx="8" cy="4.6" r="1.2" fill="currentColor" stroke="none"/></svg></button></div>';
     }
     pal.innerHTML = '<div class="m2-ed-prow m2-ed-pnot" role="group" aria-label="Notation">' +
       palBtn('data-lang="pd"', 'Process Description', '<text x="12" y="17.3" text-anchor="middle" font-size="15">PD</text>') +
-      palBtn('data-lang="af"', 'Activity Flow', '<text x="12" y="17.3" text-anchor="middle" font-size="15">AF</text>') + '</div>' +
+      palBtn('data-lang="af"', 'Activity Flow', '<text x="12" y="17.3" text-anchor="middle" font-size="15">AF</text>') +
+      '<span class="m2-ed-pext" title="Settings, Editing, CellDesigner compatible is unticked: the palette offers SBGN glyphs CellDesigner cannot hold (tags, submap terminals)">SBGN extended</span></div>' +
       // AF's two views as named round choices under the tabs (icons there would read as
       // glyphs to drag onto the map), shown only where the views apply (palViews)
       '<div class="m2-ed-plook" role="radiogroup" aria-label="Activity Flow view">' +
@@ -222,7 +222,23 @@
       '<div class="m2-ed-pblk m2-ed-pstrict">' + palTip('<label class="m2-ed-phyb" title="Ticked (the default): under PD a modulation may also end on an entity, and a logic gate\u2019s output go to one (CellDesigner\u2019s reduced notation); with a process on the map the file stays Process Description, without one such a link makes it Activity Flow. Unticked: Process Description only"><input type="checkbox"><span>Reduced notation</span></label>', 'Reduced notation', INFO.strict) + '</div>' +
       '<div class="m2-ed-psigns"></div>';
     var palSignsEl = pal.querySelector('.m2-ed-psigns'), palShown = null;
+    function palBlocks() {   // the blocks of the one list shown, or the plain list (palSigns)
+      var row = palSignsEl.querySelector('.m2-ed-prow[data-blocks]'), b = row && row.querySelector('button');
+      if (!row || !b) return;
+      var n = row.dataset.blocks.split(',').map(Number), all = n.reduce(function (a, x) { return a + x; }, 0);
+      var gap = parseFloat(getComputedStyle(row).columnGap) || 0, step = b.offsetWidth + gap, most = parseFloat(getComputedStyle(pal).maxWidth) || row.clientWidth;
+      var cols = Math.max(1, Math.floor((row.clientWidth + gap) / step)), top = Math.max(cols, Math.floor((most + gap) / step)), flat = false;
+      for (var c = cols; c <= top && !flat; c++) flat = n.reduce(function (a, x) { return a + Math.ceil(x / c); }, 0) > Math.ceil(all / c);
+      row.classList.toggle('m2-ed-pflat', flat);
+    }
+    if (window.ResizeObserver) new ResizeObserver(palBlocks).observe(palSignsEl);
     function palKey() { return palLangNow() === 'pd' ? 'pd' : palLookNow() + (protOn ? 'P' : ''); }
+    // Settings, Editing, CellDesigner compatible (kept in this browser, atlas-app.html): ticked, the palette offers only
+    // what CellDesigner can hold; unticked, SBGN extended adds the tag (and the submap's terminals). What a map already
+    // holds is never changed by it
+    var EXTENDED = { tag: 1 };
+    function compat() { try { return localStorage.getItem('atlas-cd-compatible') === 'on'; } catch (e) { return false; } }
+    function palSet0(set) { return compat() ? set.map(function (g) { return [g[0], g[1].filter(function (q) { return !EXTENDED[q[0]]; }), g[2]]; }) : set; }
     // the tick box's state lives in the file: on opening, ticked when the map's protein activities all
     // carry the protein's unit, unticked when none or some do; read again after every change where they all agree (an
     // undo of the tick included), kept where they are mixed or there are none, so new protein activities follow it
@@ -234,10 +250,272 @@
       protMemo = [text, r];
       return r;
     }
+    // the map's own choices for new nodes (Style, Colours) in a block of their own under the palette (pmap), shown where
+    // Properties is while nothing is selected: rows as Properties' (the name, then a field with its arrow), the field's
+    // list a small window of its own over the page, as a graph editor's drop-down: the field's width at least, under the
+    // field, above it where the window has no room below; closed by a choice, Escape, a press elsewhere, a scroll or a
+    // resize. Rows in the order made.
+    // o: { key, label, title, list: [[id, name, title]], get(), set(id), sq(id): the choice's squares as HTML, or none }
+    var pmap = document.createElement('div'); pmap.className = 'm2-ed-pmap'; pmap.hidden = true;
+    pmap.innerHTML = '<table class="m2-ed-ptab"></table>';
+    var ddOpen = null;   // the open list's window (_r: its row, _t and _list: the map and choices it was made from)
+    function ddClose() {
+      if (!ddOpen) return;
+      var f = ddOpen._r.querySelector('.m2-ed-pdd'), back = ddOpen._keys && ddOpen.contains(document.activeElement);
+      f.setAttribute('aria-expanded', 'false');
+      ddOpen.remove(); ddOpen = null;
+      if (back) f.focus();   // opened by the keys: the focus back on its field
+    }
+    document.addEventListener('pointerdown', function (e) { if (ddOpen && !ddOpen.contains(e.target) && !ddOpen._r.contains(e.target)) ddClose(); }, true);
+    // the list's keys, before the editor's own (arrows would also move the selection): up and down walk the choices,
+    // Enter or Space choose (the focused button's own click), Escape closes the list only; another key (Tab too) closes it and goes on
+    document.addEventListener('keydown', function (e) {
+      if (!ddOpen || e.key === 'Enter' || e.key === ' ' || /^(Shift|Control|Alt|Meta)$/.test(e.key)) return;
+      if (!/^(ArrowDown|ArrowUp|Escape)$/.test(e.key)) { ddClose(); return; }
+      e.stopImmediatePropagation(); e.preventDefault();
+      if (e.key === 'Escape') { ddClose(); return; }
+      var list = Array.prototype.slice.call(ddOpen.querySelectorAll('button')); if (!list.length) return;
+      var i = list.indexOf(document.activeElement), d = e.key === 'ArrowDown' ? 1 : -1;
+      if (i < 0) i = list.findIndex(function (b) { return b.getAttribute('aria-selected') === 'true'; });
+      list[i < 0 ? (d > 0 ? 0 : list.length - 1) : (i + d + list.length) % list.length].focus();
+    }, true);
+    window.addEventListener('resize', ddClose);
+    document.addEventListener('scroll', function (e) { if (ddOpen && !ddOpen.contains(e.target)) ddClose(); }, true);
+    function palDrop(o) {
+      var r = pmap.querySelector('tr[data-k="' + o.key + '"]');
+      if (!r) {
+        r = document.createElement('tr'); r.dataset.k = o.key;
+        r.innerHTML = '<th></th><td><button type="button" class="m2-ed-pdd" aria-haspopup="listbox" aria-expanded="false"><span></span><svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button></td>';
+        var bx = r.querySelector('button');
+        bx.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var was = ddOpen && ddOpen._r === r, keys = e.detail === 0; ddClose(); bx.blur();   // the editor's keys work at once
+          if (was) return;
+          var q = r._o, m = q.get(), box = document.createElement('div');
+          box.className = 'm2-cx m2-ed-pdl'; box.setAttribute('role', 'listbox'); box.setAttribute('aria-label', q.label);
+          q.list.forEach(function (c) {
+            var b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'option'); b.setAttribute('aria-selected', String(c[0] === m));
+            b.title = c[2];
+            b.innerHTML = '<span>' + c[1] + '</span>' + (q.sq ? q.sq(c[0]) : '');
+            b.addEventListener('click', function (ev) { ev.stopPropagation(); var same = box._t === src(); ddClose(); if (same) { q.set(c[0]); palDrop(q); } });   // the map it was opened on
+            box.appendChild(b);
+          });
+          document.body.appendChild(box);
+          // under the field, its left edge on the field's and at least its width; above it where the window has no room
+          // below and more above; inside the window. The page's own zoom: a fixed box is placed in its units
+          var f = bx.getBoundingClientRect(), k = box.getBoundingClientRect().width / box.offsetWidth || 1;
+          box.style.minWidth = f.width / k + 'px';
+          var w = box.offsetWidth * k, h = box.offsetHeight * k, below = window.innerHeight - 4 - f.bottom, above = f.top - 4;
+          var y = h + 2 * k <= below || below >= above ? f.bottom + 2 * k : f.top - 2 * k - h;
+          box.style.left = Math.max(4, Math.min(f.left, window.innerWidth - 4 - w)) / k + 'px';
+          box.style.top = Math.max(4, Math.min(y, window.innerHeight - 4 - h)) / k + 'px';
+          ddOpen = box; box._r = r; box._t = src(); box._list = q.list; box._keys = keys; bx.setAttribute('aria-expanded', 'true');
+          if (keys) { var s = box.querySelector('[aria-selected="true"]') || box.firstChild; if (s) s.focus(); }   // opened by Enter or Space (detail 0: no pointer): the keys walk the list
+        });
+        pmap.firstChild.appendChild(r);
+      }
+      r._o = o;
+      if (ddOpen && ddOpen._r === r && (ddOpen._t !== src() || ddOpen._list !== o.list)) ddClose();   // the map changed (an edit, an undo, another format): its squares and choices would be stale
+      var th = r.firstChild, f = r.querySelector('.m2-ed-pdd'), cur = o.get(), v = o.list.filter(function (c) { return c[0] === cur; })[0][1];
+      if (th.textContent !== o.label) th.textContent = o.label;
+      if (f.title !== o.title) { f.title = o.title; f.setAttribute('aria-label', o.label + ', ' + o.title); }
+      if (f.firstChild.textContent !== v) f.firstChild.textContent = v;   // written only when changed (every paint comes here)
+      return r;
+    }
+    // Style and Colours belong to the map: kept per map in this browser (map -> { style, cols }), as the palette's set is
+    // (PAL_KEY), so another map opened shows its own. Colours a map was given no choice on are read from the map (mapCols)
+    var CHOICE_KEY = 'atlas-edit-map-choices', choiceMemo = {};
+    try { ['atlas-edit-style', 'atlas-edit-sb-colours', 'atlas-edit-cd-colours'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}   // the earlier choices for every map at once
+    function choicesKept() { try { return JSON.parse(localStorage.getItem(CHOICE_KEY)) || {}; } catch (e) { return {}; } }
+    function mapChoice(what, ids) { var id = palId(), k = id && choicesKept()[id], v = k && k[what]; return ids.indexOf(v) >= 0 ? v : null; }
+    function keepMapChoice(what, v) {
+      var all = choicesKept(), id = palId();
+      choiceMemo = {};
+      if (!id) return;
+      (all[id] = all[id] || {})[what] = v;
+      try { localStorage.setItem(CHOICE_KEY, JSON.stringify(all)); } catch (e) {}
+    }
+    // Original, Colours' first choice: the map's own colours. Taken (the format's colours(), by element) when another
+    // choice is made while the map is in its own colours, kept per map in this browser and with the map on GitHub
+    // (own.js origPut) or in the folder (core.js origToFolder), and put back by Original, each
+    // element the record knows; one added since keeps its colour, and the map as it then is is its own again (taken at
+    // the next choice). New glyphs under Original: the colour most of their kind have on the map
+    var ORIG_KEY = 'atlas-edit-originals';
+    function origAll() { try { return JSON.parse(localStorage.getItem(ORIG_KEY)) || {}; } catch (e) { return {}; } }
+    function origKeep(id, r) { var all = origAll(); all[id] = r; try { localStorage.setItem(ORIG_KEY, JSON.stringify(all)); return true; } catch (e) { return false; } }
+    var pickSeq = 0;
+    function colsPick(v, cur, take, back, recolour) {   // a choice of Colours on the map (cur: the one it shows): take its own colours, put them back, or recolour
+      var id = palId(), seq = ++pickSeq;
+      if (v === 'file') {
+        if (!id) { keepMapChoice('cols', 'file'); return; }
+        var mine0 = origAll()[id] || null, s0 = site;
+        Promise.all([origGh(), origFromFolder(id)]).then(function (o) {
+          if (seq !== pickSeq || !on || site !== s0 || palId() !== id) return;   // another choice, map or Done meanwhile
+          var r = [o[0], o[1]].reduce(function (a, x) { return x && typeof x === 'object' && (x.fill || x.node) && (!a || (x.at || 0) > (a.at || 0)) ? x : a; }, mine0);   // the newest: GitHub's, the folder's or this browser's
+          if (r && r !== mine0) origKeep(id, Object.assign({}, r, { sent: r === o[0] ? 1 : undefined }));   // kept here too, so the field reads it
+          keepMapChoice('cols', 'file');   // only now: a choice made while GitHub was asked still saw the map's scheme (no record taken from it)
+          if (!r) { paint(); return; }   // no colours of this map kept: the map stays as it is, nothing said
+          back(r);
+          paint();
+        });
+        return;
+      }
+      if (id && cur === 'file') {   // the map in its own colours, as the field shows (after an undo too)
+        var r = take(), was = origAll()[id], bare = function (o) { return JSON.stringify(Object.assign({}, o, { at: 0, sent: 0 })); };
+        var same = !!was && bare(was) === bare(r);
+        r.at = same ? was.at : Date.now();
+        if (same && was.sent) r.sent = was.sent;
+        if (!origKeep(id, r)) warn('The map\u2019s own colours could not be kept in this browser.');
+        origToFolder(id, r);   // without a token, the folder's hidden .viewer/ (core.js); a map not in the folder yet gets it with its first file
+        if (!r.sent) origPut(r, function () { var all = origAll(); if (all[id] && all[id].at === r.at) { all[id].sent = 1; origKeep(id, all[id]); } });   // GitHub once per change of the colours (own.js)
+      }
+      keepMapChoice('cols', v); recolour(v);
+    }
+    // the map's Colours: the choice kept for it while the map still shows it (Custom always); else the first
+    // of ids the map shows (is: every filled glyph as that choice colours it, its lines apart; Confetti every one a confetti
+    // pastel), else Original. So a map recoloured elsewhere, or a recolour undone, shows what the map now is. Read once per
+    // change of the map
+    // is(m): true, false, or null where the map has nothing to read (an empty map: a kept choice stands, none is read).
+    // An SBGN-ML map's moves and resizes change no colour: read again only when more than places changed (sbgn.js GEO)
+    function mapCols(ids, is) {
+      var id = palId(), b = cd ? cd.now : null, M = choiceMemo;
+      if (M.id === id && M.t === text && M.b === b) return M.v;
+      var key = cd ? null : text.replace(GEO, '');
+      if (M.id === id && !cd && M.key === key) { M.t = text; return M.v; }
+      var k = mapChoice('cols', ids), v = k === 'custom' || (k && is(k) !== false) ? k : null;   // Original while the map has its kept colours (or none were kept)
+      if (!v) ids.some(function (m) { return m !== 'file' && m !== 'custom' && is(m) === true && (v = m); });
+      choiceMemo = { id: id, t: text, b: b, key: key, v: v || 'file' };
+      return choiceMemo.v;
+    }
+    // Style, the sizes of new nodes, kept per map (mapChoice): the size most nodes of that kind
+    // have on the map (sbgn_edit.defaults, cd_make.classSize; the built-in size where it has none), or the built-in sizes
+    // Custom: the size kept by Set as default for that kind (each format keeps its own: atlas-edit-defaults,
+    // atlas-edit-cd-defaults), From map for a kind with none
+    var STYLES = [['file', 'From map', 'New nodes the size most nodes of their kind have on this map'], ['default', 'Standard sizes', 'New nodes at the standard sizes: CellDesigner\u2019s own on a CellDesigner map, the editor\u2019s on others'], ['custom', 'Custom default', 'New nodes the size kept by Set as default; From map for a kind with none']];
+    function palStyle() { return mapChoice('style', ['file', 'default', 'custom']) || 'file'; }
+    function styleRow() { return palDrop({ key: 'style', label: 'Style', title: 'Sizes of new nodes', list: STYLES, get: palStyle, set: function (v) { palDid([CHOICE_KEY], function () { keepMapChoice('style', v); }); } }); }
+    // Confetti, a choice of both palettes' Colours: every new entity a pastel of its own, whatever its kind (processes,
+    // gates, empty sets and compartments keep From map's look). The hues are the golden-angle sequence (k times 137.508
+    // degrees), HSL saturation 55% and lightness 82%, so black text reads on each; of the first 64 hues, the one farthest
+    // from every clearly coloured hue already on the map (chroma above 0.08, so near-white and near-black tints count for
+    // none), the earliest on a tie. The same map gives the same colour; to a reader it looks random
+    function confettiHex(h) {
+      var s = .55, l = .82, f = function (n) { var k = (n + h / 30) % 12, a = s * Math.min(l, 1 - l); return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+      return '#' + [f(0), f(8), f(4)].map(function (v) { return ('0' + Math.round(v * 255).toString(16)).slice(-2); }).join('');
+    }
+    function confettiFill(text) { return confettiPick(confettiHues(text)); }   // the next confetti colour, #rrggbb, for the map's text (any format: #rrggbb, #rrggbbaa, CellDesigner's ARGB)
+    function confettiHues(text) {   // the clearly coloured hues in a text
+      var hues = [], re = /(?:#|color="[0-9a-fA-F]{2})([0-9a-fA-F]{6})(?:[0-9a-fA-F]{2})?\b/g, m;
+      while ((m = re.exec(String(text || '')))) {
+        var r = parseInt(m[1].slice(0, 2), 16) / 255, g = parseInt(m[1].slice(2, 4), 16) / 255, b = parseInt(m[1].slice(4, 6), 16) / 255;
+        var mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
+        if (d <= .08) continue;
+        var H = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        hues.push((H * 60 + 360) % 360);
+      }
+      return hues;
+    }
+    function confettiPick(hues) { return confettiHex(confettiHue(hues)); }   // a node's pastel, its hue added to hues
+    // a line's colour of the same hues, darker and stronger so a thin line reads on white (HSL 70%, 42%: the colour test
+    // maps' lines)
+    function confettiLine(hues) {
+      var h = confettiHue(hues), s = .7, l = .42, f = function (n) { var k = (n + h / 30) % 12, a = s * Math.min(l, 1 - l); return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+      return '#' + [f(0), f(8), f(4)].map(function (v) { return ('0' + Math.round(v * 255).toString(16)).slice(-2); }).join('');
+    }
+    function confettiHue(hues) {   // the hue farthest from those given (the earliest on a tie), added to them
+      var best = 0, far = -1;
+      for (var k = 0; k < 64; k++) {
+        var h = k * 137.508 % 360, near = hues.reduce(function (n, u) { var a = Math.abs(h - u) % 360; return Math.min(n, a, 360 - a); }, 360);
+        if (near > far + 1e-9) { far = near; best = h; }
+      }
+      if (far < 1e-6) best = hues.length % 64 * 137.508 % 360;   // all 64 taken: round them again, so a large map is not one colour
+      hues.push(best);
+      return best;
+    }
+    var CONF = null;
+    function confettiOne(hex) {   // a colour (#rrggbb) one of Confetti's pastels
+      if (!CONF) { CONF = {}; for (var k = 0; k < 64; k++) CONF[confettiHex(k * 137.508 % 360).toUpperCase()] = 1; }
+      return !!hex && CONF[String(hex).slice(0, 7).toUpperCase()] === 1;
+    }
+    function confettiSquares() { return '<span class="m2-cs-sw">' + [0, 1, 2, 3, 4].map(function (k) { var x = confettiHex(k * 137.508 % 360); return '<i style="background:' + x + '" title="' + x.toUpperCase() + '"></i>'; }).join('') + '</span>'; }
+    // Colours on SBGN-ML maps, kept per map or read from it (mapCols): the map's own (sbgn_edit.defaults: the fill most glyphs of the
+    // kind have; the Default colours for a kind the map lacks), the viewer's Default colours, none, or Confetti
+    var SB_COLS = [['file', 'Original', 'The map\u2019s own colours, as they were before another choice; new glyphs in the colour most glyphs of their kind have on it'], ['default', 'Mist and sage', 'The whole map and new glyphs in the viewer\u2019s starting colours: a pale blue for proteins, a pale green for small molecules'], ['none', 'No colours', 'The whole map and new glyphs unfilled'], ['custom', 'Custom default', 'The whole map and new glyphs in the colours kept by Set as default; a kind with none as it is'], ['confetti', 'Confetti', 'Every glyph of the map, and every new one, a pastel of its own']];
+    function sbCols() { return mapCols(['file', 'none', 'default', 'confetti', 'custom'], sbIs); }
+    var SB_SQ = ['macromolecule', 'simple chemical', 'nucleic acid feature', 'phenotype', 'compartment'];
+    function sbSquares(mode) {   // five at most, the first at the right (row-reverse), each colour once
+      if (mode === 'confetti') return confettiSquares();
+      var seen = {}, h = '', kept = mode === 'custom' ? defsKept() : {};
+      SB_SQ.forEach(function (c) {
+        var k = kept[c], x = mode === 'none' ? '#FFFFFF' : mode === 'default' ? sbJs.fillFor(c) : k && k.fill ? k.fill : sbJs.defaults(src(), null, c).fill || '#FFFFFF';
+        x = String(x).toUpperCase();
+        if (seen[x]) return; seen[x] = 1;
+        h += '<i style="background:' + x + '" title="' + c + ', ' + x + '"></i>';
+      });
+      return '<span class="m2-cs-sw">' + h + '</span>';
+    }
+    function sbColsRow() { return palDrop({ key: 'cols', label: 'Colours', title: 'Colours of the map and of new glyphs', list: SB_COLS, get: sbCols, set: function (v) { colsPick(v, sbCols(), function () { return sbJs.colours(text); }, sbOriginal, sbRecolour); }, sq: sbSquares }); }
+    function sbOriginal(r) {   // the colours kept put back: each node's fill and border, each line's, those the record knows
+      var now = sbJs.colours(text), M = {}, added = 0;
+      Object.keys(now.node).forEach(function (id) { var o = r.node && r.node[id], a = now.node[id]; if (!o) added++; else if (o.fill !== a.fill || o.line !== a.line) M[id] = { fill: o.fill, line: o.line }; });
+      Object.keys(now.edge).forEach(function (id) { if (!r.edge || !(id in r.edge)) added++; });
+      var t2 = sbJs.restyleAll(text, M, null, function (id) { return r.edge && id in r.edge && r.edge[id] !== now.edge[id] ? r.edge[id] : undefined; });
+      if (t2 !== text) { remember(false); text = t2; made([]); }
+      return added;
+    }
+    // a choice of Colours recolours the whole map, one undo step: every entity, complex and compartment its fill by the
+    // choice (its border black), as a new one of its kind would get it (defOf); Original puts back the map's own (colsPick); Custom a
+    // kind with a kept look its fill, border and width, the rest as they are; Confetti every entity, complexes too, a pastel
+    // of its own, one after another (compartments as they are). Every line black, under Confetti a colour of its own
+    // (confettiLine); processes, gates and the other glyphs their border black. One parse (sbgn_edit.restyleAll)
+    var SB_FILLED = /^(macromolecule|simple chemical|nucleic acid feature|unspecified entity|perturbing agent|phenotype|complex|compartment|submap|biological activity|perturbation)( multimer)?$/;
+    var sbActMemo = [null, {}];
+    function sbPlan(mode, pick) {   // [[node index, its look], ...] under a choice of Colours, as sbRecolour sets them (pick: Confetti's colours picked)
+      if (sbActMemo[0] !== text) sbActMemo = [text, sbJs.activities(text)];   // one parse per change of the map (sbIs asks for each choice)
+      var cls = sbClasses(), acts = sbActMemo[1], kept = mode === 'custom' ? defsKept() : {}, hues = [], P = [];
+      nodes2.forEach(function (n, i) {
+        var c = cls[n.id] || '';
+        if (!SB_FILLED.test(c)) { if (sbJs.LOOKS.test(c) && mode !== 'custom') P.push([i, { line: null }]); return; }
+        var base = c.replace(/ multimer$/, ''), u = acts[n.id], o;
+        var ff = sbJs.fillFor(u != null ? 'biological activity' : base, u);
+        if (mode === 'default') o = { fill: ff, line: null };
+        else if (mode === 'none') o = { fill: null, line: null };
+        // Custom: a look kept the old way (a share of a size, no w) left out, as defOf
+        else if (mode === 'custom') { var k = kept[lookKey(base, u)]; if (!k || !(k.w > 0)) return; o = {}; ['fill', 'line', 'width'].forEach(function (q) { if (q in k) o[q] = k[q]; }); }
+        else { if (!ff || base === 'compartment') return; o = { fill: pick ? confettiPick(hues).toUpperCase() : true, line: null }; }   // Confetti (fill true: filled, no colour picked)
+        P.push([i, o]);
+      });
+      return P;
+    }
+    function sbIs(mode) {   // the map's glyphs filled as the choice fills them (Confetti: each a confetti pastel; Original: as kept); null: none to read
+      if (!palOn()) return false;
+      if (mode === 'file') {
+        var r = origAll()[palId()];
+        if (!r) return null;
+        var now = sbJs.colours(text);
+        return Object.keys(r.node || {}).every(function (id) { var a = now.node[id], o = r.node[id]; return !a || (a.fill === o.fill && a.line === o.line); }) &&
+          Object.keys(r.edge || {}).every(function (id) { return !(id in now.edge) || now.edge[id] === r.edge[id]; });
+      }
+      var P = sbPlan(mode, false).filter(function (q) { return 'fill' in q[1]; });
+      if (!P.length) return null;
+      return P.every(function (q) {
+        var f = sbJs.lookOf(realizerOf(nodes2[q[0]].el)).fill;
+        return mode === 'confetti' ? confettiOne(f) : (f ? f.slice(0, 7).toUpperCase() : null) === (q[1].fill ? q[1].fill.toUpperCase() : null);
+      });
+    }
+    function sbRecolour(mode) {
+      if (mode === 'file' || !palOn()) return;
+      var M = {};
+      sbPlan(mode, true).forEach(function (q) { M[nodes2[q[0]].id] = q[1]; });
+      var lh = [], t2 = sbJs.restyleAll(text, M, null, mode === 'custom' ? null : function () { return mode === 'confetti' ? confettiLine(lh).toUpperCase() : null; });
+      if (t2 === text) return;
+      remember(false); text = t2; made([]);
+    }
     function palFill() {   // the signs of the set chosen; the tabs and the look marked
       var k = palKey();
       var lang = palLangNow(), look = palLookNow();
       var pn = pal.querySelector('.m2-ed-pnot'); pn.hidden = false; pn.style.display = '';   // hidden on a CellDesigner map (cdFill)
+      styleRow(); sbColsRow();   // the map's choices for new glyphs (pmap); a CellDesigner map shows the same rows with its own (cdFill)
       Array.prototype.forEach.call(pal.querySelectorAll('[data-lang]'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.lang === lang)); });
       Array.prototype.forEach.call(pal.querySelectorAll('[data-look]'), function (b) { b.setAttribute('aria-checked', String(b.dataset.look === look)); });
       pal.querySelector('.m2-ed-plook').hidden = !palViews();
@@ -249,12 +527,11 @@
       pb.hidden = !palViews();   // only on an Activity Flow map or an empty one (proteinBoxes leaves a map turned PD as it is)
       if (!pb.hidden) { var pf = protFile(); if (pf != null) protOn = pf; k = palKey(); }
       if (pbc.checked !== protOn) pbc.checked = protOn;
-      if (palShown === k) return;
-      palShown = k;
+      pal.querySelector('.m2-ed-pext').hidden = compat();
+      if (palShown === k + compat()) return;
+      palShown = k + compat();
       if (tool && !palOk(tool.kind)) tool = null;   // a sign in hand that this set lacks (e.g. a delay kept after the map turned PD)
-      palSignsEl.innerHTML = palSigns(PALS[k]);
-      var pi = palSignsEl.querySelector('.m2-ed-pinfo');
-      if (pi) pi.addEventListener('click', function (e) { e.stopPropagation(); help(true, 'Connecting arcs'); });
+      palSignsEl.innerHTML = palSigns(palSet0(PALS[k])); palBlocks();
     }
     function palLook() {   // the map drawn in the SBGN view while AF's SBGN view is chosen and the map has no process (graphml.js afSbgn)
       var want = palOn() && palLookNow() === 'sbgn';
@@ -267,14 +544,12 @@
       if (tool && !palOk(tool.kind)) tool = null;
       palKeep(); palFill(); palShow();   // palShow sets the look
     }
-    function palOk(kind) { return PALS[palKey()].some(function (s) { return s[1].some(function (q) { return q[0] === kind; }); }); }
+    function palOk(kind) { return palSet0(PALS[palKey()]).some(function (s) { return s[1].some(function (q) { return q[0] === kind; }); }); }
     pal.addEventListener('click', function (e) {
-      var ti = e.target.closest('.m2-ed-ptip');
-      if (ti) { var tx = ti.parentNode.nextElementSibling, open = tx.hidden; tx.hidden = !open; ti.setAttribute('aria-expanded', String(open)); ti.blur(); return; }
       var b = e.target.closest('button[data-lang], button[data-look]');
-      if (b && !b.disabled) palPick(b.dataset.lang, b.dataset.look);
+      if (b && !b.disabled) palDid([PAL_KEY], function () { palPick(b.dataset.lang, b.dataset.look); });
     });
-    pal.querySelector('.m2-ed-pstrict input').addEventListener('change', function (e) { e.target.blur(); if (cdPal()) return; palSet.strict = !e.target.checked; palKeep(); });   // a CellDesigner map's own: cdcreate.js   // blurred: the editor's keys (undo) work at once
+    pal.querySelector('.m2-ed-pstrict input').addEventListener('change', function (e) { e.target.blur(); if (cdPal()) return; palDid([PAL_KEY], function () { palSet.strict = !e.target.checked; palKeep(); }); });   // a CellDesigner map's own: cdcreate.js   // blurred: the editor's keys (undo) work at once
     pal.querySelector('.m2-ed-pprot input').addEventListener('change', function (e) {   // every protein activity given the box or not, one undo step
       protOn = e.target.checked; e.target.blur();   // the editor's keys (undo) work at once, not the tick box's
       var t2 = palOn() ? sbJs.proteinBoxes(text, protOn) : text;
@@ -282,6 +557,10 @@
       palShow(); paint();
     });
     var palMap = null;
+    // the palette's choices kept in this browser (its set, Strict, Style, Set as default) undone as settings (V.lsDid):
+    // the map's own entry put back (KEY#id), the others' left as they are, then read again here for the map open
+    function palAgain() { palMap = null; cdStrictMemo = [null, false]; choiceMemo = {}; if (on) { palSync(); palShown = null; palShow(); paint(); } }
+    function palDid(keys, act) { var id = palId(), was = V.lsSnap(keys.map(function (k) { return k === PAL_KEY || k === CHOICE_KEY ? (id ? k + '#' + id : k) : k; })); act(); V.lsDid(was, palAgain); }
     function palSync() { var id = palId(); if (id !== palMap) { palMap = id; palSet = palFor(); protOn = protFile() === true; palShown = null; palFill(); } }   // only when the map changes (palShow runs on every paint)
     box.querySelector('.m2-ed-tools').insertAdjacentElement('afterend', pal);
     function palOn() { return on && V.current === map && !!sb && !!sbJs && V.level === 'full'; }
@@ -290,6 +569,8 @@
       if (cdp_) cdFill();
       else if (show) { palSync(); palFill(); }   // palFill: a process added or removed turns the SBGN view off or on
       pal.hidden = !show;
+      pmap.hidden = !show || !!(selN.length || selE.length || selP.length || svSel);   // only while nothing is selected
+      if (pmap.hidden) ddClose();
       if (!show) tool = null;
       Array.prototype.forEach.call(pal.querySelectorAll('button[data-make]'), function (b) {
         var mine = !!tool && tool.kind === b.dataset.make;
@@ -310,8 +591,7 @@
       var b = e.target.closest('button[data-make]');
       if (b) palTake(b.dataset.make, true);
     });
-    document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#m2-set-edit')) setTimeout(palShow, 0); }, true);   // Settings, Editing changed
-    document.getElementById('m2-set-palette').addEventListener('change', function () { setTimeout(function () { palShown = null; palShow(); }, 0); });   // Settings, Grouped palette: the signs made again
+    document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#m2-set-edit, #m2-set-cdc')) setTimeout(palShow, 0); }, true);   // Settings, Editing changed
     document.addEventListener('keydown', function (e) { if (tool && e.key === 'Escape') palTake(null); }, true);
 
     // the map clicked with something in hand: a press only noted, so a drag still moves the map; the click is taken on release
@@ -348,22 +628,29 @@
       return best;
     }
     // a glyph dropped on a complex becomes its member, as soon as it is dropped on the complex's surface (a smaller
-    // complex on a larger one too): each glyph moved (not one inside another
+    // complex on a larger one too), as a glyph dropped in a compartment joins it: each glyph moved (not one inside another
     // moved, nor one in a complex already) whose centre lies on a complex not moving with it joins the innermost such
-    // complex (sbgn_edit.join; the complex grows to hold it), in the move's undo step; a glyph made from the palette on a
-    // complex the same. SBGN-ML maps in the full editor, not Activity Flow; a glyph with lines stays beside it (a line
-    // goes to a complex, never to a member). Returns the warning to show once the map is drawn again, else ''
-    function joinDrop(moved) {   // moved: the ids of the nodes the move moved (a group with what it holds), or of the one made
-      if (!palOn() || !sbJs || !sbJs.join || palKind() === 'af' || afSbgn || !moved.length) return '';
-      var at = {}, cx = [], sel = selN.map(function (i) { return nodes2[i].id; }), lines = [], joined = 0;
+    // complex, in the move's undo step, and the complex is packed (Pack: the members side by side, the complex and what
+    // holds it grown); a glyph made from the palette on a complex the same. SBGN-ML maps (not Activity Flow) with
+    // sbgn_edit.join, CellDesigner maps with cd_make.join; Full editing only. A glyph with lines is not taken in (a line
+    // goes to a complex, never to a member): the whole move is taken back, nothing said (joinPlan's why).
+    // joinPlan(moved, leaving) -> { joins: [[id, complex id], ...], why }   moved: the ids the move moved, or the one made;
+    // leaving: the ids whose holder the move changes (a member taken out with Shift may land on another complex)
+    function joinWhy(code, name) {
+      return { lines: name + ' has lines, so it stays where it was: a line goes to a complex, never to its member.',
+        copies: name + ' is drawn more than once, so it stays where it was: a complex member is drawn once.' }[code] || '';
+    }
+    function joinPlan(moved, leaving) {
+      var out = { joins: [], why: '' };
+      if (!on || V.current !== map || V.level !== 'full' || !moved.length || (cd ? !cdMk || !cdMk.join : !palOn() || !sbJs.join || palKind() === 'af' || afSbgn)) return out;
+      var at = {}, cx = [], mv0 = {};
       nodes2.forEach(function (n, i) { at[n.id] = i; if (n.shape.kind === 'Complex') cx.push(i); });
-      if (!cx.length) return '';
-      var mv0 = {}; moved.forEach(function (id) { mv0[id] = 1; });
+      moved.forEach(function (id) { mv0[id] = 1; });
+      var out0 = {}; (leaving || []).forEach(function (id) { out0[id] = 1; });
       var inCx = function (i) { for (var u = nodes2[i].up; u != null; u = nodes2[u].up) if (nodes2[u].shape.kind === 'Complex') return true; return false; };
-      var ids = moved.filter(function (id) { var i = at[id]; return i != null && (nodes2[i].up == null || !mv0[nodes2[nodes2[i].up].id]) && !inCx(i); });
-      ids.forEach(function (id) {
+      moved.forEach(function (id) {
         var i = at[id];
-        if (i == null) return;
+        if (i == null || out.why || (cd && cdOwn(i)) || (nodes2[i].up != null && mv0[nodes2[nodes2[i].up].id]) || (!out0[id] && inCx(i))) return;
         var b = boxOf(i), P = [b[0] + b[2] / 2, b[1] + b[3] / 2], best = -1, area = Infinity;
         cx.forEach(function (j) {   // the innermost complex round its centre that does not move with it
           var q = boxOf(j);
@@ -372,39 +659,131 @@
           best = j; area = q[2] * q[3];
         });
         if (best < 0) return;
-        var why = sbJs.joinable(text, id, nodes2[best].id);
-        if (why === 'lines') { lines.push(nameOf(i) || 'A glyph'); return; }
-        if (why) return;
-        try { text = sbJs.join(text, id, nodes2[best].id, { checked: true }); joined++; }
-        catch (err) { lines = null; return; }
-        parse(); at = {}; cx = []; nodes2.forEach(function (n, k) { at[n.id] = k; if (n.shape.kind === 'Complex') cx.push(k); });
+        var why;
+        try { why = cd ? cdMk.joinable(cd.now, id, nodes2[best].id) : sbJs.joinable(text, id, nodes2[best].id); } catch (err) { return; }
+        if (!why) out.joins.push([id, nodes2[best].id]);
+        else out.why = joinWhy(why, '"' + (nameOf(i) || id) + '"');
       });
-      if (joined) { selN = []; sel.forEach(function (id) { if (at[id] != null) selN.push(at[id]); }); dirty = true; }
-      if (lines === null) return 'A glyph could not be put into the complex.';
-      return lines.length ? lines.join(', ') + (lines.length > 1 ? ' have lines, so they stay' : ' has lines, so it stays') + ' beside the complex: a line goes to a complex, never to its member.' : '';
+      return out;
     }
+    // the joins of joinPlan written (SBGN-ML: into the editor's GraphML; CellDesigner: into the file, the GraphML made again
+    // from it), the selection kept; returns the ids of the complexes that took a member
+    // a glyph joining a complex where it would lie on a member is put first under the members, its left side on theirs
+    // (Pack keeps members where they are and would leave the two on top of each other), with what it holds
+    function joinBeside(id, cid) {
+      var at = {}; nodes2.forEach(function (n, k) { at[n.id] = k; });
+      var i = at[id], c = at[cid];
+      if (i == null || c == null) return;
+      var b = boxOf(i), ms = nodes2.map(function (n, k) { return k; }).filter(function (k) { return nodes2[k].up === c && k !== i; });
+      if (!ms.some(function (k) { return overlap(boxOf(k), b); })) return;
+      var u = ms.map(boxOf).reduce(function (a, q) { return [Math.min(a[0], q[0]), Math.max(a[1], q[1] + q[3])]; }, [Infinity, -Infinity]), dx = u[0] - b[0], dy = u[1] + 4 - b[1], nb = {};
+      nodes2.forEach(function (n, k) { if (k === i || under(k, i)) { var q = boxOf(k); nb[k] = [q[0] + dx, q[1] + dy, q[2], q[3]]; } });
+      setBoxes(nb);
+    }
+    function joinDo(joins) {
+      if (!joins.length) return [];
+      joins.forEach(function (q) { joinBeside(q[0], q[1]); });
+      var sel = selN.map(function (i) { return nodes2[i].id; }), done = [];
+      if (cd) {
+        var N = cdNow(), t = N.t;
+        joins.forEach(function (q) { try { t = cdMk.join(t, q[0], q[1]); done.push(q[1]); } catch (err) { warn(String(err && err.message || err)); } });
+        if (done.length) cdRebuild(t, N.sh);
+      } else joins.forEach(function (q) { try { text = sbJs.join(text, q[0], q[1], { checked: true }); done.push(q[1]); } catch (err) { warn('A glyph could not be put into the complex.'); } });
+      if (!done.length) return done;
+      parse(); dirty = true;
+      var at = {}; nodes2.forEach(function (n, i) { at[n.id] = i; });
+      selN = sel.filter(function (id) { return at[id] != null; }).map(function (id) { return at[id]; });
+      return done;
+    }
+    // the complexes that took a member packed, in the same undo step (Pack's own code, layTool)
+    function joinPack(cids) { if (cids.length) layTool('pack', cids, true); }
+    // a submap's terminals: tags on its border (yEd's Tag, a top-level node as the submap: neither holds the other), each
+    // moving with its submap as what a group holds (inside); sub: the submap a tag belongs to. A tag the file calls a
+    // terminal (node property SBGN class) touching a submap, or one inside a submap's box meeting one of its sides (a yEd
+    // file, the converter's rule); the nearest submap
+    // (core.js parseFix); the converter's graphml.terminals is the master of the rule
+    function terminals() {
+      var subs = [], key = null;
+      nodes2.forEach(function (n, i) { n.sub = null; if (n.shape.kind === 'Submap') subs.push(i); });
+      if (!subs.length) return;
+      Array.prototype.forEach.call(doc.getElementsByTagNameNS(G, 'key'), function (k) { if (k.getAttribute('attr.name') === 'SBGN class' && k.getAttribute('for') === 'node') key = k.getAttribute('id'); });
+      nodes2.forEach(function (n, i) {
+        if (n.shape.kind !== 'Tag') return;
+        var d = key && Array.prototype.filter.call(n.el.childNodes, function (c) { return c.localName === 'data' && c.getAttribute('key') === key; })[0];
+        var marked = !!d && d.textContent.trim() === 'terminal', b = boxOf(i), best = -1, bd = Infinity;
+        subs.forEach(function (j) {
+          var q = boxOf(j), touch = b[0] <= q[0] + q[2] + 1 && q[0] <= b[0] + b[2] + 1 && b[1] <= q[1] + q[3] + 1 && q[1] <= b[1] + b[3] + 1;
+          var side = q[0] - 1 <= b[0] && b[0] + b[2] <= q[0] + q[2] + 1 && q[1] - 1 <= b[1] && b[1] + b[3] <= q[1] + q[3] + 1 &&
+            Math.min(Math.abs(b[0] - q[0]), Math.abs(b[0] + b[2] - q[0] - q[2]), Math.abs(b[1] - q[1]), Math.abs(b[1] + b[3] - q[1] - q[3])) <= 1;
+          if (!(marked ? touch : side)) return;
+          var dd = Math.hypot(b[0] + b[2] / 2 - q[0] - q[2] / 2, b[1] + b[3] / 2 - q[1] - q[3] / 2);
+          if (dd < bd) { bd = dd; best = j; }
+        });
+        if (best >= 0) { n.sub = best; nodes2[best].inside.push(i); }
+      });
+    }
+    parseFix.push(terminals);
+    // a submap's terminal: on its border, sliding along it (as units of information along a glyph); its point out of the
+    // submap, so its way is the side it is on (up, down, left, right), long across the side (a tag's two sizes swapped
+    // between a left or right side and the top or bottom). subAt: the submap whose border passes within d of P
+    function subAt(P, d) {
+      var best = -1, bd = Infinity;
+      nodes2.forEach(function (n, j) {
+        if (n.shape.kind !== 'Submap') return;
+        var q = boxOf(j), ins = P[0] >= q[0] && P[0] <= q[0] + q[2] && P[1] >= q[1] && P[1] <= q[1] + q[3];
+        var e = ins ? Math.min(P[0] - q[0], q[0] + q[2] - P[0], P[1] - q[1], q[1] + q[3] - P[1]) : Math.hypot(Math.max(q[0] - P[0], 0, P[0] - q[0] - q[2]), Math.max(q[1] - P[1], 0, P[1] - q[1] - q[3]));
+        if (e <= d && e < bd) { bd = e; best = j; }
+      });
+      return best;
+    }
+    function onBorder(b, q) {   // [its box on submap q's nearest side, inside and touching it, its way]
+      var c = [b[0] + b[2] / 2, b[1] + b[3] / 2], L = Math.max(b[2], b[3]), S = Math.min(b[2], b[3]);
+      var oy = Math.max(q[1] - c[1], 0, c[1] - q[1] - q[3]), ox = Math.max(q[0] - c[0], 0, c[0] - q[0] - q[2]);   // the side nearest its centre, as a segment
+      var d = [Math.hypot(c[0] - q[0], oy), Math.hypot(q[0] + q[2] - c[0], oy), Math.hypot(ox, c[1] - q[1]), Math.hypot(ox, q[1] + q[3] - c[1])], k = d.indexOf(Math.min.apply(null, d));
+      var clamp = function (v, lo, hi) { return Math.max(lo, Math.min(v, Math.max(lo, hi))); };
+      if (k < 2) { var y = clamp(c[1] - S / 2, q[1], q[1] + q[3] - S); return [[k ? q[0] + q[2] - L : q[0], y, L, S], k ? 'right' : 'left']; }
+      var x = clamp(c[0] - S / 2, q[0], q[0] + q[2] - S);
+      return [[x, k === 3 ? q[1] + q[3] - L : q[1], S, L], k === 3 ? 'down' : 'up'];
+    }
+    // after a move (core.js fixMoved) or a submap resized: each terminal back onto its submap's border, its way by its side
+    function termsFix(list) {
+      if (!sbJs || !sbJs.way) return;
+      var nb = {}, ways = [];
+      list.forEach(function (i) {
+        var s = nodes2[i] && nodes2[i].sub;
+        if (s == null) return;
+        var b = boxOf(i), on = onBorder(b, boxOf(s));
+        if (on[0].some(function (v, j) { return Math.abs(v - b[j]) > 0.001; })) nb[i] = on[0];
+        ways.push([nodes2[i].id, on[1]]);
+      });
+      if (Object.keys(nb).length) setBoxes(nb);
+      var t2 = text;
+      ways.forEach(function (q) { t2 = sbJs.way(t2, q[0], q[1]); });
+      if (t2 !== text) { text = t2; parse(); dirty = true; }
+    }
+    moveFix.push(function (set) {   // a terminal moved without its submap slides along it
+      var list = []; set.forEach(function (i) { if (nodes2[i].sub != null && !set.has(nodes2[i].sub)) list.push(i); });
+      termsFix(list);
+    });
     function makeEntity(P, cls) {
       var units = PRESET[cls] ? PRESET[cls][1] : null; cls = baseKind(cls);
       var act = ACT_UNIT[cls], D = defOf(cls), w = D.w, h = D.h, X = P[0] - w / 2, Y2 = P[1] - h / 2;   // act: an activity's unit
       if (gridSet.snap) { X += toGrid(X + w / 2, gridSet.step); Y2 += toGrid(Y2 + h / 2, gridSet.step); }   // its centre on the grid, as a drag puts it
       var bx0 = [+fmt(X), +fmt(Y2), w, h], c = holder(bx0, function () { return false; }, boxOf), id = freeId('glyph_'), onCx = innermost(P, function (n) { return n.shape.kind === 'Complex'; }) >= 0;   // c: the innermost compartment holding its box
-      var t2;
-      try { t2 = sbJs.add(text, { id: id, cls: act != null ? sbJs.unitClass(act) : cls, activity: act, label: '', box: bx0, parent: c != null ? nodes2[c].id : null, fill: D.fill, line: D.line, width: D.width, multimer: D.multimer, font: D.font, units: units || undefined }); }
+      var t2, way = null, sm = cls === 'tag' ? subAt(P, Math.max(w, h) / 2) : -1;
+      if (cls === 'tag') { var on = sm >= 0 ? onBorder([X, Y2, w, h], boxOf(sm)) : null; way = on ? on[1] : 'right'; if (on) { bx0 = on[0].map(function (v) { return +fmt(v); }); c = nodes2[sm].up; } }   // its box onto the submap's side, pointing out, held where its submap is
+      try { t2 = sbJs.add(text, { id: id, cls: act != null ? sbJs.unitClass(act) : cls, activity: act, label: '', box: bx0, parent: c != null ? nodes2[c].id : null, fill: D.fill, line: D.line, width: D.width, multimer: D.multimer, font: D.font, units: units || undefined, way: way }); if (sm >= 0) t2 = sbJs.terminal(t2, id, true); }
       catch (err) { warn('The ' + (act != null ? 'activity' : cls) + ' could not be added: ' + (err && err.message || err) + '.'); return; }
       remember(false); text = t2;
       if (cls === 'compartment') {   // what it covers taken in, in the same undo step
         parse();
         var ni = nodes2.findIndex(function (n) { return n.id === id; }), inn = ni >= 0 ? regroup('box', new Set([ni]), boxOf, function (k) { return k === ni ? [0, 0, 0, 0] : boxOf(k); }) : new Map();
-        return settle(inn, { moving: [id] }, function () { made(id); }, function (why) { warn(why); made(id); });   // also stacked among the compartments it partly overlaps
+        return settle(inn, { moving: [id] }, function () { made(id); }, function () { made(id); });   // also stacked among the compartments it partly overlaps
       }
       if (!onCx) { made(id); return; }
       parse();
-      var before = boxesBefore(boxOf);
-      var msg = joinDrop([id]);   // made on a complex: its member
-      var k1 = nodes2.findIndex(function (n) { return n.id === id; }), up1 = k1 >= 0 ? nodes2[k1].up : null;   // the complex it joined grown: the compartments round it grown as round a drag (grown)
-      if (up1 != null) setBoxes(grown([up1], boxOf, function (k) { return before[nodes2[k].id] || boxOf(k); }, function () { return false; }));
-      refit([id]);
-      made(id); if (msg) warn(msg);
+      var cids = joinDo(joinPlan([id]).joins);   // made on a complex: its member, the complex packed round it
+      made(id); joinPack(cids);
     }
     // the kinds of glyph the palette makes, and Delete removes (the map's own ones too)
     // the kinds made: sbgn_edit's MAKE (the master), but the compartment, resized and deleted its own way
@@ -416,16 +795,12 @@
     function macroAt(P) { var i = madeAt(P); return i >= 0 && nodes2[i].shape.kind === 'Macromolecule' ? i : -1; }
     // the places a state variable sits on its node's border, as [rx, ry], as ports:
     // the corners, each side's middle and the points between them; never marked, a drag always lands on the nearest.
-    // ORDER is how new ones fill them, the most used first, from the bottom (the top is for the
-    // unit of information): the bottom's middle, right and left of it, the sides' middles, the bottom corners, the top
-    // corners, then the top and the sides' other places
-    var ORDER = [[0, 0.5], [0.25, 0.5], [-0.25, 0.5], [0.5, 0], [-0.5, 0], [0.5, 0.5], [-0.5, 0.5], [0.5, -0.5], [-0.5, -0.5],
-      [0, -0.5], [0.25, -0.5], [-0.25, -0.5], [0.5, 0.25], [-0.5, 0.25], [0.5, -0.25], [-0.5, -0.25]];
+    // new ones fill them by svPlaces (worked out from the node's size, below)
     // a drag lands on the nearest of more places: each side cut in eighths,
     // so the corners, the middles, the quarters and the points between; the arrow keys move it by single units (below)
     var PLACES = (function () { var out = [], k; for (k = -4; k <= 4; k++) { out.push([k / 8, -0.5], [k / 8, 0.5]); if (Math.abs(k) < 4) out.push([-0.5, k / 8], [0.5, k / 8]); } return out; })();
     function border(i, P) {   // the place nearest P
-      var b = boxOf(i), best = null, d0 = Infinity;
+      var b = svBox(i), best = null, d0 = Infinity;
       PLACES.forEach(function (q) { var d = Math.hypot(b[0] + (0.5 + q[0]) * b[2] - P[0], b[1] + (0.5 + q[1]) * b[3] - P[1]); if (d < d0) { d0 = d; best = q; } });
       return best.slice();
     }
@@ -433,21 +808,49 @@
     // information, Make multimer or Make macromolecule (SBGN's names, macromolecule and macromolecule
     // multimer); [label, action] pairs
     var NAME_WORDS = { tl: 'Name at top left', t: 'Name at top middle', tr: 'Name at top right', bl: 'Name at bottom left', b: 'Name at bottom middle', br: 'Name at bottom right' };
+    // Select all of this kind, at the end of the right-click menu over a node: every node of the map of its kind selected
+    // (SBGN-ML: its class, a multimer with its plain kind; CellDesigner: its species class, or compartment; GraphML: its
+    // shape), so Properties sets them together
+    ownMenus.push(function (P) { return (sb || cdPal()) && svAt(P); });   // a state variable or unit of information: its own menu only
     window.m2EditNodeItems = function () {
+      var it = nodeItems(), h = rclick && on && V.current === map ? hit(rclick) : null, i = h && h.n != null && h.p == null ? h.n : -1;
+      if (i < 0 || ((sb || cdPal()) && svAt(rclick)) || kindKey(i) == null) return it;   // not over a state variable or unit (its own menu)
+      it = it || [];
+      it.tail = [['Select all of this kind', function () { selectKind(i); }]];   // the object's last item before Delete
+      return it;
+    };
+    function kindKey(i) {
+      var n = nodes2[i];
+      if (!n) return null;
+      if (cd) { var c1 = cdClsOf(n.id); return c1 ? c1[0] : n.comp ? 'compartment' : null; }
+      if (sb) { var c = sbClasses()[n.id]; return c ? c.replace(/ multimer$/, '') : null; }
+      return n.shape && n.shape.kind || null;
+    }
+    function selectKind(i) {
+      var key = kindKey(i);
+      if (key == null) return;
+      selN = nodes2.map(function (n, k) { return kindKey(k) === key && !(afSbgn && inComplex(k)) ? k : -1; }).filter(function (k) { return k >= 0; });   // not the members the SBGN AF view does not draw
+      selP = []; selE = []; part = null; svSel = null;
+      paint();
+    }
+    function nodeItems() {
       if (cdPal()) return cdItems();   // a CellDesigner map's (cdcreate.js)
       var P = rclick, k = P && palOn() && !svAt(P) ? madeAt(P) : -1;
-      if (k < 0 && P && palOn()) {   // a modulation under the pointer: the other kinds
+      if (k < 0 && P && palOn()) {   // a modulation under the pointer: Change identity, its kinds
         var h = hit(P), ed = h && h.e != null && h.p == null ? edges2[h.e] : null, now = ed && Object.keys(MODK).filter(function (c) { return sbJs.ARROW[c] === ed.arr[1]; })[0];
-        var afN = afMap();   // under AF its influences, by AF's names (no catalysis there)
-        if (now) return Object.keys(MODK).filter(function (c) { return c !== now && !(c === 'catalysis' && (afN || roleOf(ed.t) === 'pheno')); }).map(function (c) {
-          return ['Make ' + (afN && sbJs.AF_ARC[c] || c), function () {
-            var t2 = sbJs.arcKind(text, ed.id, c);
-            if (t2 === text) return;
-            remember(false); text = t2; parse(); selN = []; selP = []; part = null;
-            selE = edges2.map(function (q, j) { return q.id === ed.id ? j : -1; }).filter(function (j) { return j >= 0; });
-            dirty = true; render(); paint(); changed();
-          }];
-        });
+        var afN = afKind();   // an AF map (the map, not the tab): its influences by AF's names, no catalysis there
+        if (now) return lateItem(['Change identity', subItem(function (r, done) {   // its kinds by Change identity (core.js kindWindow), the palette's names
+          return kindWindow(r, PAL_PD[4][1].filter(function (q) { return MODK[q[0]] && !(q[0] === 'catalysis' && (afN || roleOf(ed.t) === 'epn' || pdLimit(ed.s, ed.t, 'catalysis'))); }).map(function (q) {
+            var c = q[0], af = afN && sbJs.AF_ARC[c];
+            return { name: af ? af[0].toUpperCase() + af.slice(1) : q[1], own: c === now, go: function () {
+              var t2 = sbJs.arcKind(text, ed.id, c);
+              if (t2 === text) return;
+              remember(false); text = t2; parse(); selN = []; selP = []; part = null;
+              selE = edges2.map(function (e2, j) { return e2.id === ed.id ? j : -1; }).filter(function (j) { return j >= 0; });
+              dirty = true; render(); paint(); changed();
+            } };
+          }), done);
+        })]);
       }
       // an activity under AF: made another kind, its unit
       // given, or its unit taken off (a protein's activity again: with no auxiliary unit an activity is a protein's)
@@ -482,18 +885,43 @@
           return ['Make ' + c.toUpperCase(), function () { var t2 = sbJs.kind(text, gid, c); if (t2 === text) return; remember(false); text = t2; made(gid); }];
         });
       }
-      if (k >= 0 && !afKind() && nodes2[k].shape.kind === 'NucleicAcidFeature' && /^nucleic acid feature( multimer)?$/.test(sbJs.classOf(src(), nodes2[k].id))) {   // its units of information, the conceptual types offered
-        var nid = nodes2[k].id;
-        return [['Add unit of information', function () { makeUnit(nid); }],
-                ['Add unit of information ct:mRNA', function () { makeUnit(nid, 'ct:mRNA'); }],
-                ['Add unit of information ct:gene', function () { makeUnit(nid, 'ct:gene'); }]];
+      // an entity (macromolecule, simple chemical, nucleic acid feature, unspecified entity; not an Activity Flow activity
+      // drawn as one: write() carries none of its changes), as a CellDesigner species: its icons first, then Change
+      // identity and Make multimer, after the common items
+      var ec = k >= 0 && !afKind() && !svAt(P) ? (sbJs.classOf(src(), nodes2[k].id) || '') : '', eb = ec.replace(/ multimer$/, '');
+      if (sbJs.ENTITIES.indexOf(eb) >= 0) {
+        var eid = nodes2[k].id, eout = [], emulti = isMulti(k);
+        if (eb === 'macromolecule') eout.push(['Add state variable', function () { makeState(P); }], ['Add unit of information', function () { makeUnit(eid); }]);
+        if (eb === 'nucleic acid feature') eout.push(['Add unit of information', function () { makeUnit(eid); }],   // the conceptual types offered
+          ['Add unit of information ct:mRNA', function () { makeUnit(eid, 'ct:mRNA'); }], ['Add unit of information ct:gene', function () { makeUnit(eid, 'ct:gene'); }]);
+        eout.push(['Change identity', subItem(function (r, done) {   // its kinds by the palette's names (core.js kindWindow)
+          return kindWindow(r, sbJs.ENTITIES.map(function (c) {
+            return { name: c[0].toUpperCase() + c.slice(1), own: c === eb, go: function () { var t2 = sbJs.entityKind(text, eid, c); if (t2 === text) return; remember(false); text = t2; made(eid); } };
+          }), done);
+        })]);
+        if (eb === 'macromolecule') eout.push([emulti ? 'Make macromolecule' : 'Make multimer', function () {
+          var t2 = sbJs.multimer(text, eid, !emulti);
+          if (t2 === text) return;
+          remember(false); text = t2; made(eid);
+        }]);
+        eout.late = true;   // rarely used: after the common items, above Delete
+        return eout;
       }
       var pc = k >= 0 && nodes2[k].shape.kind === 'Process' ? sbJs.classOf(src(), nodes2[k].id) : '';
-      if (sbJs.PROCESSES.indexOf(pc) >= 0) {   // the other kinds of process (not an association or dissociation of a file)
-        var pid = nodes2[k].id;
-        return sbJs.PROCESSES.filter(function (c) { return c !== pc; }).map(function (c) {
-          return ['Make ' + c, function () { var t2 = sbJs.kind(text, pid, c); if (t2 === text) return; remember(false); text = t2; made(pid); }];
-        });
+      if (sbJs.PROCESSES.indexOf(pc) >= 0) {   // its kinds by Change identity, the palette's names (not an association or dissociation of a file)
+        var pid = nodes2[k].id, psigns = PAL_PD.filter(function (g) { return g[0] === 'Process nodes'; })[0][1];
+        var pit = lateItem(['Change identity', subItem(function (r, done) {
+          return kindWindow(r, sbJs.PROCESSES.map(function (c) {
+            var q = psigns.filter(function (s) { return s[0] === c; })[0];
+            return q && { name: q[1], own: c === pc, go: function () { var t2 = sbJs.kind(text, pid, c); if (t2 === text) return; remember(false); text = t2; made(pid); } };
+          }).filter(Boolean), done);
+        })]);
+        // Make reversible or Make irreversible, after Change identity, as on CellDesigner reactions: its consumptions
+        // turned into productions from the same port (productions on both sides, SBGN's reversible process), or those on
+        // the port-in side turned back (sbgn_edit.reversible); one undo step, the turned lines selected
+        var rv = sbJs.reversibility(text, pid, { sbgn: src() });
+        if (rv && (rv.can || rv.rev)) pit.push([rv.rev ? 'Make irreversible' : 'Make reversible', function () { sbReversible(pid, !rv.rev, false); }]);
+        return pit;
       }
       // a compartment's name in one of its six places (never in the middle):
       // over a named compartment and nothing else, the places it is not in (sbgn_edit.nameAt)
@@ -507,50 +935,284 @@
         if (sm[0]) its.push(['Send backward', function () { go(sbJs.restack(text, cid, -1)); }]);
         if (its.length) return its;
       }
-      var i = P && palOn() && !afKind() && !svAt(P) ? macroAt(P) : -1;   // none added on an AF map (afKind)
-      if (i < 0 || !/^macromolecule( multimer)?$/.test(sbJs.classOf(src(), nodes2[i].id))) return null;   // not an Activity Flow activity drawn as one (write() carries none of its changes)
-      var id = nodes2[i].id, multi = isMulti(i);
-      return [['Add state variable', function () { makeState(P); }],
-              ['Add unit of information', function () { makeUnit(id); }],
-              [multi ? 'Make macromolecule' : 'Make multimer', function () {
-                var t2 = sbJs.multimer(text, id, !multi);
-                if (t2 === text) return;
-                remember(false); text = t2; made(id);
-              }]];
-    };
+      return null;
+    }
     function isMulti(i) {   // drawn as a multimer: yEd's mcount (sbgn_edit.multimer)
       var r = realizerOf(nodes2[i].el), sp = r && Array.prototype.filter.call(r.children, function (c) { return c.localName === 'StyleProperties'; })[0];
       return !!sp && Array.prototype.some.call(sp.children, function (c) { return c.getAttribute('name') === 'com.yworks.sbgn.style.mcount' && c.getAttribute('value') !== '1'; });
     }
-    function makeState(P) {   // an empty state variable on the first free place in ORDER (anywhere on the shape, from the bottom), selected to be dragged
+    // Icons that never touch (notes/state-crowding.md; the CellDesigner copy: cdcreate.js cdRoom, cd_make placesFor): a
+    // node's state variables and units of information keep 2 px between their boxes. A new or changed one takes the first
+    // free place of svPlaces, worked out from the node's size; with none free the node grows about its centre (svGrowStep),
+    // the state variables on a grown side spread again (iconSpread), and the places are worked out again. Nothing else
+    // moves, but those state variables and one a unit of information now meets. Never when a map is opened or saved
+    // the places by size, as [rx, ry]: inside each side as many as fit a step apart (20: an 18 icon and a 2 gap), spread
+    // evenly (sideSlots), and the corners; the order of the places most used (the bottom from the middle outwards, right
+    // first, the sides' middles, the bottom corners, the top corners, the top, the sides' other places, lower first). On 80
+    // by 40 the corners, the middles and the bottom's and top's quarters; on 100 by 50 four places along the bottom
+    function svPlaces(w, h, step) {
+      var S = step || 20, bx = sideSlots(w, S), sy = sideSlots(h, S), out = [];
+      var near = sy.length ? sy.filter(function (d) { return Math.abs(Math.abs(d) - Math.abs(sy[0])) < 1e-6; }) : [0];
+      bx.forEach(function (d) { out.push([d / w, 0.5]); });
+      near.forEach(function (d) { out.push([0.5, d / h], [-0.5, d / h]); });
+      out.push([0.5, 0.5], [-0.5, 0.5], [0.5, -0.5], [-0.5, -0.5]);
+      bx.forEach(function (d) { out.push([d / w, -0.5]); });
+      sy.slice(near.length).forEach(function (d) { out.push([0.5, d / h], [-0.5, d / h]); });
+      return out;
+    }
+    // the places inside a side L long, as distances from its middle: as many as fit S apart between its corners, spread
+    // evenly (L / S - 1 of them), nearest the middle first (the positive one, right or lower, before its twin); the
+    // CellDesigner copy: cd_make placesFor's slots
+    function sideSlots(L, S) {
+      var n = Math.max(0, Math.floor(L / S + 1e-9) - 1), o = [];
+      for (var j = 1; j <= n; j++) o.push(Math.round((-L / 2 + j * L / (n + 1)) * 1e6) / 1e6);
+      return o.sort(function (a, b) { return Math.abs(a) - Math.abs(b) || b - a; });
+    }
+    // a point p on the border of a box w0 by h0 (from its centre, y down) on the box grown to w by h, at its distance from
+    // the middle of its side (a corner stays a corner); off the border in proportion
+    function iconKeep(p, w0, h0, w, h) {
+      var x = p[0], y = p[1], onX = Math.abs(Math.abs(x) - w0 / 2) < 0.5, onY = Math.abs(Math.abs(y) - h0 / 2) < 0.5, sx = x < 0 ? -1 : 1, sy = y < 0 ? -1 : 1;
+      if (onX && onY) return [sx * w / 2, sy * h / 2];
+      if (onY) return [x, sy * h / 2];
+      if (onX) return [sx * w / 2, y];
+      return [x * w / w0, y * h / h0];
+    }
+    // icons in order at kept distances p (sorted) given places on their side (sorted, as many or more): the places, in
+    // order, that move them least; on a tie the outer places taken and, of two as near the middle, the left one, so the
+    // place left free is the one svPlaces offers first (nearest the middle, right before left)
+    function spreadOn(slots, p) {
+      var n = slots.length, m = p.length, C = [], W = [];
+      var cost = function (d, x) { return Math.abs(d - x) - 1e-3 * Math.abs(d) - (d < 0 ? 1e-6 : 0); };
+      for (var j = 0; j <= m; j++) { C.push([]); W.push([]); for (var k = 0; k <= n; k++) C[j].push(j === 0 ? 0 : Infinity); }
+      for (j = 1; j <= m; j++) for (k = j; k <= n; k++) {
+        var take = C[j - 1][k - 1] + cost(slots[k - 1], p[j - 1]), skip = C[j][k - 1];
+        if (take <= skip) { C[j][k] = take; W[j][k] = 1; } else { C[j][k] = skip; W[j][k] = 0; }
+      }
+      var out = [];
+      for (j = m, k = n; j > 0; k--) if (W[j][k] === 1) { out.unshift(slots[k - 1]); j--; }
+      return out;
+    }
+    // icons moved with their glyph grown from w0 by h0 to w by h, as points from the box's centre (y down); the one master,
+    // cdcreate.js cdOn calls it (and iconKeep). mv: { p, s } the icons that may move; fixed: { p, s } the others, already on the new box.
+    // Each kept at its distance from the middle of its side (a corner stays a corner); on a side whose length changed its
+    // icons are spread again over that side's places (sideSlots), in their order, each as little as can be (spreadOn),
+    // so the glyph grows in even steps (notes/state-crowding.md, Steadier growth); a side whose icons would then
+    // meet one another or another icon is kept as it was
+    function iconSpread(mv, fixed, w0, h0, w, h, S) {
+      var meet = function (a, sa, c, sc) { return Math.abs(a[0] - c[0]) < (sa[0] + sc[0]) / 2 + 2 - 1e-6 && Math.abs(a[1] - c[1]) < (sa[1] + sc[1]) / 2 + 2 - 1e-6; };
+      var sides = { b: [], r: [], l: [], t: [] }, out = mv.map(function (q) { return iconKeep(q.p, w0, h0, w, h); });
+      mv.forEach(function (q, k) {
+        var onX = Math.abs(Math.abs(q.p[0]) - w0 / 2) < 0.5, onY = Math.abs(Math.abs(q.p[1]) - h0 / 2) < 0.5;
+        if (onY && !onX) sides[q.p[1] > 0 ? 'b' : 't'].push(k); else if (onX && !onY) sides[q.p[0] > 0 ? 'r' : 'l'].push(k);
+      });
+      ['b', 'r', 'l', 't'].forEach(function (sd) {
+        var ks = sides[sd], hz = sd === 'b' || sd === 't', L = hz ? w : h;
+        if (!ks.length || Math.abs(L - (hz ? w0 : h0)) < 1e-6) return;
+        var at = function (d) { return hz ? [d, sd === 'b' ? h / 2 : -h / 2] : [sd === 'r' ? w / 2 : -w / 2, d]; };
+        var o = fixed.concat(mv.map(function (q, k) { return ks.indexOf(k) < 0 ? { p: out[k], s: q.s } : null; }).filter(Boolean));
+        var slots = sideSlots(L, S).filter(function (d) { return !o.some(function (f) { return meet(at(d), [S - 2, S - 2], f.p, f.s); }); });
+        if (slots.length < ks.length) return;
+        var ord = ks.slice().sort(function (a, b) { return hz ? mv[a].p[0] - mv[b].p[0] : mv[a].p[1] - mv[b].p[1]; });
+        var res = spreadOn(slots.slice().sort(function (a, b) { return a - b; }), ord.map(function (k) { return hz ? out[k][0] : out[k][1]; })).map(at);
+        var ok = ord.every(function (k, j) { return !o.some(function (f) { return meet(res[j], mv[k].s, f.p, f.s); }) && ord.every(function (k2, j2) { return j2 === j || !meet(res[j], mv[k].s, res[j2], mv[k2].s); }); });
+        if (ok) ord.forEach(function (k, j) { out[k] = res[j]; });
+      });
+      return out;
+    }
+    function svPt(b, r) { return [b[0] + (0.5 + r[0]) * b[2], b[1] + (0.5 + r[1]) * b[3]]; }
+    // node i's icons (svIconsOn) on box b, the node grown from b0: its state variables moved as iconSpread moves them, its
+    // units of information at their ratios (sbgn_edit keeps them so)
+    function svMoved(i, ic, b0, b, S) {
+      if (b === b0) return ic;
+      var rel = function (B, r) { return [r[0] * B[2], r[1] * B[3]]; }, sv = ic.filter(function (q) { return q.k === SV; });
+      var at = iconSpread(sv.map(function (q) { return { p: rel(b0, q.r), s: q.s }; }), ic.filter(function (q) { return q.k !== SV; }).map(function (q) { return { p: rel(b, q.r), s: q.s }; }), b0[2], b0[3], b[2], b[3], S || svStep(i));
+      return ic.map(function (q) { var k = sv.indexOf(q); return k < 0 ? q : { r: [at[k][0] / b[2], at[k][1] / b[3]], s: q.s, k: q.k, n: q.n }; });
+    }
+    function svStep(i) { return Math.max(20, 18 * svK(i) + 2); }   // a place's width: an icon and the 2 px gap
+    // node id grown to box nb: its state variables moved as svMoved moves them (their ratios written again); its units of
+    // information keep their places too (sbgn_edit keeps their ratios)
+    function svGrowTo(id, nb, skip) {   // skip(icon): left out, as svRoom left it out (it moves next)
+      var i = nodes2.findIndex(function (n) { return n.id === id; }), b = boxOf(i), ic = svMoved(i, svIconsOn(i).filter(function (q) { return !skip || !skip(q); }), b, nb);
+      text = sbJs.resize(text, id, nb);
+      ic.forEach(function (q) { if (q.k === SV) text = sbJs.stateMove(text, id, q.n, q.r[0], q.r[1]); });
+      parse();
+    }
+    function svIconsOn(i) {   // node i's icons as ratios of its box (sbgn_edit keeps them so through a resize): { r, s, k: kind, n: index among its kind }
+      var b = boxOf(i);
+      return svList(i).map(function (q) { return { r: [(q[1][0] - b[0]) / b[2] - 0.5, (q[1][1] - b[1]) / b[3] - 0.5], s: q[2], k: q[3], n: q[4] }; });
+    }
+    function svClash(c, s, b, icons) { return icons.some(function (q) { var p = svPt(b, q.r); return Math.abs(c[0] - p[0]) < (s[0] + q.s[0]) / 2 + 2 - 1e-6 && Math.abs(c[1] - p[1]) < (s[1] + q.s[1]) / 2 + 2 - 1e-6; }); }
+    // the next size tried, as cdcreate.js cdGrowStep: one place's width (S) wider and higher in its kind's proportion (80
+    // by 40: 100 by 50, 120 by 60, ...), about its centre, so the glyph keeps its kind's shape and grows in even steps
+    function svGrowStep(b, base, S) {
+      var w = b[2] + S, h = b[3] + S * base[1] / base[0];
+      return [b[0] - (w - b[2]) / 2, b[1] - (h - b[3]) / 2, w, h];
+    }
+    function svBase(i) {
+      var c = ((sbClasses()[nodes2[i].id] || '').replace(/ multimer$/, '')) || 'macromolecule', b = boxOf(i);
+      try { var D = defOf(c); if (D && D.w && D.h) return [D.w, D.h]; } catch (e) { /* its own size */ }
+      return [b[2], b[3]];
+    }
+    // a free place for an icon of size s on node i: { box: grown (null: as it is), r }; skip(icon): not counted
+    function svRoom(i, s, skip) {
+      var b0 = boxOf(i), b = b0, base = svBase(i), S = svStep(i), ic0 = svIconsOn(i).filter(function (q) { return !skip || !skip(q); }), c;
+      for (var g = 0; g < 80; g++) {
+        var ic = svMoved(i, ic0, b0, b, S);   // on the size tried: state variables spread as they will be, units at their ratios
+        c = svPlaces(b[2], b[3], Math.max(20, s[1] + 2));
+        for (var j = 0; j < c.length; j++) if (!svClash(svPt(b, c[j]), s, b, ic)) return { box: b === b0 ? null : b, r: c[j] };
+        b = svGrowStep(b, base, S);
+      }
+      return { box: b === b0 ? null : b, r: c[0] };
+    }
+    function svK(i) { var q = svList(i).filter(function (x) { return x[3] === SV; })[0]; return q ? q[2][1] / 18 : 1; }   // the node's icons' scale (a Newt map's own font)
+    // after node id's icons changed (a unit added or typed, a state variable j typed): units of information apart from one
+    // another (the node grown in width, the units on its top edge spread along it), then state variable j if it meets an icon, or
+    // (a unit changed, j null) every state variable a unit meets, moved to its first free place (the node grown where none
+    // is); the text changed in place, one undo step with the change; true when it grew (its holders grown by svHold)
+    function svSettle(id, j) {
+      var i = nodes2.findIndex(function (n) { return n.id === id; });
+      if (i < 0) return false;
+      var grew = false, base = svBase(i);
+      for (var g = 0; g < 80; g++) {
+        var b = boxOf(i), ic = svIconsOn(i), us = ic.filter(function (q) { return q.k === UI && Math.abs(q.r[1] + 0.5) < 1e-6; });   // the units on the top edge: only width parts them (one moved elsewhere stays as it is)
+        if (!us.some(function (u, k) { return svClash(svPt(b, u.r), u.s, b, us.slice(k + 1)); })) break;
+        svGrowTo(id, [b[0] - 10, b[1], b[2] + 20, b[3]]);
+        grew = true; i = nodes2.findIndex(function (n) { return n.id === id; });
+      }
+      for (var h = 0; h < 80; h++) {
+        var b2 = boxOf(i), ic2 = svIconsOn(i), us2 = ic2.filter(function (q) { return q.k === UI; });
+        var hit = ic2.filter(function (q) { return q.k === SV && (j != null ? q.n === j && svClash(svPt(b2, q.r), q.s, b2, ic2.filter(function (o) { return o !== q; })) : svClash(svPt(b2, q.r), q.s, b2, us2)); })[0];   // a state variable typed: that one alone; a unit changed: those it meets (a file's own overlaps stay)
+        if (!hit) break;
+        var sk = function (o) { return o.k === SV && o.n === hit.n; }, r = svRoom(i, hit.s, sk);
+        if (r.box) { svGrowTo(id, r.box, sk); grew = true; }
+        text = sbJs.stateMove(text, id, hit.n, r.r[0], r.r[1]); parse(); i = nodes2.findIndex(function (n) { return n.id === id; });
+      }
+      return grew;
+    }
+    // node id grown from box was: what holds it grown round it, as sbSetSize does (one undo step with the change)
+    function svHold(id, was) {
+      var k = nodes2.findIndex(function (n) { return n.id === id; });
+      if (k < 0) return;
+      setBoxes(grown([k], boxOf, function (q) { return q === k ? was : boxOf(q); }, function () { return false; }));
+      refit([id]);
+    }
+    function makeState(P) {   // an empty state variable on the first free place (svRoom: anywhere on the shape, from the bottom; the glyph grown where none is), selected to be dragged
       var i = macroAt(P);
       if (i < 0) return;
-      var b = boxOf(i), have = svList(i), r = ORDER.filter(function (q) {
-        return !have.some(function (h) { return Math.hypot(b[0] + (0.5 + q[0]) * b[2] - h[1][0], b[1] + (0.5 + q[1]) * b[3] - h[1][1]) < Math.max(18, h[2][0]); });
-      })[0] || ORDER[0];
-      var id = nodes2[i].id, j = have.filter(function (h) { return h[3] === SV; }).length;   // after the state variables, before the units
-      remember(false); text = sbJs.state(text, id, '', r[0], r[1]); made(id);
+      var k = svK(i), room = svRoom(i, [18 * k, 18 * k], null), was = boxOf(i);
+      var id = nodes2[i].id, j = svList(i).filter(function (h) { return h[3] === SV; }).length;   // after the state variables, before the units
+      remember(false);
+      if (room.box) svGrowTo(id, room.box);
+      text = sbJs.state(text, id, '', room.r[0], room.r[1]);
+      parse();
+      if (room.box) svHold(id, was);
+      svCopies(id).forEach(function (c) { svAddTo(c, room.r, ''); });   // on every copy at the same place (svCopies)
+      made(id);
       selN = []; svSel = { id: id, j: j }; paint();
     }
+    // Once a variable, always a variable (as a CellDesigner residue belongs to the protein and shows on every species of
+    // it): a state variable belongs to the entity, so every macromolecule of the same name (complex members included)
+    // has it, at the same place of its border; its value stays each glyph's own. Made, its variable named or renamed,
+    // moved and deleted on every copy in the same undo step; a glyph named as others takes their state variables. A copy's
+    // own is found by the variable's name, an unnamed one by its place (svTwin); SBGN-ML maps only. The place taken on a copy: the copy grows
+    // a few steps to free it, else the copy's first free place (svRoom); a move to a place taken there leaves the copy's
+    // where it was. Process Description maps only (Activity Flow has no state variables)
+    function svVar(s) { var a = (s || '').indexOf('@'); return a < 0 ? '' : s.slice(a + 1).trim(); }   // value@variable: the variable
+    function svVal(s) { var a = (s || '').indexOf('@'); return a < 0 ? s || '' : s.slice(0, a); }
+    function svIdx(id) { return nodes2.findIndex(function (n) { return n.id === id; }); }
+    function svOnly(i) { return svList(i).filter(function (q) { return q[3] === SV; }); }
+    function svR(i, q) { var b = boxOf(i); return [(q[1][0] - b[0]) / b[2] - 0.5, (q[1][1] - b[1]) / b[3] - 0.5]; }
+    function svNm(i) { return nameOf(i).replace(/\s+/g, ' ').trim(); }
+    function svCopies(id) {   // the other macromolecules named as node id (an SBGN-ML map's, Process Description): their ids
+      var i = svIdx(id);
+      if (cd || !sb || afSbgn || afKind() || i < 0 || nodes2[i].shape.kind !== 'Macromolecule' || !svNm(i)) return [];
+      var nm = svNm(i);
+      return nodes2.filter(function (n, k) { return k !== i && n.shape.kind === 'Macromolecule' && svNm(k) === nm; }).map(function (n) { return n.id; });
+    }
+    // copy c's state variable answering one with text txt at place r: by its variable's name; an unnamed one at the same
+    // place; for an empty one (txt ''), else the copy's empty one nearest r (one made with it where its place was taken).
+    // Never by order alone, so a copy's own value-only state variable is never taken for another; -1 for none
+    function svTwin(c, txt, r) {
+      var k = svIdx(c);
+      if (k < 0) return -1;
+      var svs = svOnly(k), v = svVar(txt), d = function (q) { var p = svR(k, q); return Math.abs(p[0] - r[0]) + Math.abs(p[1] - r[1]); };
+      var hit = v ? svs.filter(function (q) { return svVar(q[0]) === v; })[0]
+        : svs.filter(function (q) { return !svVar(q[0]) && d(q) < 0.04; })[0]
+          || (!txt ? svs.filter(function (q) { return !q[0]; }).sort(function (a, b) { return d(a) - d(b); })[0] : null);
+      return hit ? hit[4] : -1;
+    }
+    function svSize(i, txt) { var k = svK(i), n = (txt || '').length; return [n <= 2 ? 18 * k : Math.ceil(n * 5.4 * k + 12 * k), 18 * k]; }   // as sbgn_edit sizes it (svIcon)
+    function svAddTo(c, r, txt) {   // a state variable txt on copy c at place r (the copy grown a few steps to free it), else its first free place
+      var k = svIdx(c);
+      if (k < 0) return;
+      var s = svSize(k, txt), b0 = boxOf(k), b = b0, base = svBase(k), S = svStep(k), ic0 = svIconsOn(k), at = null;
+      for (var g = 0; g < 6 && !at; g++) {
+        var ic = svMoved(k, ic0, b0, b, S);
+        if (!svClash(svPt(b, r), s, b, ic)) at = { box: b === b0 ? null : b, r: r }; else b = svGrowStep(b, base, S);
+      }
+      if (!at) at = svRoom(k, s, null);
+      if (at.box) svGrowTo(c, at.box);
+      text = sbJs.state(text, c, txt, at.r[0], at.r[1]); parse();
+      if (at.box) svHold(c, b0);
+    }
+    // after state variable n of node id was typed from was to now (at place r0 before): its variable named or renamed on
+    // every copy (their values kept), added where a copy has none; a copy that has the new variable already keeps that
+    // one, its twin dropped when empty (else left, its value its own)
+    function svShareText(id, was, r0, n, now) {
+      var ov = svVar(was), nv = svVar(now), i = svIdx(id), q = i >= 0 ? svOnly(i)[n] : null, r = q ? svR(i, q) : r0;
+      if (!ov && !nv) return;   // a value alone: each glyph's own
+      svCopies(id).forEach(function (c) {
+        var m = svTwin(c, was, r0), has = nv ? svTwin(c, now, r) : -1;
+        if (m >= 0 && ov !== nv) {
+          var k = svIdx(c), wb = boxOf(k), cur = svOnly(k)[m][0];
+          if (has >= 0 && has !== m) { if (!cur) { text = sbJs.stateDelete(text, c, m, { sbgn: sb.base }); parse(); } return; }
+          text = sbJs.stateValue(text, c, m, svVal(cur) + (nv ? '@' + nv : '')); parse();
+          if (svSettle(c, m)) svHold(c, wb);
+        } else if (m < 0 && nv && has < 0) svAddTo(c, r, '@' + nv);
+      });
+    }
+    // state variable q of node i (at r0) taken to place r, or deleted (r null), on every copy
+    function svShareMove(i, q, r0, r) {
+      var ws = svCopies(nodes2[i].id).map(function (c) { return [c, svTwin(c, q[0], r0)]; }).filter(function (w) { return w[1] >= 0; });
+      return function () {
+        ws.forEach(function (w) {
+          var k = svIdx(w[0]);
+          if (k < 0) return;
+          if (!r) { text = sbJs.stateDelete(text, w[0], w[1], { sbgn: sb.base }); return; }
+          var b = boxOf(k), ic = svIconsOn(k), me = ic.filter(function (o) { return o.k === SV && o.n === w[1]; })[0];
+          if (me && !svClash(svPt(b, r), me.s, b, ic.filter(function (o) { return o !== me; }))) text = sbJs.stateMove(text, w[0], w[1], r[0], r[1]);
+        });
+        parse();
+      };
+    }
+    function svJoin(id) {   // node id named as other macromolecules: theirs added where it has none (the copy with most as the model)
+      var i = svIdx(id), cs = svCopies(id).map(svIdx).sort(function (a, b) { return svOnly(b).length - svOnly(a).length; });
+      if (i < 0 || !cs.length) return;
+      var k = cs[0], want = svOnly(k).map(function (q) { return [svVar(q[0]), svR(k, q)]; });   // read before anything is added
+      want.forEach(function (w) { if (svTwin(id, w[0] ? '@' + w[0] : 'x', w[1]) < 0) svAddTo(id, w[1], w[0] ? '@' + w[0] : ''); });   // an unnamed one matched by its place only
+    }
     // an empty unit of information, as with state variables (made at once, its text added by a double
-    // click): N:2's box (the converter's smallest), the last on the top, selected
+    // click): N:2's box (the converter's smallest), the last on the top, selected; room made for it (svSettle)
     function makeUnit(id, value) {   // value: a unit with its text (ct:mRNA), else an empty one
       var i = nodes2.findIndex(function (n) { return n.id === id; });
       if (i < 0) return;
-      var j = svList(i).length;   // the units come last in the node's list
+      var j = svList(i).length, was = boxOf(i);   // the units come last in the node's list
       var t2 = sbJs.unit(text, id, value || '');
       if (t2 === text) return;
-      remember(false); text = t2; made(id);
+      remember(false); text = t2;
+      if (!afSbgn) { parse(); if (svSettle(id, null)) svHold(id, was); }
+      made(id);
       selN = []; svSel = { id: id, j: j }; paint();
     }
-    function made(id) {   // the text changed by a palette action: read again, the node selected, drawn, saved
+    function made(id) {   // the text changed by a palette action: read again, the node (or nodes: an array) selected, drawn, saved
+      var ids = [].concat(id);
       parse(); selN = []; selP = []; selE = []; part = null;
-      nodes2.forEach(function (n, i) { if (n.id === id) selN = [i]; });
+      nodes2.forEach(function (n, i) { if (ids.indexOf(n.id) >= 0) selN.push(i); });
       dirty = true; quiet(); render(); paint(); changed();
     }
     // a node's icons: its state variables and units of information (yEd's names), as one list in the order the node has
     // them (state variables first); svSel's j counts in that list, sbgn_edit counts each kind on its own (q[4])
-    var SV = 'StateVariable', UI = 'UnitOfInformation';
+    var SV = 'StateVariable', UI = 'UnitOfInformation', SS = 'StructuralState';   // SS: CellDesigner's structural state (cdcreate.js)
     function svIcons() {   // the map's icons of both kinds: id -> [kind, text]
       var res = {};
       Array.prototype.forEach.call(doc.getElementsByTagNameNS(Y, 'Resource'), function (q) {
@@ -561,6 +1223,7 @@
     }
     function ownText(l) { var t = ''; for (var c = l.firstChild; c; c = c.nextSibling) if (c.nodeType === 3 || c.nodeType === 4) t += c.nodeValue; return t; }
     function svList(i, res) {   // the icons shown on node i: [text, centre in yEd units, size, kind, index among its kind]; res: svIcons(), read once by a caller going through many nodes
+      if (cd) return cdSvList(i);   // a CellDesigner map's, from its file (cdcreate.js)
       var r = realizerOf(nodes2[i].el), b = boxOf(i), out = [], n = {};
       res = res || svIcons();
       if (r) Array.prototype.forEach.call(r.children, function (l) {
@@ -576,7 +1239,7 @@
       return l ? ownText(l) : '';
     }
     // a name (j null), or the j-th icon's text (a state variable's value, a unit of information), typed in a box over the
-    // map; Enter or leaving it keeps it, Esc not (a unit's text free: N:3, mt:prot, ct:mRNA)
+    // map; Enter or leaving it keeps it, Esc not (a unit's text free: N:3, mt:prot, ct:mRNA; a CellDesigner map's icons have windows of their own, cdcreate.js cdSvWin)
     var typing = null;
     function typeIn(id, j, fresh) {   // fresh: the unit was made for this typing, deleted again when nothing is kept
       if (typing) typing.done(true);
@@ -591,10 +1254,18 @@
       var r = realizerOf(nodes2[i].el), fl = r && Array.prototype.filter.call(r.children, function (c) { return c.localName === 'Fill'; })[0];
       var lab = !sv ? r && Array.prototype.filter.call(r.children, function (c) { return c.localName === 'NodeLabel' && !c.getAttribute('iconData'); })[0] : null;
       var fs = lab ? num(lab, 'fontSize') || 12 : 10, inset = 2;
-      // a compartment's name typed in its top band
-      var at0 = !sv ? [b[0] + inset, b[1] + inset, b[2] - 2 * inset, nodes2[i].comp ? Math.min(b[3] - 2 * inset, fs * 1.6) : b[3] - 2 * inset] : [sv[1][0] - sv[2][0] / 2 + 1, sv[1][1] - sv[2][1] / 2 + 1, sv[2][0] - 2, sv[2][1] - 2];
+      // a group's name (a complex, a compartment) typed where it is drawn, in a band of its own across the group: the drawn
+      // name's place, else the label's place in the file, else a compartment's top band or a complex's bottom one
+      var grp = !sv && nodes2[i].el.getAttribute('yfiles.foldertype') === 'group', nb = grp ? nameBox(i) : null, padL = null, at0;
+      if (grp) {
+        var bh = Math.min(b[3] - 2 * inset, Math.max(fs * 1.6, nb ? nb[3] + 2 : 0)), ly = lab && lab.hasAttribute('y') ? num(lab, 'y') : null;
+        var by = nb ? nb[1] + nb[3] / 2 - bh / 2 : ly != null && ly >= 0 && ly <= b[3] ? b[1] + ly + num(lab, 'height') / 2 - bh / 2 : nodes2[i].comp ? b[1] + inset : b[1] + b[3] - inset - bh;
+        at0 = [b[0] + inset, Math.max(b[1] + inset, Math.min(by, b[1] + b[3] - inset - bh)), b[2] - 2 * inset, bh];
+        if (nb && Math.abs(nb[0] + nb[2] / 2 - (b[0] + b[2] / 2)) > 2) padL = Math.max(0, nb[0] - at0[0]);   // a name drawn off the middle (a compartment's at its left) typed from where it starts
+      } else at0 = !sv ? [b[0] + inset, b[1] + inset, b[2] - 2 * inset, b[3] - 2 * inset] : [sv[1][0] - sv[2][0] / 2 + 1, sv[1][1] - sv[2][1] / 2 + 1, sv[2][0] - 2, sv[2][1] - 2];
       var au0 = unit && afSbgn ? sbJs.activities(text)[id] : null;   // an activity's unit in the SBGN AF view: typed where it is drawn (afUnitBox)
       if (au0 != null) { var B0 = sbJs.afUnitBox(b, au0, sv[0] || 'x'); at0 = [B0[0] + 1, B0[1] + 1, B0[2] - 2, B0[3] - 2]; }
+      var r0 = sv && !cd ? svR(i, sv) : null;   // for the copies (svShareText)
       var inp = document.createElement('input'), before = !sv ? (cd ? cdNameOf(id) : nameOf(i)) : sv[0], m0 = map;   // a CellDesigner name from its file (cdcreate.js)
       inp.type = 'text'; inp.className = 'm2-ed-type'; inp.value = before; inp.spellcheck = false;
       inp.setAttribute('aria-label', !sv ? 'Name' : unit ? 'Unit of information' : 'State variable (value, or value@site)');
@@ -605,16 +1276,29 @@
       hid.forEach(function (el) { el.style.visibility = 'hidden'; });
       inp.style.background = gN && gN[nodes2[i].id] ? 'transparent' : !sv && fl && fl.getAttribute('hasColor') !== 'false' && fl.getAttribute('color') ? fl.getAttribute('color').slice(0, 7) : '#fff';
       inp.style.color = lab && lab.getAttribute('textColor') || '#000';
+      if (cd && cdPend && sv && !sv[0]) { inp.style.background = '#fff'; inp.style.border = '1px solid #000'; }   // a CellDesigner icon not in the file yet: nothing drawn under the field
+      var grow = unit || (!!sv && sv[3] === SS);   // a new CellDesigner structural state grows too (cdrender: its text and 12 a side)
+      // an SBGN-ML map's state variable or unit of information: the field is the icon itself while typed (white, its outline,
+      // a state variable's round ends), sized at every key as sbgn_edit sizes it on Enter (svIcon), the drawn icon hidden
+      var own = !!sv && !cd && au0 == null, ik = own ? sv[2][1] / (unit ? 16 : 18) : 1;
+      if (own) {
+        grow = true; fs = 10 * ik; at0 = [sv[1][0] - sv[2][0] / 2, sv[1][1] - sv[2][1] / 2, sv[2][0], sv[2][1]];
+        inp.style.background = '#fff'; inp.style.boxSizing = 'border-box'; inp.style.padding = '0';
+        shapesOf(i, j).forEach(function (el) { el.style.visibility = 'hidden'; hid.push(el); });
+      }
       var place = function () {   // at the glyph in the map's units: again after every zoom or pan (paint), so a pinch keeps it on its glyph
-        var st = inp.style;
-        if (unit) {   // a unit of information grows with its text round its centre, as the converter sizes it (5.4 a character, 8 more)
-          var cx = at0[0] + at0[2] / 2, uw = Math.max(at0[2], Math.ceil(inp.value.length * 5.4 + 8) + 4);
+        var st = inp.style, n = inp.value.length;
+        if (grow) {   // a unit of information grows with its text round its centre, as the converter sizes it (5.4 a character, 8 more)
+          var cx = at0[0] + at0[2] / 2, uw = !own ? Math.max(at0[2], Math.ceil(n * 5.4 + (unit ? 8 : 24)) + 4)
+            : unit ? Math.ceil(Math.max(n, 3) * 5.4 * ik + 8 * ik) : n <= 2 ? 18 * ik : Math.ceil(n * 5.4 * ik + 12 * ik);
           at0[0] = cx - uw / 2; at0[2] = uw;
         }
         st.left = sx(at0[0]) + 'px'; st.top = sy(at0[1]) + 'px'; st.width = at0[2] * V.z + 'px'; st.height = at0[3] * V.z + 'px'; st.fontSize = fs * V.z + 'px';
+        if (own) st.border = V.z + 'px solid #000';
         if (sv && !unit) st.borderRadius = at0[3] * V.z / 2 + 'px';
+        if (padL != null) { st.textAlign = 'left'; st.paddingLeft = padL * V.z + 'px'; }
       };
-      if (unit) inp.addEventListener('input', place);
+      if (grow) inp.addEventListener('input', place);
       place();
       V.view.appendChild(inp);
       typing = {
@@ -622,15 +1306,19 @@
           if (!typing || typing.inp !== inp) return;
           typing = null; inp.remove(); hid.forEach(function (el) { el.style.visibility = ''; });
           var v = inp.value.replace(/[\r\n]+/g, ' ');
+          if (cd && sv) { if (keep && on && map === m0) cdSsTyped(id, v.trim()); else if (cdPend) { cdPend = null; paint(); } return; }   // a CellDesigner map's new structural state (cdcreate.js)
           if (sv && !unit) v = v.replace(/@+$/, '');   // P@ is P (a site needs a name)
           if (unit) v = v.trim();   // a unit of only spaces is none
           if (fresh && (!keep || !v) && on && map === m0) { var t0 = undo.length ? unpush() : text; if (t0 !== text) { text = t0; parse(); dirty = true; quiet(); render(); paint(); changed(); } return; }
           if (!keep || v === before.replace(/[\r\n]+/g, ' ') || !on || map !== m0 ) return;   // a name on several lines, untouched, kept as it was (the box shows it on one)
-          if (cd) { if (!sv) cdRename(id, v); return; }   // a CellDesigner map: written into its file (cdcreate.js)
-          var t2 = !sv ? sbJs.label(text, id, v) : unit ? sbJs.unitValue(text, id, sv[4], v) : sbJs.stateValue(text, id, sv[4], v);
+          if (!sv) { setName(id, v); return; }
+          var t2 = unit ? sbJs.unitValue(text, id, sv[4], v) : sbJs.stateValue(text, id, sv[4], v);
           if (t2 === text) return;
           if (!fresh) remember(false);   // a unit made for this typing: one step with its making (its step is taken back when nothing is kept, above)
-          text = t2; parse(); dirty = true; quiet(); render(); paint(); changed();
+          text = t2; parse();
+          if (au0 == null) { var ix = nodes2.findIndex(function (n) { return n.id === id; }), was = ix >= 0 ? boxOf(ix) : null; if (was && svSettle(id, unit ? null : sv[4])) svHold(id, was); }   // a wider icon given room (notes/state-crowding.md)
+          if (au0 == null && !unit) svShareText(id, sv[0], r0, sv[4], v);   // its variable on every copy
+          dirty = true; quiet(); render(); paint(); changed();
         }, inp: inp, place: place
       };
       inp.addEventListener('keydown', function (e) {
@@ -642,21 +1330,67 @@
       inp.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
       setTimeout(function () { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }, 0);   // only the cursor, at the end, nothing selected in blue
     }
-    // a double click on a named entity, or on one of its state variables or units of information, opens its text
-    V.view.addEventListener('dblclick', function (e) {
-      if (!palOn() || !editing(e)) return;
-      if (tool || Date.now() - placedAt < 600) { e.stopImmediatePropagation(); return; }   // the clicks of a placing: no box
-      var base = src(), P = at(e), q = svAt(P), i = innermost(P, function (n, k) {   // a compartment by its top band, where its name is (inside it the double click stays the map's)
-        return (n.el.getAttribute('yfiles.foldertype') !== 'group' || (n.comp && P[1] - boxOf(k)[1] <= 24)) && sbJs.nameable(base, n.id);
+    // a name written as typing writes it (typeIn): a CellDesigner map's into its file (cdcreate.js), an SBGN-ML map's label
+    function nameNow(i) { return (cd ? cdNameOf(nodes2[i].id) : nameOf(i)).replace(/[\r\n]+/g, ' ').trim(); }   // a name as one line (a CellDesigner one from its file, cdcreate.js)
+    function shownName(i) { return (cd ? cdNameOf(nodes2[i].id, true) : nameOf(i)).replace(/[\r\n]+/g, ' ').trim(); }   // the name as drawn: a CellDesigner member still named after its id gives that id
+    function setName(id, v) {
+      if (cd) { cdRename(id, v); return; }
+      if (!sbJs || sb && !edOf(src()).nameable(src(), id)) return;   // a GraphML map's label written as it stands (no SBGN-ML class to ask)
+      var t2 = sbJs.label(text, id, v);
+      if (t2 === text) return;
+      remember(false); text = t2; parse(); svJoin(id); dirty = true; quiet(); render(); paint(); changed();
+    }
+    // Name by members: a complex named by its members' names joined by colons (A:B, CellDesigner's usual name for
+    // a complex), in reading order (rows from the top, each from the left); a member complex with no name gives its own
+    // members' names. Offered with Repack complex (core.js) on every map that draws complexes with their members, in Layout
+    // and Full editing alike; greyed only when the complex already has that name; members' names as drawn
+    function membersName(c) {
+      var ms = [], rows = [], mid = function (k, d) { var b = boxOf(k); return b[d] + b[d + 2] / 2; };
+      nodes2.forEach(function (n, k) { if (n.up === c) ms.push(k); });
+      ms.sort(function (a, b) { return mid(a, 1) - mid(b, 1); }).forEach(function (k) {   // rows from the top: a member joins the row whose first member's middle is within half its height
+        var r = rows[rows.length - 1];
+        if (r && mid(k, 1) - mid(r[0], 1) <= boxOf(r[0])[3] / 2) r.push(k); else rows.push([k]);
       });
+      return [].concat.apply([], rows.map(function (r) { return r.sort(function (a, b) { return mid(a, 0) - mid(b, 0); }); }))
+        .map(function (k) { return shownName(k) || (nodes2[k].shape.kind === 'Complex' ? membersName(k) : ''); }).filter(function (s) { return s; }).join(':');
+    }
+    window.m2EditNameHere = function (member) {
+      var c = complexHere(member);
+      if (c == null || afSbgn || afKind()) return null;   // not in an Activity Flow view, where members are not drawn
+      var v = membersName(c), id = nodes2[c].id, go = function () { setName(id, v); };
+      go.same = v === nameNow(c) || !cd && (!sbJs || sb && !edOf(src()).nameable(src(), id));   // greyed only when already so named (or the file cannot take a name), so the item stays where it is found
+      return go;
+    };
+    // a double click on a named entity, or on one of its state variables or units of information, opens its text; on a
+    // complex or a compartment anywhere off what it holds (a double click has no other use), the field at its drawn name.
+    // Without the palette (GraphML maps, Layout editing) groups only: their names, as Name by members, on every map
+    V.view.addEventListener('dblclick', function (e) {
+      if (!editing(e) || cd && cdPal()) return;   // a CellDesigner map in Full editing: cdcreate.js
+      if (tool || Date.now() - placedAt < 600) { e.stopImmediatePropagation(); return; }   // the clicks of a placing: no box
+      var full = palOn(), base = src(), P = at(e), q = full ? svAt(P) : null;
+      var ok = function (n) { return cd ? !!cdMk : !!sbJs && (!sb || sbJs.nameable(base, n.id)); };   // the file can take the name (setName)
+      var grp = function (n) { return n.el.getAttribute('yfiles.foldertype') === 'group'; };
+      var nameable = function (n) { return (n.comp || n.shape.kind === 'Complex' && !afSbgn && !afKind() || full && !grp(n)) && ok(n); };
       if (q) { e.stopImmediatePropagation(); typeIn(nodes2[q[0]].id, q[1]); return; }
+      var i = nameAt(P, nameable);
       if (i >= 0) { e.stopImmediatePropagation(); typeIn(nodes2[i].id, null); }
     }, true);
+    // what a double click at P names, by the selection's own hit (core.js): a node that is no holder names itself or, when it
+    // cannot be named here (a member in Layout editing, a process, a gate), nothing; a line or a bend point nothing; else a
+    // group's drawn name under P, else the holder round P (a complex or a compartment off what it holds); -1 for none
+    function nameAt(P, test) {
+      var h = hit(P) || {}, n = h.n != null ? nodes2[h.n] : null, holder = !!n && (n.kids.length > 0 || !!n.comp) && !(afSbgn && n.shape.kind === 'Complex');
+      if (n && !holder) return test(n, h.n) ? h.n : -1;
+      var g = nameHit(P, test);
+      if (g >= 0) return g;
+      return n && test(n, h.n) ? h.n : -1;
+    }
     function svAt(P) {   // the state variable or unit of information under P: [node, j] (it may stand out of its node)
-      if (afSbgn || afKind()) return null;   // not drawn in the SBGN AF view; an activity's unit text is set from its right-click menu, never clicked, moved or typed
-      var res = svIcons(), found = null, pad = 3 / V.z, acts = sb && palKind() === 'hybrid' ? sbJs.activities(text) : null;   // a hybrid map's activities keep their units as on an AF map
+      if (cd) { if (!cdPal()) return null; } else if (afSbgn || afKind()) return null;   // not drawn in the SBGN AF view; an activity's unit text is set from its right-click menu, never clicked, moved or typed
+      var res = cd ? null : svIcons(), found = null, pad = 3 / V.z, acts = sb && palKind() === 'hybrid' ? sbJs.activities(text) : null;   // a hybrid map's activities keep their units as on an AF map
       nodes2.forEach(function (n, k) {
-        if (n.shape.kind !== 'Macromolecule' && n.shape.kind !== 'NucleicAcidFeature' || (acts && acts[n.id] != null)) return;
+        if (!cd && (n.shape.kind !== 'Macromolecule' && n.shape.kind !== 'NucleicAcidFeature' || (acts && acts[n.id] != null))) return;
+        if (cd) { var b = boxOf(k); if (P[0] < b[0] - 80 || P[0] > b[0] + b[2] + 80 || P[1] < b[1] - 12 || P[1] > b[1] + b[3] + 12) return; }   // far from its box: its file not read (a structural state's ellipse may reach out wide)
         svList(k, res).forEach(function (q, j) { if (Math.abs(P[0] - q[1][0]) <= q[2][0] / 2 + pad && Math.abs(P[1] - q[1][1]) <= q[2][1] / 2 + pad) found = [k, j]; });
       });
       return found;
@@ -666,11 +1400,13 @@
     // to the nearest of its places (PLACES) only, its own drawing following; the arrow keys move it by single units; a click on it selected opens its text; Delete or the right-click menu
     // deletes it
     var svSel = null, svDrag = null, svKey = null;   // svSel: { id, j }; svKey: a move by the arrow keys under way
+    function svOn() { return palOn() || cdPal(); }   // state variables edited: SBGN-ML maps (Full) and CellDesigner maps (cdcreate.js)
+    function svBox(i) { return cd ? cdFront(i, cdFeat(nodes2[i].id)) : boxOf(i); }   // the box its state variables sit round: a CellDesigner multimer's front copy
     function svNode() { if (!svSel) return -1; var i = nodes2.findIndex(function (n) { return n.id === svSel.id; }); return i >= 0 && svList(i)[svSel.j] ? i : -1; }
     function svMarks(over) {   // four black squares at the corners of the state variable selected (paint, core.js)
       if (typing) typing.place();   // the text field follows a zoom or a pan
       var i = svNode();
-      if (i < 0 || !palOn()) { svSel = null; return; }
+      if (i < 0 || !svOn()) { svSel = null; return; }
       var q = svList(i)[svSel.j], c = svDrag && svDrag.to ? svDrag.to : svKey ? svKey.to : q[1], hs = Math.max(2, HANDLE * V.z);
       [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (d) {
         over.push('<rect class="m2-ed-handle" x="' + f1(sx(c[0] + d[0] * q[2][0] / 2) - hs / 2) + '" y="' + f1(sy(c[1] + d[1] * q[2][1] / 2) - hs / 2) + '" width="' + f1(hs) + '" height="' + f1(hs) + '"/>');
@@ -679,27 +1415,58 @@
     // a press on a state variable (called by the core's press before nodes, the state variable being on
     // top): a click on it selects it, also over its macromolecule, selected or not; true when it takes the press
     function svDown(e, P, h) {
-      var q = palOn() && !tool ? svAt(P) : null;
+      if (cdNameDown(e, P, h)) return true;   // a CellDesigner compartment's name dragged by itself (cdcreate.js)
+      var q = svOn() && !tool ? svAt(P) : null;
       if (!q || e.shiftKey || (h && h.p != null)) { if (svSel) { svSel = null; paint(); } return false; }   // Shift or a bend point there: the core's
-      e.stopImmediatePropagation();
       V.view.focus({ preventScroll: true });
       var again = !!svSel && svSel.id === nodes2[q[0]].id && svSel.j === q[1];
+      if (!again) { svDrag = { pick: q, x: e.clientX, y: e.clientY }; return true; }   // not selected: a drag goes on to move the map, a click selects it on release
+      e.stopImmediatePropagation();
       selN = []; selP = []; selE = []; part = null;
       svSel = { id: nodes2[q[0]].id, j: q[1] };
-      svDrag = { i: q[0], again: again, x: e.clientX, y: e.clientY, to: null, r: null, fixed: svList(q[0])[q[1]][3] === UI };   // a unit of information stays where the converter puts it
+      svDrag = { i: q[0], again: again, x: e.clientX, y: e.clientY, to: null, r: null, fixed: !!cd && svList(q[0])[q[1]][3] === UI };   // a CellDesigner unit of information stays at the top (its angle's convention not known)
       paint();
       return true;
     }
-    function textsOf(i, j) {   // the drawn text of node i's name (j null) or of its j-th icon
+    function textsOf(i, j, res) {   // the drawn text of node i's name (j null) or of its j-th icon; res: svIcons(), read once by a caller going through many nodes
       var g = gN && gN[nodes2[i].id];
       if (!g) return [];
-      var svs = svList(i), r = V.view.getBoundingClientRect(), k = V.pz();
+      var svs = svList(i, res), r = V.view.getBoundingClientRect(), k = V.pz();
       var rect = function (q) { var L = r.left + sx(q[1][0] - q[2][0] / 2) * k, T = r.top + sy(q[1][1] - q[2][1] / 2) * k; return [L - 1.5, T - 1.5, L + q[2][0] * V.z * k + 1.5, T + q[2][1] * V.z * k + 1.5]; };
       var inside = function (b, R) { var cx = b.left + b.width / 2, cy = b.top + b.height / 2; return cx >= R[0] && cx <= R[2] && cy >= R[1] && cy <= R[3]; };
       return Array.prototype.filter.call(g.querySelectorAll('text:not(.m2-af-ut)'), function (t) {   // not an activity's unit text of the SBGN AF view
+        if (t.closest('[data-n]') !== g) return false;   // a member's own drawing, if nested, is not this node's text
         var b = t.getBoundingClientRect();
         return j == null ? !svs.some(function (q) { return inside(b, rect(q)); }) : inside(b, rect(svs[j]));
       });
+    }
+    function shapesOf(i, j) {   // the drawn outline and fill of node i's j-th icon (its text: textsOf)
+      var g = gN && gN[nodes2[i].id], q = g && svList(i)[j];
+      if (!q) return [];
+      var r = V.view.getBoundingClientRect(), k = V.pz(), L = r.left + sx(q[1][0] - q[2][0] / 2) * k, T = r.top + sy(q[1][1] - q[2][1] / 2) * k, W = q[2][0] * V.z * k, H = q[2][1] * V.z * k;
+      return Array.prototype.filter.call(g.querySelectorAll('path, rect, ellipse, circle, polygon'), function (el) {
+        if (el.closest('[data-n]') !== g) return false;
+        var b = el.getBoundingClientRect();
+        return Math.abs(b.left - L) < 3 && Math.abs(b.top - T) < 3 && Math.abs(b.width - W) < 4 && Math.abs(b.height - H) < 4;
+      });
+    }
+    function nameBox(i, res) {   // the drawn name of node i as a box in the map's units [x, y, w, h], null when none is drawn (texts not in its name, a CellDesigner state or count, left out)
+      var nm = nameNow(i), ts = textsOf(i, null, res).filter(function (t) { var x = t.textContent.trim(); return x && nm.indexOf(x) >= 0; });
+      if (!ts.length) return null;
+      var r = V.view.getBoundingClientRect(), k = V.pz(), L = Infinity, T = Infinity, R = -Infinity, B = -Infinity;
+      ts.forEach(function (t) { var q = t.getBoundingClientRect(); L = Math.min(L, q.left); T = Math.min(T, q.top); R = Math.max(R, q.right); B = Math.max(B, q.bottom); });
+      var X = function (c) { return ((c - r.left) / k - V.tx) / V.z + x0; }, Y2 = function (c) { return ((c - r.top) / k - V.ty) / V.z + y0; };
+      return [X(L), Y2(T), X(R) - X(L), Y2(B) - Y2(T)];
+    }
+    function nameHit(P, test) {   // the innermost group (a complex, a compartment) whose drawn name lies under P and passes test: its name is edited where it is drawn
+      var best = -1, area = Infinity, pad = 3 / V.z, res = null;
+      nodes2.forEach(function (n, k) {
+        var b = boxOf(k);
+        if (n.el.getAttribute('yfiles.foldertype') !== 'group' || b[2] * b[3] >= area || P[0] < b[0] - 20 || P[1] < b[1] - 20 || P[0] > b[0] + b[2] + 20 || P[1] > b[1] + b[3] + 20 || !test(n, k)) return;   // a name drawn in or just by its group
+        var nb = nameBox(k, res = res || svIcons());
+        if (nb && P[0] >= nb[0] - pad && P[0] <= nb[0] + nb[2] + pad && P[1] >= nb[1] - pad && P[1] <= nb[1] + nb[3] + pad) { area = b[2] * b[3]; best = k; }
+      });
+      return best;
     }
     function svParts(i, q) {   // the drawn parts of a state variable (its box, outline, text) in its node's group of the editor's drawing
       var g = gN && gN[nodes2[i].id];
@@ -712,11 +1479,12 @@
       });
     }
     window.addEventListener('pointermove', function (e) {
+      if (svDrag && svDrag.pick) { if (!e.buttons || Math.hypot(e.clientX - svDrag.x, e.clientY - svDrag.y) >= 5) svDrag = null; return; }   // the map moved: no click
       if (!svDrag || !svSel) return;
       if (!e.buttons) { svUp(); return; }   // released outside the window: no sticky hand
       if (!svDrag.to && Math.hypot(e.clientX - svDrag.x, e.clientY - svDrag.y) < 4) return;
-      if (svDrag.fixed) { svDrag.moved = true; return; }   // a unit of information is not dragged; a drag on it is no click
-      var i = svDrag.i, b = boxOf(i), r = border(i, at(e)), q = svList(i)[svSel.j];
+      if (svDrag.fixed) { svDrag.moved = true; return; }   // a drag on it is no click
+      var i = svDrag.i, b = svBox(i), r = border(i, at(e)), q = svList(i)[svSel.j];
       if (!svDrag.parts) svDrag.parts = svParts(i, q);   // the state variable itself moves, as other items on the map, no copy
       svDrag.r = r; svDrag.to = [b[0] + (0.5 + r[0]) * b[2], b[1] + (0.5 + r[1]) * b[3]];
       var dx = svDrag.to[0] - q[1][0], dy = svDrag.to[1] - q[1][1];
@@ -724,24 +1492,44 @@
       paint();
     }, true);
     window.addEventListener('pointerup', svUp, true);   // capture: the core's own handlers may stop the release on the map
-    function svUp() {
+    function svUp(e) {
       var d = svDrag; svDrag = null;
       if (!d) return;
-      if (d.r && svSel) { remember(false); text = sbJs.stateMove(text, svSel.id, svList(d.i)[svSel.j][4], d.r[0], d.r[1]); parse(); dirty = true; render(); paint(); changed(); }
-      else if (d.again && !d.moved && svSel) typeIn(svSel.id, svSel.j);   // a click on it selected: its text
+      if (d.pick) {   // a click on one not selected: selected now, the viewer's release (a pick) not run
+        if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+        selN = []; selP = []; selE = []; part = null; svSel = { id: nodes2[d.pick[0]].id, j: d.pick[1] }; paint(); return;
+      }
+      if (d.r && svSel) svMove(d.i, svSel.j, d.r);
+      else if (d.again && !d.moved && svSel) (cd ? cdSvOpen : typeIn)(svSel.id, svSel.j);   // a click on it selected: its text (a CellDesigner map's: its window, cdcreate.js)
+    }
+    function svMove(i, j, r) {   // the state variable j of node i written at the place r (a CellDesigner map's: cdcreate.js)
+      if (cd) { cdSvMove(i, j, r); return; }
+      var q = svList(i)[j], share = q[3] === SV ? svShareMove(i, q, svR(i, q), r) : null;   // the copies too
+      remember(false); text = (q[3] === UI ? sbJs.unitMove : sbJs.stateMove)(text, nodes2[i].id, q[4], r[0], r[1]); parse();
+      if (share) share();
+      dirty = true; render(); paint(); changed();
     }
     function svDelete() {
       var i = svNode();
       if (i < 0) return false;
+      if (cd) { var j = svSel.j; svSel = null; return cdSvDelete(i, j); }
       var q = svList(i)[svSel.j];
+      var share = q[3] === SV ? svShareMove(i, q, svR(i, q), null) : null;   // the copies too
       remember(false); text = (q[3] === UI ? sbJs.unitDelete : sbJs.stateDelete)(text, svSel.id, q[4], { sbgn: sb.base }); svSel = null;
-      parse(); dirty = true; render(); paint(); changed();
+      parse();
+      if (share) share(); dirty = true; render(); paint(); changed();
       return true;
     }
-    function nodesDelete(list) {   // the glyphs the palette makes, an empty compartment too, deleted with every line at them
+    function nodesDelete(list, arcs) {   // the glyphs the palette makes, an empty compartment too, deleted with every line at them,
+      // and the lines selected with them (one undo step, as cdDelete on a CellDesigner map)
+      list = list.concat(nodes2.map(function (n, k) { return n.sub != null && list.indexOf(n.sub) >= 0 && list.indexOf(k) < 0 ? k : -1; }).filter(function (k) { return k >= 0; }));   // a submap's terminals go with it (as Newt)
       var ids = list.filter(function (i) { return isMade(nodes2[i]) || emptyComp(nodes2[i]); }).map(function (i) { return nodes2[i].id; });
-      if (!ids.length) return false;
-      remember(false); text = sbJs.remove(text, ids); selN = []; selP = []; selE = []; part = null;
+      var eids = (arcs || []).map(function (k) { return edges2[k] && edges2[k].id; }).filter(Boolean);
+      if (!ids.length && !eids.length) return false;
+      var t2 = ids.length ? sbJs.remove(text, ids) : text;
+      if (eids.length) t2 = sbJs.arcRemove(t2, eids);
+      if (t2 === text) return false;
+      remember(false); text = t2; selN = []; selP = []; selE = []; part = null;
       parse(); dirty = true; render(); paint(); changed();
       return true;
     }
@@ -775,11 +1563,11 @@
     }
     document.addEventListener('keydown', function (e) {
       var d = KEYS[e.key];
-      if (!d || !svSel || !palOn() || e.ctrlKey || e.metaKey || e.altKey || /input|textarea|select/i.test(document.activeElement.tagName)) return;
+      if (!d || !svSel || !svOn() || e.ctrlKey || e.metaKey || e.altKey || /input|textarea|select/i.test(document.activeElement.tagName)) return;
       var i = svNode();
-      if (i < 0 || svList(i)[svSel.j][3] === UI) return;   // a unit of information: not moved
+      if (i < 0 || (cd && svList(i)[svSel.j][3] === UI)) return;   // a CellDesigner unit of information: not moved
       e.preventDefault(); e.stopImmediatePropagation();
-      var b = boxOf(i), q = svList(i)[svSel.j];
+      var b = svBox(i), q = svList(i)[svSel.j];
       if (!svKey) svKey = { i: i, t: toT(b, [(q[1][0] - b[0]) / b[2] - 0.5, (q[1][1] - b[1]) / b[3] - 0.5]), c0: q[1], parts: svParts(i, q) };
       if (!e.repeat || svKey.key !== e.key) { svKey.key = e.key; svKey.dir = keyDir(b, ((svKey.t % perim(b)) + perim(b)) % perim(b), d); }
       svKey.t += svKey.dir * (e.shiftKey ? 10 : 1);
@@ -794,14 +1582,15 @@
       if (!KEYS[e.key] || !svKey) return;
       var k = svKey; svKey = null;
       if (!k.r || !svSel) return;
-      remember(false); text = sbJs.stateMove(text, svSel.id, svList(k.i)[svSel.j][4], k.r[0], k.r[1]); parse(); dirty = true; render(); paint(); changed();
+      svMove(k.i, svSel.j, k.r);
     }, true);
     document.addEventListener('keydown', function (e) {   // Esc, undo, redo and select all leave no state variable selected
       if (svSel && (e.key === 'Escape' || ((e.ctrlKey || e.metaKey) && /^[zya]$/i.test(e.key)))) { svSel = null; paint(); }
     }, true);
     document.addEventListener('keydown', function (e) {
-      if ((e.key !== 'Delete' && e.key !== 'Backspace') || !palOn() || /input|textarea|select/i.test(document.activeElement.tagName)) return;
-      if (svDelete() || (selN.length && !selP.length && nodesDelete(selN)) || (selE.length && !selN.length && !selP.length && arcsDelete(selE))) { e.preventDefault(); e.stopImmediatePropagation(); }
+      if ((e.key !== 'Delete' && e.key !== 'Backspace') || !svOn() || /input|textarea|select/i.test(document.activeElement.tagName)) return;
+      if (cd) { if (svDelete()) { e.preventDefault(); e.stopImmediatePropagation(); } return; }   // the rest of a CellDesigner map's: cdcreate.js
+      if (svDelete() || ((selN.length || (selE.length && !selP.length)) && nodesDelete(selN, selP.length ? [] : selE))) { e.preventDefault(); e.stopImmediatePropagation(); }   // an area's bend points go with their lines, as the menu's Delete; bend points alone are core.js's
     }, true);
     window.m2EditDelete = function () {   // the right-click menu's Delete over a state variable, a unit of information, a macromolecule or a simple chemical
       if (cdPal()) return cdDeleteItem();   // a CellDesigner map's (cdcreate.js)
@@ -810,10 +1599,10 @@
       if (q) return function () { svSel = { id: nodes2[q[0]].id, j: q[1] }; svDelete(); };
       var i = madeAt(rclick);
       if (i < 0) i = innermost(rclick, emptyComp);
-      if (i >= 0) return function () { nodesDelete(selN.indexOf(i) >= 0 ? selN : [i]); };
-      var h = hit(rclick);   // a line: the arcs selected with it, or it alone
+      if (i >= 0) return function () { if (selN.indexOf(i) >= 0) nodesDelete(selN, selP.length ? [] : selE); else nodesDelete([i]); };   // over the selection: all of it (as the key)
+      var h = hit(rclick);   // a line: everything selected with it, or it alone
       if (!h || h.e == null || h.p != null) return null;
-      return function () { arcsDelete(selE.indexOf(h.e) >= 0 && !selN.length && !selP.length ? selE : [h.e]); };
+      return function () { if (selE.indexOf(h.e) >= 0 && !selP.length) nodesDelete(selN, selE); else arcsDelete([h.e]); };
     };
     function arcsDelete(list) {   // arcs deleted, the file's own and those made (Settings, Editing on Full, SBGN-ML maps)
       var ids = list.map(function (k) { return edges2[k] && edges2[k].id; }).filter(Boolean);
@@ -877,9 +1666,9 @@
       makeEntity(at(e), d.kind);
     }, true);
 
-    // ---------- arcs drawn by a drag, from a node not selected, as in yEd ----------
-    // With Settings, Editing on Full, on an SBGN-ML map: a drag that starts on an entity or a process not selected draws a
-    // line to where it is let go (a click still selects); the map moves from empty space. The kind is guessed from the two
+    // ---------- arcs drawn by a drag from a node with an arc's sign picked ----------
+    // With Settings, Editing on Full: a drag from a node with a sign of
+    // Connecting arcs picked, draws a line to where it is let go (a click still selects). The kind is guessed from the two
     // ends, no connector type needed: an entity to a
     // process a consumption, ending on its port in; a process to an entity a production, from its port out; an entity to
     // an entity a process made midway with both,
@@ -894,16 +1683,20 @@
         if (i === not || !r || P[0] < b[0] - R || P[0] > b[0] + b[2] + R || P[1] < b[1] - R || P[1] > b[1] + b[3] + R) return;
         if (b[2] * b[3] < ba) { ba = b[2] * b[3]; best = i; }
       });
-      return best;
+      return best < 0 && cd ? cdLineAt(P, not) : best;   // a CellDesigner reaction taken by its main line (cdcreate.js)
     }
     var downs = new Set();   // the pointers down on the map: a second finger (a pinch) never begins a line
     window.addEventListener('pointerdown', function (e) { downs.add(e.pointerId); }, true);   // before the map's own (core.js stops the press it takes)
     ['pointerup', 'pointercancel'].forEach(function (k) { window.addEventListener(k, function (e) { downs.delete(e.pointerId); }, true); });
-    function linkDown(e, P, h) {   // a press on a node (core.js): a line begun from the entity or process there
+    // A line starts only from a node with an arc's sign picked in the palette. With no sign picked, a drag on a node not
+    // selected moves the map, as in the viewer, so a missed aim never starts a line.
+    function linkDown(e, P, h) {   // a press on a node with an arc's sign picked: a line begun there
       if (!(palOn() || cdPal()) || e.shiftKey || downs.size > 1 || link) return false;
+      if (!arcTool()) return false;   // no sign picked: a drag on a node moves the map (or what is selected)
+      if (h.n == null && !h.glyph && !(cd && cdOnLine())) return false;   // a press on a line or a bend point selects it, but for CellDesigner's Add reactant, Add product and a line's sign kept in hand
       var i = linkEnd(P, -1);
-      if (i < 0 || (!arcTool() && selN.indexOf(i) >= 0)) return false;   // a node selected is moved (e.g. a member pressed in a complex selected)
-      if (cd && cdRole(i) === 'gate') return false;   // a CellDesigner gate's one line out is made with it: a drag moves the gate
+      if (i < 0) return false;
+      if (cd && !cdStartOk(i)) return false;   // a CellDesigner gate's one line out is made with it: a drag moves the gate; Add reactant and Add product from their own ends only
       e.stopImmediatePropagation(); e.preventDefault();
       V.view.setPointerCapture(e.pointerId); V.view.focus({ preventScroll: true });
       link = { from: i, pid: e.pointerId, x: e.clientX, y: e.clientY, moved: false, to: -1, P: P, how: null, at: text };
@@ -911,33 +1704,81 @@
       return true;
     }
     // what a line from node a to node b makes: { cls }, { pair }, { no: the reason }, or null over nothing. P: where it is
-    // let go. With no sign picked (guessed, then changed from the right-click menu): an entity
+    // let go. With no kind picked (linkHow, a sign that does not fit the ends): an entity
     // into a process a consumption, or a modulation when it lands on a side off the antennas of a process that has them;
     // a process to an entity a production; two entities a process between them; into a gate a logic arc (from an entity,
     // or a gate into a gate), out of a gate a stimulation (to a process or a phenotype), out of an equivalence a logic
-    // arc to its entity; an entity to a phenotype a stimulation. The modulation guessed is a stimulation, or a catalysis
-    // from a macromolecule or complex onto a process that consumes a simple chemical (a metabolic step)
+    // arc to its entity; an entity to a phenotype a modulation. A modulation guessed is the one most used on the map for
+    // that kind of end (usual), on a map with none a catalysis onto a process that consumes a simple chemical (a metabolic
+    // step), else a stimulation
+    // An arc's sign kept in hand (a double click) draws forgivingly: the kind picked where it fits the two ends, else the
+    // kind the ends give (no kind picked), silently; never a process made between two entities for a modulation picked
+    // (that would say one is turned into the other). A sign taken for one line (a click) makes that kind or nothing
     function linkHow(a, b, P) {
-      if (cd) return cdHow(a, b);   // a CellDesigner map's (cdcreate.js)
+      if (cd) return cdHow(a, b, P);   // a CellDesigner map's (cdcreate.js), with where its end lands
+      var want = arcTool(), h = linkKind(a, b, P, want), g;
+      if (h && h.no && want && tool.sticky && (g = linkKind(a, b, P, null)) && !g.no && !(g.pair && MODK[want])) return g;
+      return h;
+    }
+    // SBGN PD's connectivity table (3.4.1) for what the roles alone do not tell: an empty set is only consumed or
+    // produced, a perturbing agent only starts a modulation (modulation, stimulation, inhibition, necessary
+    // stimulation), a nucleic acid feature is no catalyst. cls: the arc's class, 'pair' for a process made between two
+    // entities (s consumed, t produced). A reason, or null; Activity Flow and CellDesigner maps have rules of their own
+    function pdLimit(s, t, cls) {
+      if (cd || palLangNow() !== 'pd' || s < 0 || t < 0) return null;
+      var ks = nodes2[s].shape.kind, kt = nodes2[t].shape.kind, flux = cls === 'pair' || cls === 'consumption' || cls === 'production';
+      if ((ks === 'EmptySet' && !(cls === 'pair' || cls === 'consumption')) || (kt === 'EmptySet' && !(cls === 'pair' || cls === 'production'))) return 'An empty set is only consumed or produced.';
+      if ((ks === 'PerturbingAgent' && (flux || cls === 'catalysis' || cls === 'logic arc')) || kt === 'PerturbingAgent') return 'A perturbing agent only starts a modulation, stimulation, inhibition or necessary stimulation.';
+      if (cls === 'catalysis' && ks === 'NucleicAcidFeature') return 'A nucleic acid feature is no catalyst.';
+      if (cls === 'consumption' && roleOf(t) === 'proc') {   // a reversible process has productions on both sides, no consumption (3.5.2.5)
+        var rv = sbJs.reversibility(text, nodes2[t].id, { sbgn: src() });
+        if (rv && rv.rev) return 'A reversible process has productions on both sides.';
+      }
+      return null;
+    }
+    // an end of line k dragged onto node i (core.js takes): what drawing the line would refuse (linkKind's counts and its
+    // equivalence rules), so a drag never makes what drawing does not. A reason, or null; Activity Flow and CellDesigner
+    // maps have rules of their own
+    function moveLimit(k, end, i) {
+      if (cd || palLangNow() !== 'pd') return null;
+      var e = edges2[k], s = end ? e.s : i, t = end ? i : e.t, a = e.arr[1];
+      var others = function (g, into) { return edges2.filter(function (q, j) { return j !== k && (into ? q.t === g : q.s === g); }).length; };
+      var word = function (g) { var l = nodes2[g].el.getElementsByTagNameNS(Y, 'NodeLabel')[0]; return l ? l.textContent.trim().toUpperCase() : ''; };
+      if (a === 'none' && roleOf(s) === 'proc') return 'A consumption goes from an entity into a process.';   // a headless line leaving a process
+      if (!end && roleOf(s) === 'gate' && others(s, false)) return 'A logic gate has one line out, and this one has it.';
+      if (end && roleOf(t) === 'gate' && /^(NOT|\u03c4)$/.test(word(t)) && others(t, true)) return 'This gate has one input, and it has it.';
+      if (MODS.test(a) && nodes2[s].eq) return 'An equivalence\u2019s line goes to an entity.';
+      if (a === 'none' && roleOf(s) === 'gate' && roleOf(t) === 'gate' && (nodes2[s].eq || nodes2[t].eq)) return 'An equivalence joins entities only.';
+      return null;
+    }
+    function linkKind(a, b, P, want) {
+      var r = linkKind0(a, b, P, want), m = r && !r.no && pdLimit(a, b, r.pair ? 'pair' : r.cls);
+      return m ? { no: m } : r;
+    }
+    function linkKind0(a, b, P, want) {
       if (b < 0) return null;
-      var ra = roleOf(a), rb = roleOf(b), want = arcTool(), eqA = !!nodes2[a].eq, eqB = !!nodes2[b].eq;
+      var ra = roleOf(a), rb = roleOf(b), eqA = !!nodes2[a].eq, eqB = !!nodes2[b].eq;
       var has = function (s, t, head) { return edges2.some(function (q) { return q.s === s && q.t === t && q.arr[1] === head; }); };
       var ok = function (cls) { return has(a, b, sbJs.ARROW[cls]) ? { no: 'This ' + cls + ' is there already.' } : { cls: cls }; };
       var outs = function (g) { return edges2.filter(function (q) { return q.s === g; }).length; }, ins = function (g) { return edges2.filter(function (q) { return q.t === g; }).length; };
+      if (ra === 'tag' || rb === 'tag') {   // a tag (or terminal) and the entity it stands for: an equivalence arc, a plain line (sbgn_edit.connect writes it from the entity)
+        var why = 'A tag is joined to an entity by an equivalence arc.';
+        if ((ra === 'tag' ? rb : ra) !== 'epn' || (want && want !== 'consumption' && want !== 'logic arc')) return { no: why };
+        return has(a, b, 'none') || has(b, a, 'none') ? { no: 'This equivalence arc is there already.' } : { cls: 'equivalence arc' };
+      }
       if (ra === 'pheno') return { no: 'Nothing leaves a phenotype: it is modulated by an entity or a logic gate.' };
       if (ra === 'gate' && outs(a)) return { no: 'A logic gate has one line out, and this one has it.' };   // SBGN PD; the converter's rules for the equivalence
       var word = function (i) { var l = nodes2[i].el.getElementsByTagNameNS(Y, 'NodeLabel')[0]; return l ? l.textContent.trim() : ''; };   // a gate's word as drawn (a made one is not in the file yet)
       if (rb === 'gate' && (word(b) === '\u03c4' || word(b).toUpperCase() === 'NOT') && ins(b)) return { no: 'A ' + (word(b) === '\u03c4' ? 'delay' : 'NOT gate') + ' has one input, and this one has it.' };
       var af = palLangNow() === 'af';   // Activity Flow: influences join two activities, and leave a gate for one
       if (af) {
-        if (ra === 'epn' && rb === 'epn') return want && !MODK[want] ? { no: 'Activity Flow joins activities by an influence.' } : ok(want || 'stimulation');
-        if (ra === 'gate' && !eqA && rb === 'epn') return want && !MODK[want] ? { no: 'A logic gate\u2019s output is an influence.' } : ok(want || 'stimulation');
+        if (ra === 'epn' && rb === 'epn') return want && !MODK[want] ? { no: 'Activity Flow joins activities by an influence.' } : ok(want || usual(b, 'stimulation'));
+        if (ra === 'gate' && !eqA && rb === 'epn') return want && !MODK[want] ? { no: 'A logic gate\u2019s output is an influence.' } : ok(want || usual(b, 'stimulation'));
       } else if (hybOn()) {   // Hybrid: a modulation picked may end on an entity (two entities with no sign still get a process between them)
         if (ra === 'epn' && rb === 'epn' && want && MODK[want]) return want === 'catalysis' ? { no: 'A catalysis ends on a process.' } : ok(want);
-        if (ra === 'gate' && !eqA && rb === 'epn' && (!want || MODK[want])) return want === 'catalysis' ? { no: 'A catalysis ends on a process.' } : ok(want || 'stimulation');
+        if (ra === 'gate' && !eqA && rb === 'epn' && (!want || MODK[want])) return want === 'catalysis' ? { no: 'A catalysis ends on a process.' } : ok(want || usual(b, 'stimulation'));
       }
       if (want === 'logic arc' && rb !== 'gate' && !(eqA && rb === 'epn')) return { no: 'A logic arc goes into a logic gate.' };
-      if (want === 'catalysis' && rb === 'pheno') return { no: 'A catalysis ends on a process; a phenotype takes a stimulation, inhibition or modulation.' };   // as the converter's rules
       if (want && MODK[want]) {   // a modulation picked: from an entity or a gate to a process or a phenotype
         if ((ra === 'epn' || (ra === 'gate' && !eqA)) && (rb === 'proc' || rb === 'pheno')) return ok(want);
         return { no: 'A ' + want + ' goes from an entity or a logic gate to a process or a phenotype' + ((ra === 'epn' || ra === 'gate') && rb === 'epn' && palLangNow() === 'pd' && !hybOn() ? ' (Reduced notation is unticked in the palette).' : '.') };
@@ -949,27 +1790,35 @@
         return ok('logic arc');
       }
       if (ra === 'gate') {   // a gate's output
-        if (want === 'logic arc' && eqA) return rb === 'epn' ? ok('logic arc') : { no: 'An equivalence\u2019s line goes to an entity.' };
+        if ((want === 'logic arc' || want === 'consumption') && eqA) return rb === 'epn' ? ok('logic arc') : { no: 'An equivalence\u2019s line goes to an entity.' };
         if (want) return { no: 'A ' + want + ' does not leave a logic gate: its output is a modulation (a stimulation, unless another is picked).' };
         if (eqA) return rb === 'epn' ? ok('logic arc') : { no: 'An equivalence’s line goes to an entity.' };
-        return rb === 'epn' ? { no: 'A logic gate’s output goes to a process, a phenotype or another gate (Reduced notation is unticked in the palette).' } : ok('stimulation');
+        return rb === 'epn' ? { no: 'A logic gate’s output goes to a process, a phenotype or another gate (Reduced notation is unticked in the palette).' } : ok(usual(b, 'stimulation'));
       }
       if (rb === 'pheno') {
         if (ra !== 'epn' || want) return { no: 'A phenotype is modulated by an entity or a logic gate (a stimulation, unless another modulation is picked).' };
-        return ok('stimulation');
+        return ok(usual(b, 'stimulation'));
       }
       if (ra === 'proc' && rb === 'proc') return { no: 'An arc goes from an entity into a process (a consumption) or from a process to an entity (a production), not between two processes.' };
-      // two entities (a shortcut): a process made between them, with no sign picked or with Consumption
-      // or Production picked alike
-      if (ra === 'epn' && rb === 'epn') return !want || want === 'consumption' || want === 'production' ? { pair: true } : { no: 'A ' + want + ' does not join two entities. A process is made between them with no sign, Consumption or Production picked.' };
+      // two entities (a shortcut): a process made between them, with Consumption or Production picked
+      if (ra === 'epn' && rb === 'epn') return !want || want === 'consumption' || want === 'production' ? { pair: true } : { no: 'A ' + want + ' does not join two entities. A process is made between them with Consumption or Production picked.' };
       var cls = ra === 'epn' ? 'consumption' : 'production';
       if (want && want !== cls) return { no: want === 'consumption' ? 'A consumption goes from an entity into a process.' : 'A production goes from a process to an entity.' };
       if (!want && cls === 'consumption' && P && offAxis(b, P)) {   // landed on a side off the antennas: a modulation
         var n = nodes2[a], sub = edges2.some(function (q) { return q.t === b && q.arr[1] === 'none' && nodes2[q.s].shape.kind === 'SimpleChemical'; });
-        return ok(sub && (/^(Macromolecule|Complex)$/.test(n.shape.kind) || n.kids.length > 0) ? 'catalysis' : 'stimulation');
+        return ok(usual(b, sub && (/^(Macromolecule|Complex)$/.test(n.shape.kind) || n.kids.length > 0) ? 'catalysis' : 'stimulation'));
       }
       if (has(a, b, cls === 'production' ? 'delta' : 'none')) return { no: 'This ' + cls + ' is there already.' };
       return { cls: cls };
+    }
+    // the modulation a line with no kind picked gets: the one most used on the map into nodes of b's role (catalysis only
+    // into processes), ties in the palette's order, else `dflt` (a map with none yet)
+    function usual(b, dflt) {
+      var rb = roleOf(b), kind = {}, n = {}, best = dflt, most = 0;
+      Object.keys(MODK).forEach(function (k) { if (k !== 'catalysis' || rb === 'proc') kind[sbJs.ARROW[k]] = k; });
+      edges2.forEach(function (q) { var k = kind[q.arr[1]]; if (k && q.t != null && roleOf(q.t) === rb) n[k] = (n[k] || 0) + 1; });
+      PAL_PD[4][1].forEach(function (q) { if (n[q[0]] > most) { most = n[q[0]]; best = q[0]; } });
+      return best;
     }
     function offAxis(i, P) {   // P on a side off the antennas of process i, one with a consumption or production (a bare one has no axis yet)
       var id = nodes2[i].id, H = window.yrender && hubPorts()[id], b = bx(i), c = [b[0] + b[2] / 2, b[1] + b[3] / 2];
@@ -993,7 +1842,7 @@
       if (!l.moved) return false;
       e.stopImmediatePropagation(); paint();
       if (e.type !== 'pointerup' || !l.how || l.at !== text) return true;
-      if (l.how.no) { warn(l.how.no); return true; }
+      if (l.how.no) return true;   // refused (drawn dashed, its target not lit while dragged): nothing made, nothing said
       linkMake(l.from, l.to, l.how);
       if (tool && !tool.sticky) palTake(null);
       return true;
@@ -1014,6 +1863,7 @@
           t2 = sbJs.connect(t2, ids[1], pid, ib, 'production', o);
         }
       } catch (err) { warn('The arc could not be made: ' + (err && err.message || err) + '.'); return; }
+      if (sbCols() === 'confetti') ids.forEach(function (id) { t2 = sbJs.recolour(t2, id, confettiLine(confettiHues(t2)).toUpperCase()); });   // a new line a colour of its own, as the map's
       if (t2 === text) return;
       remember(false); text = t2;
       parse(); selN = []; selP = []; part = null;
@@ -1021,70 +1871,66 @@
       dirty = true; quiet(); render(); paint(); changed();
     }
     function linkPaint(out) {   // the line being drawn (paint, core.js): from its node's centre to the pointer, the node that would take it lit
-      cdGateMarks(out);   // a CellDesigner gate's inputs clicked so far (cdcreate.js)
+      cdGateMarks(out); cdOverMarks(out);   // a CellDesigner gate's inputs clicked so far, Add product's join under the pointer (cdcreate.js)
       if (!link || !link.moved || link.at !== text) return;
       var A = bx(link.from), C = [A[0] + A[2] / 2, A[1] + A[3] / 2], no = !!(link.how && link.how.no);
-      if (link.how && !no) out.push('<g transform="translate(' + f1(V.tx - x0 * V.z) + ',' + f1(V.ty - y0 * V.z) + ') scale(' + V.z + ')"><path class="m2-ed-dark" d="' + shapeD(link.to) + '"/></g>');
-      out.push('<path class="m2-ed-live" stroke-width="' + f1(Math.max(1, V.z)) + '"' + (no ? ' stroke-dasharray="4 3"' : '') + ' d="M' + f1(sx(C[0])) + ' ' + f1(sy(C[1])) + 'L' + f1(sx(link.P[0])) + ' ' + f1(sy(link.P[1])) + '"/>');
+      // drawn behind its nodes, as the line after the drop: from where it leaves its node's shape outline, none while the
+      // pointer is still inside it, and over a node that would take it up to where it meets that node's outline
+      var P = link.P, inFrom = inRim(rimOf(link.from, A), [P[0] - C[0], P[1] - C[1]]), S = inFrom ? null : cutShape(link.from, C, P, A);
+      if (S && link.to >= 0 && link.to !== link.from) P = cutShape(link.to, P, S, bx(link.to));
+      var E = cd && S ? cdLiveEnds(S, P, C) : null;   // an added reactant's or product's join (cdcreate.js)
+      if (E) { S = E[0]; P = E[1]; }
+      if (cd) cdLinkMarks(out);   // CellDesigner's marks (cdcreate.js)
+      else if (link.how && !no) out.push('<g transform="translate(' + f1(V.tx - x0 * V.z) + ',' + f1(V.ty - y0 * V.z) + ') scale(' + V.z + ')"><path class="m2-ed-dark" d="' + shapeD(link.to) + '"/></g>');
+      if (S) out.push('<path class="m2-ed-live" stroke-width="' + f1(Math.max(1, V.z)) + '"' + (no ? ' stroke-dasharray="4 3"' : '') + ' d="M' + f1(sx(S[0])) + ' ' + f1(sy(S[1])) + 'L' + f1(sx(P[0])) + ' ' + f1(sy(P[1])) + '"/>');
     }
     document.addEventListener('keydown', function (e) { if (link && e.key === 'Escape') { link = null; tap = null; paint(); } }, true);
 
     // ---------- resizing and Properties ----------
-    // A macromolecule or a simple chemical selected is resized by its eight handles: the sides dragged move, its width and
+    // A glyph selected (a complex's member too, its complex growing round it; a complex with members held round them,
+    // roomy in core.js) is resized by its eight handles: the sides dragged move, its width and
     // height in multiples of Grid size (8 by default, so a drag gives regular sizes),
     // Alt or Ctrl held for any size (sized, core.js). Properties, under the palette, shows the width and the height of the
     // one selected, typed for an exact size (its centre kept); Grid size beside the Grid and Snap switches (core.js), kept in this browser with them.
     // sbgn_edit.resize writes the box, its name kept centred, its state variables at their places on the border; write()
     // scales what the SBGN-ML glyph carries the same way.
-    function sizable(i) {   // not a member of a complex (Pack keeps a complex's members to the layout rules)
-      var n = nodes2[i], u = n && n.up != null ? nodes2[n.up] : null;
-      return palOn() && !!n && isMade(n) && n.shape.kind !== 'Process' && n.shape.kind !== 'Operator' && (!u || u.comp);   // a process or gate keeps its size (its antennas)
+    // Resizing and Properties serve every format with a palette through its part's answers (propFmt: PF_SB here, PF_CD in
+    // cdcreate.js): which node they are for, which rows apply, its look, a field set, a size set
+    function propFmt() { return palOn() ? PF_SB : cdPal() ? PF_CD : null; }
+    function sizable(i) {   // a complex holding members on every format with a part (held round them: roomy, core.js), not in AF's SBGN view (its members not drawn); else the part's answer
+      var f = propFmt(), n = nodes2[i];
+      if (!f || !n) return false;
+      return n.shape.kind === 'Complex' && n.kids.length ? !afSbgn : f.sizable(i);
     }
-    var sizeRec = null;   // the node drawn live while it is resized: its parts and how they were
-    function sizeLive(i, nb) {
-      var g = gN && gN[nodes2[i].id];
-      if (!g) return;
-      if (!sizeRec || sizeRec.i !== i) {
-        sizeOff();
-        var first = g.firstElementChild && g.firstElementChild.localName === 'a' ? g.firstElementChild : g, b = boxOf(i), seen = new Set();
-        var svs = svList(i).map(function (q) {
-          var parts = svParts(i, q); parts.forEach(function (el) { seen.add(el); });
-          return { parts: parts, r: [(q[1][0] - b[0]) / b[2] - 0.5, (q[1][1] - b[1]) / b[3] - 0.5], c: q[1] };
+    function setSize(i, nb) { setSizes([[i, nb]]); }
+    function setSizes(pairs) {   // [[node, box], ...]: one undo step for them all (Properties with several nodes selected)
+      var f = propFmt(); if (f) f.size(pairs.map(function (q) { return [q[0], q[1].map(function (v) { return +fmt(v); })]; }));
+    }
+    function sbSizable(i) {   // a glyph made from the palette, a complex's member too (the complex grows round it), a compartment
+      var n = nodes2[i];
+      return !!n.comp || (isMade(n) && n.shape.kind !== 'Process' && n.shape.kind !== 'Operator');   // a compartment too (holderSize); a process or gate keeps its size (its antennas)
+    }
+    function sbSetSize(pairs) {   // each node given its box, one undo step with the compartments round them grown to hold them
+      var ids = [], was = {}, t2 = text, tids = [];   // tids: the terminals of a submap resized, kept on its sides (termsFix)
+      pairs.forEach(function (q) {
+        var b0 = boxOf(q[0]), b1 = q[1];
+        nodes2.forEach(function (n, k) {
+          if (n.sub !== q[0]) return;
+          var b = boxOf(k), rx = b0[2] ? (b[0] + b[2] / 2 - b0[0]) / b0[2] : 0.5, ry = b0[3] ? (b[1] + b[3] / 2 - b0[1]) / b0[3] : 0.5;   // its place scaled with the box
+          t2 = sbJs.resize(t2, n.id, [b1[0] + rx * b1[2] - b[2] / 2, b1[1] + ry * b1[3] - b[3] / 2, b[2], b[3]]);
+          tids.push(n.id);
         });
-        var shapes = [], kids = Array.prototype.filter.call(first.children, function (el) { return !el.classList.contains('m2-ed-dark'); });
-        for (var k = 0; k < kids.length && kids[k].localName === 'path' && !seen.has(kids[k]); k++) shapes.push(kids[k]);   // the shape first (two for a multimer)
-        sizeRec = { i: i, b: b, shapes: shapes, svs: svs, texts: kids.filter(function (el) { return el.localName === 'text' && !seen.has(el); }), was: new Map() };
-        shapes.concat(sizeRec.texts).forEach(function (el) { sizeRec.was.set(el, [el.getAttribute('d'), el.getAttribute('transform')]); });
-        svs.forEach(function (s) { s.parts.forEach(function (el) { sizeRec.was.set(el, [el.getAttribute('d'), el.getAttribute('transform')]); }); });
-      }
-      var R = sizeRec, n = nodes2[i], b0 = R.b, two = R.shapes.length > 1 && n.shape.props.mcount === '2';
-      // a multimer's back shape first, its fill and its stroke (each outline is two paths)
-      R.shapes.forEach(function (el, k) { var o = two && k < R.shapes.length / 2 ? 6 : 0; el.setAttribute('d', outlineD(n.shape, nb[0] + o, nb[1] + o, nb[2], nb[3])); });
-      var tr = function (dx, dy) { return 'translate(' + f1(dx) + ' ' + f1(dy) + ')'; };
-      R.texts.forEach(function (el) { el.setAttribute('transform', tr(nb[0] + nb[2] / 2 - b0[0] - b0[2] / 2, nb[1] + nb[3] / 2 - b0[1] - b0[3] / 2)); });
-      R.svs.forEach(function (s) {
-        var t = tr(nb[0] + (0.5 + s.r[0]) * nb[2] - s.c[0], nb[1] + (0.5 + s.r[1]) * nb[3] - s.c[1]);
-        s.parts.forEach(function (el) { el.setAttribute('transform', t); });
       });
-    }
-    function sizeOff() {   // the node drawn as the renderer drew it
-      if (!sizeRec) return;
-      sizeRec.was.forEach(function (v, el) {
-        if (v[0] != null) el.setAttribute('d', v[0]);
-        if (v[1] != null) el.setAttribute('transform', v[1]); else el.removeAttribute('transform');
-      });
-      sizeRec = null;
-    }
-    function setSize(i, nb) {   // node i given the box nb, one undo step with the compartments round it grown to hold it
-      var id = nodes2[i].id, t2, was = boxOf(i);
-      nb = nb.map(function (v) { return +fmt(v); });
-      try { t2 = sbJs.resize(text, id, nb); } catch (err) { warn('Not resized: ' + (err && err.message || err) + '.'); liveOff(); sizeOff(); paint(); return; }
+      try { pairs.forEach(function (q) { var id = nodes2[q[0]].id; ids.push(id); was[id] = boxOf(q[0]); t2 = sbJs.resize(t2, id, q[1]); }); }
+      catch (err) { warn('Not resized: ' + (err && err.message || err) + '.'); liveOff(); sizeOff(); paint(); return; }
       if (t2 === text) { liveOff(); sizeOff(); paint(); return; }
       remember(false); text = t2; parse(); dirty = true;
-      selN = []; nodes2.forEach(function (n, k) { if (n.id === id) selN = [k]; });
-      var k0 = selN[0];   // its holders grown round it as round a drag (grown)
-      if (k0 != null) setBoxes(grown([k0], boxOf, function (k) { return k === k0 ? was : boxOf(k); }, function () { return false; }));
-      refit([id]);
+      nodes2.forEach(function (n) { if (n.sub != null && ids.indexOf(n.id) >= 0) tids.push(n.id); });   // a terminal resized itself: kept on its side
+      if (tids.length) termsFix(nodes2.map(function (n, k) { return tids.indexOf(n.id) >= 0 ? k : -1; }).filter(function (k) { return k >= 0; }));
+      selN = []; nodes2.forEach(function (n, k) { if (ids.indexOf(n.id) >= 0) selN.push(k); });
+      var ks = selN.slice();   // their holders grown round them as round a drag (grown)
+      if (ks.length) setBoxes(grown(ks, boxOf, function (k) { return was[nodes2[k].id] || boxOf(k); }, function () { return false; }));
+      refit(ids);
       sizeRec = null; render(); paint(); changed();
     }
     // Properties as yEd's Properties View (familiar from the graph editor, compact): two columns, the name on the left;
@@ -1092,38 +1938,110 @@
     // fill colour, border width, so a map may be as colourful as its curator wants, multimer, Set as
     // default; state variables and units of information have their own ways on the map, Cloned skipped). A field is
     // applied on Enter or when it is left (Esc puts it back), a colour also when the picker closes; one undo step each.
-    // Shown for one macromolecule or simple chemical selected (not an Activity Flow activity drawn as one: write() carries
-    // none of its changes); Width and Height not for a member of a complex (Pack sizes those). Grid size is beside the
-    // Grid and Snap switches (core.js)
-    var ROWS = [['label', 'Label', 'text'], ['w', 'Width', 'num'], ['h', 'Height', 'num'], ['fill', 'Fill colour', 'colour'],
+    // Shown for any glyph selected that sbgn_edit restyles (LOOKS), its rows by its class (sbOff); Width and Height for a
+    // member of a complex too (Pack keeps member sizes), not for a process or gate (their antennas), a holder's typed as
+    // its handles resize it (holderSize). Grid size is beside the Grid and Snap switches (core.js)
+    var ROWS = [['label', 'Label', 'text'], ['font', 'Font size', 'num', ' min="1" max="200"', 'The name\u2019s size'], ['w', 'Width', 'num'], ['h', 'Height', 'num'], ['fill', 'Fill colour', 'colour'],
       ['line', 'Border colour', 'colour'], ['width', 'Border width', 'num'], ['multimer', 'Multimer', 'check']];
+    // a row: [key, name, kind (text, num, colour, check), its input's limits, its title]; a format's part may add its own rows (propRows)
     var props = document.createElement('div');
     props.className = 'm2-ed-props'; props.hidden = true;
-    props.innerHTML = '<p>Properties</p><table class="m2-ed-ptab">' + ROWS.map(function (r) {
+    // a line's rows (yEd's Properties View for an edge): its colour and width, its two ports as offsets from its glyph's centre
+    // and a consumption's or production's Cardinality (SBGN's, CellDesigner's stoichiometry; empty: 1, none shown)
+    // (a text field: a file's ? is shown as it is; typed, a number above 0 up to 1000)
+    var EROWS = [['ecol', 'Line colour', 'colour'], ['ewid', 'Line width', 'num', ' min="0.25" max="20"'], ['card', 'Cardinality', 'card'], ['sx', 'Source port X', 'num'], ['sy', 'Source port Y', 'num'],
+      ['tx', 'Target port X', 'num'], ['ty', 'Target port Y', 'num']];
+    // a reaction's rows, one reaction selected on a map whose format's part has a reaction's answers (PF_CD.rx)
+    var RROWS = [['rev', 'Reversible', 'check'], ['cin', 'Reactant cardinality', 'card'], ['cout', 'Product cardinality', 'card']];   // the main reactant's and product's numbers where the part has them (PF_CD.rx.counts)
+    function table(rows, cls) { return '<table class="m2-ed-ptab' + cls + '">' + rows.map(function (r) {
       var id = 'm2-ed-' + r[0], f = r[2] === 'check' ? '<input type="checkbox" id="' + id + '">'
+        : r[2] === 'select' ? '<select id="' + id + '">' + r[3].map(function (o) { return '<option value="' + o + '">' + o.charAt(0).toUpperCase() + o.slice(1) + '</option>'; }).join('') + '</select>'
         : r[2] === 'colour' ? '<span class="m2-ed-pc"><input type="color" tabindex="-1" aria-label="' + r[1] + ', picker"><input type="text" id="' + id + '" spellcheck="false" autocomplete="off"' + (r[0] === 'fill' ? ' placeholder="none"' : '') + '></span>'
-        : r[2] === 'num' ? '<input type="number" id="' + id + '" step="any"' + (r[0] === 'width' ? ' min="0.25" max="20"' : ' min="4" max="5000"') + '>'
+        : r[2] === 'num' ? '<input type="number" id="' + id + '" step="any"' + (r[3] || (r[0] === 'width' ? ' min="0.25" max="20"' : /^[st][xy]$/.test(r[0]) ? '' : ' min="1" max="5000"')) + '>'
+        : r[2] === 'card' ? '<input type="text" inputmode="decimal" class="m2-ed-card" id="' + id + '" placeholder="1" spellcheck="false" autocomplete="off">'
         : '<input type="text" id="' + id + '" spellcheck="false" autocomplete="off">';
-      return '<tr data-k="' + r[0] + '"><th><label for="' + id + '">' + r[1] + '</label></th><td>' + f + '</td></tr>';
-    }).join('') + '</table>' +
+      return '<tr data-k="' + r[0] + '"' + (r[4] ? ' title="' + r[4] + '"' : '') + '><th><label for="' + id + '">' + r[1] + '</label></th><td>' + f + '</td></tr>';
+    }).join('') + '</table>'; }
+    props.innerHTML = '<p>Properties</p>' + table(ROWS, ' m2-ed-pnode') + table(EROWS, ' m2-ed-pedge') + table(RROWS, ' m2-ed-prx') +
       '<button type="button" class="m2-ed-pdef" title="The next ones of this kind made from the palette take these">Set as default</button>';
     pal.insertAdjacentElement('afterend', props);
+    props.insertAdjacentElement('afterend', pmap);
     var inW = props.querySelector('#m2-ed-w'), inH = props.querySelector('#m2-ed-h');
-    var field = function (k) { return props.querySelector('#m2-ed-' + k); }, pNow = {}, pCls = [];
-    function propNode() {   // the one macromolecule, simple chemical or activity selected (its class read from the file once per selection and change)
-      if (selN.length !== 1 || selP.length || selE.length || svSel || !palOn() || !isMade(nodes2[selN[0]])) return -1;
-      var id = nodes2[selN[0]].id;
-      if (pCls[0] !== id || pCls[1] !== text) { var c = sbJs.classOf(src(), id); pCls = [id, text, /^(macromolecule|simple chemical)( multimer)?$|^biological activity$/.test(c), c === 'biological activity']; }
-      return pCls[2] ? selN[0] : -1;
+    var field = function (k) { return props.querySelector('#m2-ed-' + k); }, pNow = {};
+    function propNode() {   // the one node selected that Properties is for (propFmt's node), else -1
+      var f = propFmt();
+      return !f || selN.length !== 1 || selP.length || selE.length || svSel ? -1 : f.node(selN[0]);
     }
-    function kindOf(i) { return propNode() === i && pCls[3] ? 'biological activity' : nodes2[i].shape.kind === 'SimpleChemical' ? 'simple chemical' : 'macromolecule'; }   // Set as default's kind (every activity alike, defOf)
+    // the nodes selected that Properties is for (no line or other item selected with them): one alone, or of several
+    // those it covers (a CellDesigner complex's member, which it does not, left out); [] else
+    function propNodes() {
+      var f = propFmt();
+      if (!f || !selN.length || selP.length || selE.length || svSel) return [];
+      var a = selN.map(function (i) { return f.node(i); });
+      return selN.length === 1 ? (a[0] >= 0 ? a : []) : a.filter(function (i) { return i >= 0; });
+    }
+    function sbNode(i) {   // a glyph Properties restyles (sbgn_edit LOOKS: entities, complexes, compartments, processes, gates; its class read from the file once per selection and change), and a tag
+      var c = sbClasses()[nodes2[i].id] || '';
+      return sbJs.LOOKS.test(c) || TAGS.test(c) ? i : -1;
+    }
+    var TAGS = /^(tag|terminal)$/;   // a tag's rows: Label, Width, Height, Orientation (a terminal's shown, set by its side)
+    // the rows a glyph has by its class: Label where sbgn_edit keeps a name (NAMED), Multimer where it writes one (MULTI); Set as default for the kinds the palette makes in a kept look
+    function sbOff(k, i) {
+      var c = sbClasses()[nodes2[i].id] || '';
+      if (k === 'way') return !TAGS.test(c);
+      if (TAGS.test(c)) return !/^(label|w|h)$/.test(k);
+      if (k === 'label' || k === 'font') return !sbJs.NAMED.test(c);   // a font size where there is a name
+      if (k === 'multimer') return !sbJs.MULTI.test(c.replace(/ multimer$/, ''));
+      if (EXTRA.indexOf(k) >= 0) return true;   // another format's own rows (propRows)
+      if (k === 'def') return !/^(macromolecule|simple chemical)( multimer)?$|^biological activity$/.test(c);
+      return false;
+    }
+    // every glyph's class in the SBGN-ML file as written now, read once per change of the editor's text (src() writes the file)
+    var sbClsMemo = [null, {}];
+    function sbClasses() {
+      if (sbClsMemo[0] !== text) {
+        var m = {}, d = new DOMParser().parseFromString(src(), 'application/xml');
+        Array.prototype.forEach.call(d.getElementsByTagNameNS('*', 'glyph'), function (g) { if (g.getAttribute('id')) m[g.getAttribute('id')] = g.getAttribute('class') || ''; });
+        sbClsMemo = [text, m];
+      }
+      return sbClsMemo[1];
+    }
+    function lookKey(cls, unit) { return cls === 'biological activity' ? cls + ':' + (unit || '') : cls; }   // Set as default's kind: the glyph's class, an activity's by its unit
+    function kindOf(i) {
+      var c = (sbClasses()[nodes2[i].id] || '').replace(/ multimer$/, '');
+      if (c === 'biological activity') return lookKey(c, sbJs.activities(text)[nodes2[i].id]);
+      return c || (nodes2[i].shape.kind === 'SimpleChemical' ? 'simple chemical' : 'macromolecule');
+    }
     function propsShow(all) {   // all: every field shown again, the one focused too (Esc)
-      var i = propNode(), r2 = function (v) { return String(Math.round(v * 100) / 100); };
-      props.hidden = !palOn() || i < 0;   // only with its node: nothing selected, no Properties
+      var i = propNode(), k = propEdge(), r2 = function (v) { return String(Math.round(v * 100) / 100); }, ns = propNodes();
+      props.querySelector('.m2-ed-prx').hidden = true;
+      if (ns.length > 1 || (ns.length && selN.length > 1)) return propsMany(ns, all, r2);
+      var rx = propRx();
+      if (rx && !propFmt().rx.withNode) {   // one reaction: its Reversible tick box alone (a CellDesigner reaction; an SBGN-ML process shows it under its own rows, below)
+        props.hidden = false;
+        ['.m2-ed-pnode', '.m2-ed-pedge', '.m2-ed-pdef'].forEach(function (c) { props.querySelector(c).hidden = true; });
+        props.querySelector('.m2-ed-prx').hidden = false;
+        var fr = field('rev');
+        if (all || document.activeElement !== fr) fr.checked = rx.on;
+        rxCounts(rx, all);
+        var rk = lineOfRx();   // and its Line colour, the whole reaction's
+        if (rk >= 0) { props.querySelector('.m2-ed-pedge').hidden = false; edgeShow(rk, all, r2, true); }
+        return;
+      }
+      Array.prototype.forEach.call(props.querySelectorAll('.m2-mixed'), function (tr) { tr.classList.remove('m2-mixed'); });
+      props.querySelector('#m2-ed-multimer').indeterminate = false;
+      ROWS.forEach(function (r) { if (r[2] !== 'check') field(r[0]).placeholder = r[0] === 'fill' ? 'none' : ''; });
+      props.hidden = i < 0 && k < 0;   // only with its node or line: nothing selected, no Properties
       if (props.hidden) return;
-      Array.prototype.forEach.call(props.querySelectorAll('tr[data-k]'), function (tr) { tr.hidden = (/^[wh]$/.test(tr.dataset.k) && !sizable(i)) || (tr.dataset.k === 'multimer' && pCls[3]); });   // an activity is no multimer
-      var o = sbJs.lookOf(realizerOf(nodes2[i].el)), b = bx(i);
-      pNow = { label: nameOf(i), w: r2(b[2]), h: r2(b[3]), fill: o.fill ? o.fill.slice(0, 7).toLowerCase() : '', line: (o.line || '#000000').slice(0, 7).toLowerCase(), width: r2(o.width), multimer: o.multimer };
+      props.querySelector('.m2-ed-pnode').hidden = i < 0; props.querySelector('.m2-ed-pedge').hidden = i >= 0;
+      if (i < 0) { edgeShow(k, all, r2); return; }
+      var pf = propFmt(), b = bx(i);
+      pNow = pf.look(i);
+      if (!pNow) { props.hidden = true; return; }
+      Array.prototype.forEach.call(props.querySelectorAll('.m2-ed-pnode tr[data-k]'), function (tr) { tr.hidden = (/^[wh]$/.test(tr.dataset.k) && !sizable(i)) || pf.off(tr.dataset.k, i); });
+      props.querySelector('.m2-ed-pdef').hidden = !pf.def || pf.off('def', i);   // the part may keep it from a kind (CellDesigner: species only)
+      if (rx) { props.querySelector('.m2-ed-prx').hidden = false; var fr2 = field('rev'); if (all || document.activeElement !== fr2) fr2.checked = rx.on; rxCounts(rx, all); }   // an SBGN-ML process: Reversible after its own rows
+      pNow.w = r2(b[2]); pNow.h = r2(b[3]); ROWS.forEach(function (r) { if (r[2] === 'num' && pNow[r[0]] != null) pNow[r[0]] = r2(pNow[r[0]]); });
       ROWS.forEach(function (r) {
         var f = field(r[0]);
         if (!all && document.activeElement === f) return;
@@ -1133,14 +2051,49 @@
         if (r[2] === 'colour' && document.activeElement !== pk && pk.value !== (pNow[r[0]] || '#ffffff')) pk.value = pNow[r[0]] || '#ffffff';   // not under a choice being made
       });
     }
+    // Several nodes selected (Select all of this kind, an area, Shift with clicks): the rows every one has, Label and Set as
+    // default never; a row whose value is the same for all shows it, one that differs is an empty grey field
+    // (a colour's swatch crossed out, a tick box neither), still editable: a value set goes to all of them in one
+    // undo step, Width and Height each keeping its node's centre. Their looks read once per selection and file
+    var mLook = [null, null, null];   // [nodes, their looks, the file read]
+    function propsMany(ns, all, r2) {
+      var pf = propFmt(), key = ns.join(','), now = cd ? cd.now : text;
+      if (mLook[0] !== key || mLook[2] !== now) mLook = [key, ns.map(function (i) { var L = pf.look(i), b = bx(i); if (L) { L.w = r2(b[2]); L.h = r2(b[3]); ROWS.forEach(function (r) { if (r[2] === 'num' && L[r[0]] != null) L[r[0]] = r2(L[r[0]]); }); } return L; }), now];
+      var Ls = mLook[1];
+      if (Ls.some(function (L) { return !L; })) { props.hidden = true; return; }
+      props.hidden = false;
+      props.querySelector('.m2-ed-pnode').hidden = false; props.querySelector('.m2-ed-pedge').hidden = true;
+      props.querySelector('.m2-ed-pdef').hidden = true;
+      ROWS.forEach(function (r) {
+        var tr = props.querySelector('.m2-ed-pnode tr[data-k="' + r[0] + '"]'), f = field(r[0]);
+        tr.hidden = r[0] === 'label' || ns.some(function (i, j) { pNow = Ls[j]; return (/^[wh]$/.test(r[0]) && (!sizable(i) || holds(i))) || pf.off(r[0], i); });   // a holder's size alone (holderSize)
+        if (tr.hidden || (!all && document.activeElement === f)) return;
+        var vs = Ls.map(function (L) { return r[2] === 'check' ? !!L[r[0]] : String(L[r[0]] == null ? '' : L[r[0]]); }), one = vs.every(function (v) { return v === vs[0]; });
+        tr.classList.toggle('m2-mixed', !one);
+        if (r[2] === 'check') { f.indeterminate = !one; f.checked = one && vs[0]; return; }
+        var v = one ? vs[0] : '';
+        if (f.value !== v) f.value = v;
+        f.placeholder = one && r[0] === 'fill' ? 'none' : '';
+        var pk = f.previousElementSibling;
+        if (r[2] === 'colour' && one && document.activeElement !== pk) pk.value = v || '#ffffff';
+      });
+    }
     [inW, inH].forEach(function (inp, k) {
       inp.addEventListener('change', function () {
-        var i = propNode(), v = parseFloat(inp.value);
-        if (i < 0 || !sizable(i)) return;
-        var b = boxOf(i);
-        if (!(v >= 4 && v <= 5000) || Math.abs(v - b[2 + k]) < 0.005) { propsShow(); return; }
-        var nb = b.slice(); nb[2 + k] = v; nb[k] = b[k] + b[2 + k] / 2 - v / 2;   // its centre kept
-        setSize(i, nb);
+        var ns = propNodes(), v = parseFloat(inp.value);
+        if (!ns.length || !ns.every(sizable)) return;
+        if (!isFinite(v)) { propsShow(true); return; }
+        v = Math.min(Math.max(v, 1), 5000);   // outside 1 to 5000: the nearest, silently (a graph editor's fields; a compartment 30 below)
+        var pairs = ns.map(function (i) {
+          var b = boxOf(i), w = nodes2[i].comp ? Math.max(v, 30) : v, nb = b.slice(); nb[2 + k] = w; nb[k] = b[k] + b[2 + k] / 2 - w / 2;   // its centre kept; a compartment 30 at least (as its handles: room for its two lines)
+          if (holds(i) && !nodes2[i].comp) nb = roomy(i, nb, k ? 'tb' : 'lr', b);   // a complex never smaller than its members need, as its handles
+          return [i, nb];
+        }).filter(function (q) { return Math.abs(q[1][2 + k] - boxOf(q[0])[2 + k]) >= 0.005; });
+        if (!pairs.length) { propsShow(true); return; }
+        // a holder (a compartment, a complex with members) as its handles resize it: what it holds kept, let go or taken in
+        // (holderSize, core.js); alone, so each its own step
+        if (pairs.length === 1 && holds(pairs[0][0])) { var h = pairs[0]; keepSel(function () { holderSize(h[0], h[1].map(function (x) { return +fmt(x); }), boxOf(h[0])); }); return; }
+        keepSel(function () { setSizes(pairs); });
       });
     });
     function hex(v) {   // #rgb or #rrggbb, with or without #, as yEd writes it ('' for none, null not a colour)
@@ -1148,61 +2101,246 @@
       if (/^[0-9a-f]{3}$/i.test(v)) v = v.replace(/./g, '$&$&');
       return /^[0-9a-f]{6}$/i.test(v) ? '#' + v.toUpperCase() : v ? null : '';
     }
-    function propSet(k) {   // the label, a colour, the border width or multimer, from its field
-      var i = propNode();
-      if (i < 0) return;
-      var f = field(k), id = nodes2[i].id, t2 = text, v = k === 'multimer' ? f.checked : f.value;
-      if (k === 'label') t2 = sbJs.label(text, id, v.replace(/[\r\n]+/g, ' '));
-      else if (k === 'multimer') t2 = sbJs.multimer(text, id, v);   // a count, if any, stays the unit of information typed (N:3)
-      else if (k === 'width') { var x = parseFloat(v); if (x > 0 && x <= 20) t2 = sbJs.restyle(text, id, { width: x }); }
-      else {
-        var c = hex(v), o = {};
-        if (c !== null && !(c === '' && k === 'line')) { o[k] = c === '#000000' && k === 'line' ? null : c || null; t2 = sbJs.restyle(text, id, o); }
-      }
-      if (t2 === text) { propsShow(true); return; }
-      remember(false); text = t2; made(id);
+    function propSet(k) {   // the label, its font size, a colour, the border width or multimer, from its field (the format's part writes it), to every node it is for
+      var ns = propNodes();
+      if (!ns.length) return;
+      var f = field(k), v = k === 'multimer' ? f.checked : f.value;
+      if (ns.length > 1 && k !== 'multimer' && v === '' && f.closest('tr').classList.contains('m2-mixed')) { propsShow(true); return; }   // left mixed: nothing set
+      if (!keepSel(function () { return propFmt().set(k, v, ns); })) propsShow(true);
     }
-    ROWS.forEach(function (r) {
-      if (r[2] === 'num' && r[0] !== 'width') return;   // Width and Height: above
+    function keepSel(f) {   // a change made, the selection as it was (by id) selected again: a value set keeps every node chosen
+      var ids = selN.map(function (i) { return nodes2[i].id; }), r = f();
+      if (selN.length !== ids.length) { selN = []; nodes2.forEach(function (n, k) { if (ids.indexOf(n.id) >= 0) selN.push(k); }); paint(); }
+      return r;
+    }
+    function sbSet(k, v, is) {   // every node of is given the value, one undo step; true when the text changed
+      var ids = is.map(function (i) { return nodes2[i].id; }), t2 = text;
+      ids.forEach(function (id) {
+        if (k === 'label') t2 = sbJs.label(t2, id, v.replace(/[\r\n]+/g, ' '));
+        else if (k === 'multimer') t2 = sbJs.multimer(t2, id, v);   // a count, if any, stays the unit of information typed (N:3)
+        else if (k === 'width') { var x = parseFloat(v); if (isFinite(x)) t2 = sbJs.restyle(t2, id, { width: Math.min(Math.max(x, 0.25), 20) }); }   // outside 0.25 to 20: the nearest, silently
+        else if (k === 'font') { var z = parseFloat(v); if (isFinite(z)) t2 = sbJs.restyle(t2, id, { font: Math.min(Math.max(Math.round(z * 2) / 2, 1), 200) }); }   // in halves, 1 to 200: the nearest, silently
+        else if (k === 'way') { if (is.every(function (i) { return nodes2[i].id !== id || nodes2[i].sub == null; })) t2 = sbJs.way(t2, id, v); }   // a free tag turned (a terminal's follows its side)
+        else {
+          var c = hex(v), o = {};
+          if (c !== null && !(c === '' && k === 'line')) { o[k] = c === '#000000' && k === 'line' ? null : c || null; t2 = sbJs.restyle(t2, id, o); }
+        }
+      });
+      if (t2 === text) return false;
+      remember(false); text = t2; made(ids);
+      return true;
+    }
+    function sbEnds(id, o, box) { var t2 = sbJs.scaleEnds(text, id, o, box); if (t2 !== text) { text = t2; parse(); } }   // a complex's line ends after its box was set (dragEnd, core.js)
+    // a process made reversible or irreversible (sbgn_edit.reversible), from its right-click menu or Properties' Reversible
+    // tick box: one undo step; the turned lines selected (the menu) or the process kept selected (Properties); false when
+    // nothing changed
+    function sbReversible(pid, on, keepNode) {
+      var rv = sbJs.reversibility(text, pid, { sbgn: src() }), n = rv ? (on ? rv.can : rv.rev) : 0, ids = [];
+      if (!n) return false;
+      for (var j = 0; j < n; j++) ids.push(freeId('arc_', ids));
+      var t2 = sbJs.reversible(text, pid, on, ids, { sbgn: src() });
+      if (t2 === text) return false;
+      remember(false); text = t2; parse(); selN = []; selP = []; selE = []; part = null;
+      if (keepNode) nodes2.forEach(function (q, i) { if (q.id === pid) selN.push(i); });
+      else selE = edges2.map(function (e2, q) { return ids.indexOf(e2.id) >= 0 ? q : -1; }).filter(function (q) { return q >= 0; });
+      dirty = true; quiet(); render(); paint(); changed();
+      return true;
+    }
+    // Properties' Reversible tick box for one SBGN-ML process selected alone, under its own rows (withNode): { rid, on },
+    // or null where it can be neither (no production, an association, a gate); read once per process and text, as
+    // Properties runs with every paint
+    var sbRxSeen = [null, null];
+    function sbRxOf() {
+      if (selN.length !== 1 || selE.length || selP.length || svSel) return null;
+      var id = nodes2[selN[0]] && nodes2[selN[0]].id;
+      if (!id || sbJs.PROCESSES.indexOf(sbClasses()[id] || '') < 0) return null;
+      var key = id + '\u0000' + text;
+      if (sbRxSeen[0] !== key) { var rv = null; try { rv = sbJs.reversibility(text, id, { sbgn: src() }); } catch (e) { rv = null; } sbRxSeen = [key, rv && (rv.can || rv.rev) ? { rid: id, on: rv.rev > 0 } : null]; }
+      return sbRxSeen[1];
+    }
+    var PF_SB = { sizable: sbSizable, size: sbSetSize, node: sbNode, set: sbSet, def: sbDef, ends: sbEnds,
+      rx: { of: sbRxOf, set: function (pid, on) { return sbReversible(pid, on, true); }, withNode: true },
+      line: { colour: sbLineColour, set: sbLineSet, width: function (k) { return sbJs.widthOf(sbEdgeEl(k)); }, setWidth: sbLineWidth, ports: true,   // a line's colour, width and its ports' rows (edgeShow, edgeSet)
+        count: sbCount, setCount: function (k, v) { return sbLineTo(k, sbJs.recount(text, edges2[k].id, v)); } },   // a consumption's or production's cardinality
+      off: sbOff,
+      look: function (i) {
+        var r = realizerOf(nodes2[i].el), o = sbJs.lookOf(r), wf = field('way');
+        if (wf) { wf.disabled = nodes2[i].sub != null; wf.title = wf.disabled ? 'A terminal points out of its submap, set by the side it sits on' : ''; }
+        return { label: nameOf(i), font: o.font, fill: o.fill ? o.fill.slice(0, 7).toLowerCase() : '', line: (o.line || '#000000').slice(0, 7).toLowerCase(), width: o.width, multimer: o.multimer, way: (sbJs.wayOfR && sbJs.wayOfR(r)) || 'right' };
+      } };
+    // a line's Properties, one line selected on a map whose format's part has a line's answers (PF_SB.line): Line colour
+    // and its ports as yEd gives them, offsets from its glyph's centre (sx, sy at the source, tx, ty at the target), set
+    // as a dragged end sets them (setPorts). An end at a process's or gate's port goes with it: shown, not typed.
+    // A field applies to the line it was typed for (eFor), also when another line was clicked before it was left
+    var eFor = null;
+    function propRx() { var f = propFmt(); return f && f.rx ? f.rx.of() : null; }   // the reaction Properties is for ({ rid, on }), else null
+    function rxCounts(rx, all) {   // a reaction's main reactant's and product's Cardinality rows, where its part reads them
+      var c = propFmt().rx.counts ? propFmt().rx.counts(rx.rid) : null;
+      ['cin', 'cout'].forEach(function (key, j) {
+        var f = field(key);
+        f.closest('tr').hidden = !c || c[j] === undefined;
+        if (c && c[j] !== undefined && (all || document.activeElement !== f) && f.value !== c[j]) f.value = c[j];
+      });
+    }
+    function cardOf(f) {   // a Cardinality typed: '' for none (1), a number above 0 in hundredths, null for anything else
+      var v = f.value.trim(), n = parseFloat(v);
+      return v === '' ? '' : n > 0 && n <= 1000 ? String(Math.round(n * 100) / 100) : null;
+    }
+    ['cin', 'cout'].forEach(function (key, j) {
+      field(key).addEventListener('change', function (e) {
+        var r = propRx(), pf = propFmt(), v = cardOf(e.target);
+        if (!r || !pf.rx.setCount || v === null || !pf.rx.setCount(r.rid, j, v)) propsShow(true);   // not written: the field shows the file again
+      });
+    });
+    field('rev').addEventListener('change', function (e) {
+      e.target.blur();   // the editor's keys (undo) work at once
+      var r = propRx();
+      if (!r || !propFmt().rx.set(r.rid, e.target.checked)) propsShow(true);   // not written: the box shows the file again
+    });
+    // a line selected alone that its format's part gives Properties (PF_SB.line, PF_CD.line: a colour it reads, null when
+    // it has none of its own)
+    function propEdge() {
+      var f = propFmt(), k = selE[0];
+      return f && f.line && selE.length === 1 && !selN.length && !selP.length && !svSel && edges2[k] && edges2[k].path && f.line.colour(k) != null ? k : -1;
+    }
+    function lineOfRx() {   // a line of the one reaction selected (Properties' reaction rows) whose colour is the reaction's, else -1
+      var r = propRx(), f = propFmt();
+      if (!r || !f.line) return -1;
+      var k = edges2.findIndex(function (q) { return q.id.indexOf(r.rid + '|') === 0 && !/\|[mrp]\d+$/.test(q.id); });   // not a line with its own colour
+      return k >= 0 && f.line.colour(k) != null ? k : -1;
+    }
+    var sbCountMemo = [null, null, null];   // [line id, text, its cardinality]: read once per line and text (Properties runs with every paint)
+    function sbCount(k) {
+      var id = edges2[k].id;
+      if (sbCountMemo[0] !== id || sbCountMemo[1] !== text) { var c; try { c = sbJs.countOf(text, id); } catch (e) { c = undefined; } sbCountMemo = [id, text, c]; }
+      return sbCountMemo[2];
+    }
+    function sbEdgeEl(k) { var el = edges2[k].path.parentNode; while (el && el.localName !== 'edge') el = el.parentNode; return el; }
+    function sbLineColour(k) { return sbJs.lineOf(sbEdgeEl(k)) || '#000000'; }
+    function sbLineSet(k, c) { return sbLineTo(k, sbJs.recolour(text, edges2[k].id, c)); }   // c '#rrggbb', null for black (yEd's default, no colour written); false when nothing changed
+    function sbLineWidth(k, w) { return sbLineTo(k, sbJs.rewidth(text, edges2[k].id, w)); }   // w 1 the default
+    function sbLineTo(k, t2) {   // the line's text changed: one undo step, the line selected again
+      var id = edges2[k].id;
+      if (t2 === text) return false;
+      remember(false); text = t2; parse(); selE = []; edges2.forEach(function (q, j) { if (q.id === id) selE = [j]; });
+      dirty = true; render(); paint(); changed();
+      return true;
+    }
+    function atHub(k, end) { var e = edges2[k], n = end ? e.t : e.s; return n == null || !!nodes2[n].hub; }
+    function edgeShow(k, all, r2, rxLine) {   // rxLine: the line of a whole reaction selected (its colour, not one participant's number)
+      props.querySelector('.m2-ed-pdef').hidden = true;
+      var e = edges2[k], pl = propFmt().line, card = !rxLine && pl.count ? pl.count(k) : undefined;
+      var now = { ecol: (pl.colour(k) || '#000000').slice(0, 7).toLowerCase(), ewid: r2(pl.width(k)), card: card || '' };
+      ['sx', 'sy', 'tx', 'ty'].forEach(function (a) { now[a] = r2(num(e.path, a) || 0); });
+      EROWS.forEach(function (r) {
+        var f = field(r[0]);
+        var port = /^[st][xy]$/.test(r[0]);
+        f.closest('tr').hidden = (port && !pl.ports) || (r[0] === 'card' && card === undefined);   // the ports as offsets: yEd's, not every format's; a number only on a consumption or production
+        if (port) f.disabled = atHub(k, r[0].charAt(0) === 't');
+        if (!all && document.activeElement === f) return;
+        if (f.value !== now[r[0]]) f.value = now[r[0]];
+        var pk = f.previousElementSibling;
+        if (r[2] === 'colour' && document.activeElement !== pk && pk.value !== now.ecol) pk.value = now.ecol;
+      });
+    }
+    function edgeSet(key) {   // one undo step; a field left unchanged or not a number puts the value back
+      var f = field(key), k = edges2.findIndex(function (q) { return q.id === eFor; }), pf = propFmt();
+      if (k < 0 || !pf || !pf.line) return;
+      var e = edges2[k];
+      if (key === 'ecol') {
+        var c = hex(f.value);
+        if (c === null) { propsShow(true); return; }
+        if (!pf.line.set(k, c === '' || c === '#000000' ? null : c)) propsShow(true);
+        return;
+      }
+      if (key === 'card') {   // empty or 1: none; not a number above 0: the field shows the file again
+        var v = cardOf(f);
+        if (v === null || !pf.line.setCount || !pf.line.setCount(k, v)) propsShow(true);
+        return;
+      }
+      if (key === 'ewid') {   // outside 0.25 to 20: the nearest, silently (as Border width)
+        var w = parseFloat(f.value);
+        if (!isFinite(w) || !pf.line.setWidth(k, Math.round(Math.min(Math.max(w, 0.25), 20) * 100) / 100)) propsShow(true);   // in hundredths, as shown and written
+        return;
+      }
+      var end = key.charAt(0) === 't', v = parseFloat(f.value), a = end ? ['tx', 'ty'] : ['sx', 'sy'];
+      if (atHub(k, end) || !(Math.abs(v) <= 5000)) { propsShow(true); return; }
+      var to = a.map(function (q) { return q === key ? v : num(e.path, q) || 0; });
+      setPort({ k: k, end: end, n: end ? e.t : e.s, to: to });
+    }
+    EROWS.forEach(function (r) {
+      var f = field(r[0]);
+      [f, f.previousElementSibling].filter(Boolean).forEach(function (x) { x.addEventListener('focus', function () { var k = propEdge(); if (k < 0) k = lineOfRx(); eFor = k < 0 ? null : edges2[k].id; }); });
+      f.addEventListener('change', function () { edgeSet(r[0]); });
+      if (r[2] === 'colour') f.previousElementSibling.addEventListener('change', function (e) { f.value = e.target.value; edgeSet(r[0]); });
+    });
+    function propListen(r) {
+      if (/^[wh]$/.test(r[0])) return;   // Width and Height: above
       var f = field(r[0]);
       f.addEventListener('change', function () { propSet(r[0]); });
       if (r[2] === 'colour') f.previousElementSibling.addEventListener('change', function (e) { f.value = e.target.value; propSet(r[0]); });
-    });
+    }
+    ROWS.forEach(propListen);
+    // a format's part adds rows of its own after Border width, each call after the rows added before (its off() hides them where they do not apply; other parts' off() by EXTRA)
+    var EXTRA = [];
+    function propRows(rows) {
+      var last = EXTRA.length ? EXTRA[EXTRA.length - 1] : 'width', at = props.querySelector('.m2-ed-pnode tr[data-k="' + last + '"]'), tmp = document.createElement('div');   // after the rows added before
+      tmp.innerHTML = table(rows, '');
+      Array.prototype.slice.call(tmp.querySelectorAll('tr')).reverse().forEach(function (tr) { at.insertAdjacentElement('afterend', tr); });
+      var k = ROWS.findIndex(function (r) { return r[0] === last; });
+      rows.forEach(function (r, j) { ROWS.splice(k + 1 + j, 0, r); EXTRA.push(r[0]); propListen(r); });
+    }
+    propRows([['way', 'Orientation', 'select', ['right', 'left', 'up', 'down']]]);   // a tag's (sbOff)
     props.addEventListener('keydown', function (e) {   // Enter keeps the value, Esc takes it back; the map's keys stay out of the fields
       if (e.key === 'Enter') { e.target.blur(); e.preventDefault(); }
       else if (e.key === 'Escape') { propsShow(true); e.target.blur(); e.preventDefault(); }   // the value put back first, so leaving the field changes nothing
       e.stopPropagation();
     });
-    // Set as default (Newt's): the next ones of that kind made from the palette take this node's size, colours, border and
-    // multimer; kept in this browser for every map (atlas-edit-defaults, by kind), the size as a share of the map's own
-    // (sbgn_edit.defaults), so a map drawn at another scale gets it at its scale
+    // Set as default (Newt's): this node's size, colours, border and multimer kept as they are, by kind, in this browser
+    // for every map (atlas-edit-defaults), and Style and Colours switched to Custom: Style Custom takes the size and
+    // multimer, Colours Custom the fill, border colour and width; a kind with none kept takes From map
     var DEF_KEY = 'atlas-edit-defaults';
-    function defsKept() { try { return JSON.parse(localStorage.getItem(DEF_KEY) || '{}') || {}; } catch (e) { return {}; } }
+    function looksKept(key) { try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { return {}; } }   // the looks kept by Set as default, by kind (a format's own key)
+    function defsKept() { return looksKept(DEF_KEY); }
     function defOf(cls) {   // the look a new glyph of that kind gets: the map's (sbgn_edit.defaults), or the one set as default
       cls = baseKind(cls);
       var kind0 = cls;
-      if (ACT_UNIT[cls] != null) cls = 'biological activity';   // every activity alike: all activities the same size
-      var D = sbJs.defaults(src(), null, cls, ACT_UNIT[kind0]), k = defsKept()[cls];   // an activity's fill by its unit where the map has none (sbgn_edit.fillFor)
+      if (ACT_UNIT[cls] != null) cls = 'biological activity';   // its size by its unit's kind (sbgn_edit.defaults)
+      var D = sbJs.defaults(src(), null, cls, ACT_UNIT[kind0]), kept = defsKept(), k = kept[lookKey(cls, ACT_UNIT[kind0])];   // an activity's fill by its unit where the map has none (sbgn_edit.fillFor)
       D.multimer = false;
       // on an Activity Flow map a plain entity is saved as its activity: its fill as the map's activities of that kind
       // (CaMKII: a protein placed from the PD palette white as its unfilled protein activities, not the Default blue)
       var u = cls !== 'biological activity' && palKind() === 'af' ? sbJs.unitFor(kind0) : null;
-      if (u != null) { var DA = sbJs.defaults(src(), null, 'biological activity', u); D.fill = DA.fill; D.fallback = DA.fallback; }
-      if (k) {
-        ['fill', 'line', 'width', 'multimer'].forEach(function (q) { if (q in k) D[q] = k[q]; });
-        if (k.wr > 0 && k.hr > 0) { D.w = Math.round(D.w * k.wr * 100) / 100; D.h = Math.round(D.h * k.hr * 100) / 100; }
+      if (u != null) { k = kept[lookKey('biological activity', u)]; var DA = sbJs.defaults(src(), null, 'biological activity', u); D.fill = DA.fill; D.fallback = DA.fallback; if (DA.w !== DA.w0 || DA.h !== DA.h0) { D.w = DA.w; D.h = DA.h; } }   // and its size, where the map's activities of that kind share one
+      if (k && !(k.w > 0)) k = null;   // a look kept before sizes were kept as they are
+      var st = palStyle(), cm = sbCols();
+      if (st === 'default') { D.w = D.w0; D.h = D.h0; }   // Style: Default, the built-in sizes (at the map's scale)
+      else if (st === 'custom' && k) {
+        if (k.w > 0 && k.h > 0) { D.w = k.w; D.h = k.h; }
+        if ('multimer' in k) D.multimer = k.multimer;
+        if (k.font > 0) D.font = k.font;   // its name's size with the size
       }
+      var kc = cm === 'custom' && !!k;   // Colours: Custom, the look kept
+      if (kc) ['fill', 'line', 'width'].forEach(function (q) { if (q in k) D[q] = k[q]; });
+      else if (cm === 'default') { D.fill = sbJs.fillFor(u != null ? 'biological activity' : cls, u != null ? u : ACT_UNIT[kind0]); D.line = null; D.fallback = true; }
+      else if (cm === 'none') { D.fill = null; D.line = null; D.fallback = false; }
+      else if (cm === 'confetti' && cls !== 'compartment' && sbJs.fillFor(u != null ? 'biological activity' : cls, u != null ? u : ACT_UNIT[kind0])) { D.fill = confettiFill(src()); D.line = null; D.fallback = false; }   // entities only: FILL has none for processes, gates and empty sets
       // a metabolite's activity is placed square, as tall as the others, in either view (in the reduced
       // notation view a circle 40 by 40, not an 80 by 40 stadium; in the SBGN view a square, its palette sign
       // still a rectangle)
       if (kind0 === 'metabolite activity') D.w = D.h;
-      if (V.scheme === 'none' && D.fallback && !(k && 'fill' in k)) D.fill = null;   // Settings' No colours: only the Default colours dropped (no fill in the file, drawn white as the file is: yrender), the map's own fill and a look set as default kept
       return D;
     }
+    // Set as default asks the format's part (propFmt().def: sbDef here, cdDef in cdcreate.js), which keeps the look and
+    // switches its rows to Custom
     props.querySelector('.m2-ed-pdef').addEventListener('click', function () {
-      var i = propNode();
-      if (i < 0) return;
-      var o = sbJs.lookOf(realizerOf(nodes2[i].el)), b = boxOf(i), all = defsKept(), D = sbJs.defaults(src(), null, kindOf(i));
-      all[kindOf(i)] = { wr: b[2] / D.w, hr: b[3] / D.h, fill: o.fill, line: o.line, width: o.width, multimer: o.multimer };
-      try { localStorage.setItem(DEF_KEY, JSON.stringify(all)); } catch (e) { warn('The default could not be kept in this browser.'); }
+      var i = propNode(), pf = propFmt();
+      if (i >= 0 && pf.def) palDid([DEF_KEY, CD_DEF_KEY, CHOICE_KEY], function () { pf.def(i); });
     });
+    function keepLook(key, all) { try { localStorage.setItem(key, JSON.stringify(all)); return true; } catch (e) { warn('The default could not be kept in this browser.'); return false; } }
+    function sbDef(i) {
+      var o = sbJs.lookOf(realizerOf(nodes2[i].el)), b = boxOf(i), all = defsKept();
+      all[kindOf(i)] = { w: b[2], h: b[3], fill: o.fill, line: o.line, width: o.width, multimer: o.multimer, font: o.font };   // as it is, no share of another size
+      if (!keepLook(DEF_KEY, all)) return;
+      keepMapChoice('style', 'custom'); keepMapChoice('cols', 'custom'); styleRow(); sbColsRow();
+    }

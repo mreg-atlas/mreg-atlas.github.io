@@ -202,8 +202,12 @@
         real = '<y:GenericGroupNode configuration="com.yworks.sbgn.Complex">' + geo(b) + labels(d, i, b) + '<y:StyleProperties><y:Property name="com.yworks.sbgn.style.radiusX" value="5"/><y:Property name="com.yworks.sbgn.style.radiusY" value="5"/></y:StyleProperties>' + ZERO + ZB + '</y:GenericGroupNode>';
       } else {
         var k = SHAPE[d.alias.get(i)[0]] || 'rectangle';
-        var props = k === 'Macromolecule' ? '<y:StyleProperties><y:Property name="com.yworks.sbgn.style.radius" value="5"/></y:StyleProperties>' : '';
-        if (k === 'ellipse' || k === 'rectangle') out.push(s + '<node id="' + escape(i) + '"><data key="d6"><y:ShapeNode>' + geo(b) + labels(d, i, b) + '<y:Shape type="' + k + '"/></y:ShapeNode></data></node>');
+        // a phenotype's points indented half its height, as cdrender's hexagon (the editor's outline reads indent)
+        var props = k === 'Macromolecule' ? '<y:StyleProperties><y:Property name="com.yworks.sbgn.style.radius" value="5"/></y:StyleProperties>'
+          : k === 'Phenotype' ? '<y:StyleProperties><y:Property name="com.yworks.sbgn.style.indent" value="0.5"/></y:StyleProperties>' : '';
+        // a degraded species' circle inset an eighth of its box on each side, as cdrender draws it (the editor's outline reads inset)
+        var ins = d.alias.get(i)[0] === 'DEGRADED' ? '<y:StyleProperties><y:Property name="com.yworks.sbgn.style.inset" value="0.125"/></y:StyleProperties>' : '';
+        if (k === 'ellipse' || k === 'rectangle') out.push(s + '<node id="' + escape(i) + '"><data key="d6"><y:ShapeNode>' + geo(b) + labels(d, i, b) + '<y:Shape type="' + k + '"/>' + ins + '</y:ShapeNode></data></node>');
         else out.push(s + '<node id="' + escape(i) + '"><data key="d6"><y:GenericNode configuration="com.yworks.sbgn.' + k + '">' + geo(b) + labels(d, i, b) + props + '</y:GenericNode></data></node>');
         return;
       }
@@ -642,7 +646,21 @@
     var xs = [], ys = [];
     boxes.forEach(function (b) { xs.push(b[0]); ys.push(b[1]); });
     bends.forEach(function (ps) { ps.forEach(function (p) { xs.push(p[0]); ys.push(p[1]); }); });
-    var block = function (m) { return m < 0 ? Math.ceil((MARGIN - m) / 16) * 16.0 : 0.0; };
+    // opt.fit (JavaScript only): the canvas fitted round the map, what is drawn moved by whole grid blocks so its top
+    // left lies MARGIN to MARGIN + the block from the corner, the canvas MARGIN past its right and bottom (free texts counted too);
+    // opt.block (JavaScript only): the block (16 by default, the editor's on its Grid size), so a map on the grid stays on it
+    var fit = !!(opt && opt.fit), lyB = [];
+    if (fit) {
+      var lyS = /<celldesigner:listOfLayers>[\s\S]*?<\/celldesigner:listOfLayers>/.exec(t), reB = /<celldesigner:bounds ([^>]*)>/g, mB;
+      while (lyS && (mB = reB.exec(lyS[0]))) {   // a free text's x, y, w, h, a free line's two ends sx, sy, ex, ey
+        var vB = {}, reV = /\s((?:[se])?[xy]|[wh])="([^"]*)"/g, mV;
+        while ((mV = reV.exec(' ' + mB[1]))) vB[mV[1]] = F(mV[2]);
+        if (isFinite(vB.x) && isFinite(vB.y)) lyB.push([vB.x, vB.y, vB.x + (vB.w || 0), vB.y + (vB.h || 0)]);
+        if (isFinite(vB.sx) && isFinite(vB.sy) && isFinite(vB.ex) && isFinite(vB.ey)) lyB.push([Math.min(vB.sx, vB.ex), Math.min(vB.sy, vB.ey), Math.max(vB.sx, vB.ex), Math.max(vB.sy, vB.ey)]);
+      }
+      lyB.forEach(function (b) { xs.push(b[0]); ys.push(b[1]); });
+    }
+    var B = opt && opt.block > 0 ? +opt.block : 16.0, block = function (m) { return fit ? Math.ceil((MARGIN - m) / B) * B || 0.0 : m < 0 ? Math.ceil((MARGIN - m) / B) * B : 0.0; };
     var mn = function (a) { return a.reduce(function (p, v) { return v < p ? v : p; }, Infinity); };
     var sh = [xs.length ? block(mn(xs)) : 0.0, ys.length ? block(mn(ys)) : 0.0], shifted = sh[0] !== 0 || sh[1] !== 0;
     if (shifted) {
@@ -664,6 +682,9 @@
       if (!s) throw new Error("TypeError: 'NoneType' object is not subscriptable");
       var bt = T.span('<celldesigner:bounds ', s[0], s[1]);
       T.attrs(bt[0], ['x', 'y', 'w', 'h'].map(function (k, j) { return [k, j]; }).filter(function (q) { return Math.abs(n[q[1]] - b[q[1]]) >= 1e-3; }).map(function (q) { return [q[0], num(n[q[1]])]; }));
+      // a species resized: its usual view's boxSize the same as its bounds (CellDesigner keeps both)
+      var uv = !comps.has(i) && (Math.abs(n[2] - b[2]) >= 1e-3 || Math.abs(n[3] - b[3]) >= 1e-3) && T.span('<celldesigner:usualView>', s[0], s[1]), bs = uv && T.span('<celldesigner:boxSize ', uv[0], uv[1]);
+      if (bs) T.attrs(bs[0], [['width', num(n[2])], ['height', num(n[3])]]);
       var p = up.has(i) ? up.get(i) : null, ip = T.span('<celldesigner:innerPosition ', s[0], s[1]);
       if (ip && p !== null && !regrouped(i)) {
         var v = {}, re = /\s([xy])="([^"]*)"/g, mm, seg = T.t.slice(ip[0], ip[1]);
@@ -674,19 +695,29 @@
           T.attrs(ip[0], ['x', 'y'].map(function (k, j) { return [k, j]; }).filter(function (q) { return Math.abs((n[q[1]] - pn[q[1]]) - (b[q[1]] - pb[q[1]])) >= 1e-3; }).map(function (q) { return [q[0], num(n[q[1]] - pn[q[1]])]; }));
       }
       if (comps.has(i)) {
+        // its name moved with its corner; a name at one of the nine places, or at the top middle (cdrender.nameLeft), kept there, the box resized too
         var npt = T.span('<celldesigner:namePoint ', s[0], s[1]);
-        if (npt && (Math.abs(n[0] - b[0]) >= 1e-3 || Math.abs(n[1] - b[1]) >= 1e-3)) {
+        if (npt && n.some(function (v, j) { return Math.abs(v - b[j]) >= 1e-3; })) {
           var mv = {}, re2 = /\s([xy])="([^"]*)"/g, m2, seg2 = T.t.slice(npt[0], npt[1]);
           while ((m2 = re2.exec(seg2))) mv[m2[1]] = m2[2];
-          T.attrs(npt[0], [['x', num(F(mv.x) + n[0] - b[0])], ['y', num(F(mv.y) + n[1] - b[1])]]);
+          var ctag = T.t.slice(s[0], T.t.indexOf('>', s[0])), cid = (/\scompartment="([^"]*)"/.exec(ctag) || [])[1];
+          var cs = cid && T.span('<compartment(?=\\s)[^>]*\\sid="' + reEscape(cid) + '"'), cn = cs && /\sname="([^"]*)"/.exec(T.t.slice(cs[0], T.t.indexOf('>', cs[0])));
+          var cname = (cn ? cn[1] : cid || '').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+          // a name at one of the nine places (cdrender.namePoint) kept at its place in the new box
+          var dl = /<celldesigner:doubleLine\s(?:[^>]*\s)?thickness="([^"]*)"/.exec(T.t.slice(s[0], s[1])), th = dl ? F(dl[1]) : 12;
+          var ov = /<celldesigner:class>OVAL</.test(T.t.slice(s[0], s[1])), pl = cdr.namePlaceOf(b, cname, th, [F(mv.x), F(mv.y)], ov, true), at = pl && cdr.namePoint(n, cname, th, pl, ov);
+          var mid = !pl && Math.abs(F(mv.x) - cdr.nameLeft(b, cname)) < 1;
+          if (at) T.attrs(npt[0], [['x', num(at[0])], ['y', num(at[1])]]);
+          else if (mid || Math.abs(n[0] - b[0]) >= 1e-3 || Math.abs(n[1] - b[1]) >= 1e-3)
+            T.attrs(npt[0], [['x', num(mid ? cdr.nameLeft(n, cname) : F(mv.x) + n[0] - b[0])], ['y', num(F(mv.y) + n[1] - b[1])]]);
         }
       }
     });
     // what holds what as the editor set it: an alias or a complex the GraphML
     // puts into another compartment, or none, gets that compartment as its compartmentAlias (none: the attribute taken off)
     // and its species that compartment's own (default for none), as CellDesigner 4.4 writes them; a compartment put into
-    // another gets that one's compartment as its outside. A complex's member stays as the file has it (the editor refuses
-    // taking one out: nestCheck)
+    // another gets that one's compartment as its outside. A complex's member stays as the file has it (one taken out is
+    // written by cd_make.leave after this)
     var cid = function (c) { return c === null ? 'default' : get(comps.get(c)[1], 'compartment'); }, spDone = new Set();
     old.forEach(function (b, i) {
       if (!ups.has(i)) return;
@@ -728,7 +759,12 @@
     var far = [-Infinity, -Infinity];
     nw.forEach(function (n) { far[0] = Math.max(far[0], n[0] + n[2]); far[1] = Math.max(far[1], n[1] + n[3]); });
     var md = T.span('<celldesigner:modelDisplay ');
-    if (md && (far[0] > d.W || far[1] > d.H))
+    if (md && fit && far[0] > -Infinity) {
+      bends.forEach(function (ps) { ps.forEach(function (p) { far[0] = Math.max(far[0], p[0]); far[1] = Math.max(far[1], p[1]); }); });
+      lyB.forEach(function (b) { far[0] = Math.max(far[0], b[2] + sh[0]); far[1] = Math.max(far[1], b[3] + sh[1]); });
+      var fW = String(Math.ceil(far[0] + MARGIN)), fH = String(Math.ceil(far[1] + MARGIN));
+      if (F(fW) !== d.W || F(fH) !== d.H) T.attrs(md[0], [['sizeX', fW], ['sizeY', fH]]);
+    } else if (md && (far[0] > d.W || far[1] > d.H))
       T.attrs(md[0], [['sizeX', far[0], d.W], ['sizeY', far[1], d.H]].filter(function (q) { return q[1] > q[2]; }).map(function (q) { return [q[0], String(Math.ceil(q[1] + 40))]; }));
     d.alias.forEach(function (a, i) { d.alias.set(i, [a[0], nw.get(i), a[2], a[3], a[4]]); });
     rxsAll.forEach(function (rx) {
@@ -740,9 +776,10 @@
     if (shifted) {
       var ly = T.span('<celldesigner:listOfLayers>'), seg3 = ly ? T.t.slice(ly[0], ly[1]) : '', re3 = /<celldesigner:bounds /g, m4;
       while ((m4 = re3.exec(seg3))) {
-        var tg = T.t.slice(ly[0] + m4.index, T.t.indexOf('>', ly[0] + m4.index)), v2 = {}, re4 = /\s([xy])="([^"]*)"/g, m5;
+        var tg = T.t.slice(ly[0] + m4.index, T.t.indexOf('>', ly[0] + m4.index)), v2 = {}, re4 = /\s((?:[se])?[xy])="([^"]*)"/g, m5;
         while ((m5 = re4.exec(tg))) v2[m5[1]] = m5[2];
-        T.attrs(ly[0] + m4.index, [['x', num(F(v2.x) + sh[0])], ['y', num(F(v2.y) + sh[1])]]);
+        // a free text's corner, a free line's two ends
+        T.attrs(ly[0] + m4.index, ['x', 'y', 'sx', 'sy', 'ex', 'ey'].filter(function (k) { return has(v2, k); }).map(function (k) { return [k, num(F(v2[k]) + sh[/y$/.test(k) ? 1 : 0])]; }));
       }
       // the gates reaction() did not write (their reactions not read by lines())
       var own = rxsAll.filter(function (rx) { var o = olds[get(rx, 'id')]; return o && (o.gate || o.gates.length); }).map(function (rx) { return T.span('<reaction [^>]*\\bid="' + reEscape(get(rx, 'id')) + '"'); });
@@ -775,9 +812,9 @@
     return out;
   }
   // the editor's check before it changes what holds what on a CellDesigner map (JavaScript only): why
-  // the file cannot hold the moves ([[node id, parent node id or null], ...]), or null. A complex's member stays in its
-  // complex (taking one out would make its species a species of the map: not handled); every alias of a species stays
-  // in one compartment, as CellDesigner keeps a species in one
+  // the file cannot hold the moves ([[node id, parent node id or null], ...]), or null. A move goes into a compartment or
+  // none (a complex's member taken out is written by cd_make.leave, a species into a complex by cd_make.join); every
+  // alias of a species stays in one compartment, as CellDesigner keeps a species in one
   function nestCheck(t, moves, opt) {
     var d = drawing(t, opt), comps = compartments(d), to = new Map(), why = null;
     moves.forEach(function (m) { to.set(m[0], m[1]); });
@@ -785,7 +822,7 @@
       var i = m[0], p = m[1], A = d.alias.get(i);
       if (!A) return false;
       var nm = '"' + (typeof A[3] === 'string' ? cdr.plainName(A[3]) : get(A[2], 'species')) + '"', sid = get(A[2], 'species');
-      if (get(A[2], 'complexSpeciesAlias') !== null || (p !== null && !comps.has(p))) { why = nm + ' stays in its complex: a member taken out of a complex is not written into CellDesigner files yet.'; return true; }
+      if (p !== null && !comps.has(p)) { why = nm + ' goes into a complex only when dropped on it.'; return true; }
       d.alias.forEach(function (B, j) {
         if (why || j === i || get(B[2], 'species') !== sid) return;
         var q = to.has(j) ? to.get(j) : comps.has(get(B[2], 'compartmentAlias')) ? get(B[2], 'compartmentAlias') : null;
@@ -830,7 +867,9 @@
     };
     return {
       errors: errors,   // reactions that failed (drawn the old way by the editor; the test fails on any)
-      frame: function (boxes, bends, paths, rids) {
+      // ends: the lines whose end is over another node, by edge id [source, target] (the GraphML's ends), written into the
+      // reaction first as the drop's rewire() writes them, so the line is drawn as it will be after the drop
+      frame: function (boxes, bends, paths, rids, ends) {
         var nw = new Map(), B = new Map(rd[2]), P = new Map(rd[3]), out = {};
         // the boxes as place() takes them to write the lines (nw), and as it writes them into the file (six decimals),
         // which the drawing after the drop reads (fl)
@@ -849,6 +888,9 @@
           var sl = slice(rid);
           if (!olds[rid] || !sl) { out[rid] = null; return; }
           try {
+            var mine = new Map();
+            if (ends) ends.forEach(function (v, k) { if (k.indexOf(rid + '|') === 0) mine.set(k, v); });
+            if (mine.size) { var o1 = {}; o1[rid] = olds[rid]; sl = rewire(d, sl, mine, o1); }
             // the reaction read afresh each frame (ports() writes a moved line end into the elements it reads), as at rest
             put(old);
             var rx0 = first(sl), o = lines(d, rx0), T = new Text(sl);
@@ -865,6 +907,18 @@
           } catch (e) { out[rid] = null; errors.push(rid + ': ' + (e && e.message || e)); }
         });
         return out;
+      },
+      // a compartment or a species alias drawn at box by cdrender's own code (the editor's holders growing during a drag:
+      // compartments and complexes): what its group holds, as text; null for an id that is neither
+      holder: function (id, box) {
+        d.out = [];
+        if (comps.has(id)) d.compartment(comps.get(id)[1], box);
+        else if (alias0.has(id)) {
+          var a = d.alias.get(id);
+          d.alias.set(id, [a[0], box, a[2], a[3], a[4]]);
+          try { d.node(id); } finally { d.alias.set(id, a); }
+        } else return null;
+        return d.out.join('\n');
       },
       rest: function (rid) {   // where the reaction's glyph is on the drawing read: [sq, angle, length]
         var o = olds[rid];

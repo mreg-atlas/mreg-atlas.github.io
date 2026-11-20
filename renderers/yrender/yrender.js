@@ -10,10 +10,10 @@
   var G = 'http://graphml.graphdrawing.org/xmlns', Y = 'http://www.yworks.com/xml/graphml';
   var MARGIN = 15, SBGN = 'com.yworks.sbgn.';
   var NODE_STYLES = new Set(['Macromolecule', 'SimpleChemical', 'Complex', 'Process', 'EmptySet', 'Operator', 'Phenotype', 'Submap',
-    'NucleicAcidFeature', 'StateVariable', 'UnitOfInformation', 'UnspecifiedEntity', 'PerturbingAgent']);
+    'NucleicAcidFeature', 'StateVariable', 'UnitOfInformation', 'UnspecifiedEntity', 'PerturbingAgent', 'Tag']);
   var SHAPES = new Set(['rectangle', 'roundrectangle']);
   var HUBS = new Set(['Process', 'Operator']), ANTENNA = 0.5, ANTENNA_MIN = 9, EQUIV = '\u2261';   // ports: yrender.py's header
-  var STYLE_PROPS = new Set(['radius', 'radiusX', 'radiusY', 'mcount']);
+  var STYLE_PROPS = new Set(['radius', 'radiusX', 'radiusY', 'mcount', 'inverse', 'orientation']);
   var ARROWS = new Set(['none', 'delta', 'white_delta', 'white_circle', 'white_delta_bar', 't_shape', 'white_diamond']);
   var AIR = { white_circle: 2, t_shape: 2 }, AIR_MAX = 16;   // px of white each head keeps off the outline: yrender.py's header
   var FONTS = {
@@ -262,12 +262,48 @@
     if (kind === 'UnspecifiedEntity') return oval(x, y, w, h);
     if (kind === 'Phenotype') return hexagon(x, y, w, h);
     if (kind === 'PerturbingAgent') return hexagon(x, y, w, h, true);
+    if (kind === 'Tag') return tagShape(x, y, w, h, tagWay(props));
     if (kind === 'roundrectangle') return roundRect(x, y, w, h, 4, false);
     return rect(x, y, w, h);
+  }
+  // a tag (SBGN's tag and a submap's terminal): a box with a point on one side, the point as deep as half the box across
+  // it, so its angle stays when the box is resized (yEd's way); yEd's two ways, plain to the right and inverse to the left,
+  // and orientation up or down beside them (SBGN-ML's four; yrender.py's tag_way)
+  function tagWay(props) {
+    var o = pget(props, 'orientation', '');
+    return o === 'up' || o === 'down' || o === 'left' || o === 'right' ? o : pget(props, 'inverse', 'false') === 'true' ? 'left' : 'right';
+  }
+  function tagShape(x, y, w, h, way) {
+    if (way === 'left' || way === 'right') {
+      var a = Math.min(h / 2, w), m = y + h / 2;
+      return way === 'right' ? [['M', x, y], ['L', x + w - a, y], ['L', x + w, m], ['L', x + w - a, y + h], ['L', x, y + h], ['Z']]
+        : [['M', x + a, y], ['L', x + w, y], ['L', x + w, y + h], ['L', x + a, y + h], ['L', x, m], ['Z']];
+    }
+    var b = Math.min(w / 2, h), c = x + w / 2;
+    return way === 'down' ? [['M', x, y], ['L', x + w, y], ['L', x + w, y + h - b], ['L', c, y + h], ['L', x, y + h - b], ['Z']]
+      : [['M', c, y], ['L', x + w, y + b], ['L', x + w, y + h], ['L', x, y + h], ['L', x, y + b], ['Z']];
   }
   function paintLayer(node) {   // yrender.py's paint_layer
     var cx = kids(node, G, 'data').some(function (dd) { var all = [dd].concat(Array.prototype.slice.call(dd.getElementsByTagName('*'))); return all.some(function (c) { return get(c, 'configuration') === SBGN + 'Complex'; }); });
     return cx ? 1 : kid(node, G, 'graph') ? 0 : 2;
+  }
+  // a complex's name kept at its bottom inside (modelPosition b): where its members leave it no room there (a member's box,
+  // with a name of its own drawn under it, meeting the name's box), the name goes just under the outline, so it stays
+  // readable; its box as labelPlace gives it, moved, else null (yrender.py's name_under)
+  function nameUnder(node, r, x, y, w, h) {
+    if (!r || get(r, 'configuration') !== SBGN + 'Complex') return null;
+    var bottomName = function (l) { return get(l, 'modelName') === 'internal' && (get(l, 'modelPosition') || '').indexOf('b') === 0 && get(l, 'visible') !== 'false' && !get(l, 'iconData') && pyStrip(itertext(l)); };
+    var lab = kids(r, Y, 'NodeLabel').filter(bottomName)[0], box = lab ? labelPlace(lab, x, y, w, h) : null;
+    if (!box) return null;
+    var lx = box[0], ly = box[1], lw = box[2], lh = box[3], sub = kid(node, G, 'graph'), cs = sub ? kids(sub, G, 'node') : [];
+    for (var i = 0; i < cs.length; i++) {
+      var cr = realizer(cs[i]), g = cr ? kid(cr, Y, 'Geometry') : null;
+      if (!g) continue;
+      var cx = pyFloat(get(g, 'x')), cy = pyFloat(get(g, 'y')), cw = pyFloat(get(g, 'width')), ch = pyFloat(get(g, 'height')), below = nameUnder(cs[i], cr, cx, cy, cw, ch);
+      if (below) ch += below[3];
+      if (cx < lx + lw && lx < cx + cw && cy < ly + lh && ly < cy + ch) return [lx, y + h, lw, lh];
+    }
+    return null;
   }
   function realizer(node) {
     var data = [];
@@ -360,8 +396,17 @@
       s += '<rect x="' + num(x) + '" y="' + num(y) + '" width="' + num(w) + '" height="' + num(h) + '" fill="none"' + ink('stroke', get(lab, 'lineColor')) + '/>';
     return s;
   }
-  function visualEnd(outer, port, n) {   // the visual end on the node's shape outline, state variables included (yrender.py's visual_end)
-    var q = clip(outer, port, n.polys);
+  function onOutline(p, poly, eps) {   // yrender.py's on_outline
+    eps = eps == null ? 0.5 : eps;
+    for (var i = 0; i < poly.length; i++) {
+      var A = poly[(i - 1 + poly.length) % poly.length], B = poly[i], vx = B[0] - A[0], vy = B[1] - A[1], L = vx * vx + vy * vy;
+      var t = L ? Math.max(0, Math.min(1, ((p[0] - A[0]) * vx + (p[1] - A[1]) * vy) / L)) : 0;
+      if (Math.hypot(A[0] + t * vx - p[0], A[1] + t * vy - p[1]) < eps) return true;
+    }
+    return false;
+  }
+  function visualEnd(outer, port, n) {   // the visual end on the node's shape outline, state variables included (yrender.py's visual_end); a port on the outline counts as inside, so a far-side port is reached where the line first meets the shape
+    var q = clip(outer, port, n.polys.filter(function (poly) { return inside(port, poly) || onOutline(port, poly); }), true);
     return n.aux.length ? clip(outer, q, n.aux, true) : q;
   }
   function iconSvg(res, lab, x, y, w, h, where, aux) {
@@ -392,7 +437,7 @@
     this.url = new Set(Object.keys(keys).filter(function (k) { return keys[k][1] === 'url'; }));
     this.cls = new Set(Object.keys(keys).filter(function (k) { return keys[k][1] === 'SBGN class'; }));
     this.nodes = {}; this.order = []; this.boxes = [];
-    this.readGraph(kid(this.root, G, 'graph'), true, 'page');
+    this.readGraph(kid(this.root, G, 'graph'), 'page');
     this.ports = {};
     this.hubPorts();
   }
@@ -410,15 +455,17 @@
   YMap.prototype.hubPorts = function () {
     var self = this, ins = Object.create(null), outs = Object.create(null), given = Object.create(null), near = Object.create(null), lead = Object.create(null);
     var add = function (m, k, p) { (m[k] = m[k] || []).push(p); };
+    var wide = Object.create(null), widen = function (k, w) { if (!(wide[k] >= w)) wide[k] = w; };   // the widest arc at a port, its stick drawn as wide
     this.order.forEach(function (item) {
       if (item[0] !== 'e') return;
       var e = item[1][0], pl = polyline(e), s = get(e, 'source'), t = get(e, 'target');
       if (!pl || !has(self.nodes, s) || !has(self.nodes, t)) return;
       var path = kid(pl, Y, 'Path');
       var bends = kids(path, Y, 'Point').map(function (q) { return [pyFloat(get(q, 'x')), pyFloat(get(q, 'y'))]; });
-      var at = self.ends(e, kid(pl, Y, 'Arrows'));
-      if (at[1] === 'in') { add(ins, t, bends.length ? bends[bends.length - 1] : self.mid(s)); self.given(given, t, 'in', path, 'tx', 'ty'); add(near, t + '\u0000in', s); }
-      if (at[0] === 'out') add(lead, s, bends.concat([self.mid(t)]));   // its points, for the stick it leaves from
+      var at = self.ends(e, kid(pl, Y, 'Arrows')), ew = pyFloat(get(kid(pl, Y, 'LineStyle'), 'width') || 1);
+      if (at[1] === 'in') { add(ins, t, bends.length ? bends[bends.length - 1] : self.mid(s)); self.given(given, t, 'in', path, 'tx', 'ty'); add(near, t + '\u0000in', s); widen(t + '\u0000in', ew); }
+      if (at[0] === 'in') widen(s + '\u0000in', ew);
+      if (at[0] === 'out') { var L0 = bends.concat([self.mid(t)]); L0.w = ew; add(lead, s, L0); widen(s + '\u0000out', ew); }   // its points, for the stick it leaves from
       if (at[0]) { add(at[0] === 'in' ? ins : outs, s, bends.length ? bends[0] : self.mid(t)); self.given(given, s, at[0], path, 'sx', 'sy'); add(near, s + '\u0000' + at[0], t); }
     });
     var mean = function (q) {
@@ -450,7 +497,8 @@
       }
       self.ports[nid] = [one, two, nid in ins];
       if (!I.length && !O.length) return;   // no arcs: a bare glyph, its antennas grown by its first arc, in the direction it needs
-      var st = n.stroke, col = st ? st[0] : '#000000', wa = st && st[1] !== 1 ? ' stroke-width="' + num(st[1]) + '"' : '';
+      var st = n.stroke, col = st ? st[0] : '#000000', bw = st ? st[1] : 1;
+      var w1 = Math.max(bw, I.length ? wide[nid + '\u0000in'] || 0 : 0), w2 = Math.max(bw, I.length ? wide[nid + '\u0000out'] || 0 : 0);   // a stick as wide as its widest arc, never thinner than the glyph's border
       var e1 = clip(one, [cx, cy], n.polys), e2 = clip(two, [cx, cy], n.polys);
       var nIn = near[nid + '\u0000in'] || [], nOut = near[nid + '\u0000out'] || [];
       // a stick only where an arc is attached (yrender.py's hub_ports): nothing coming in, each leaving arc on the nearer port
@@ -459,12 +507,13 @@
         var j = 0;
         while (j < L.length - 1 && self.onStick(nid, L[j])) j++;   // bends on a stick left out first, as the edge's drawing does
         var q = L[j];
-        if (dist(two, q) <= dist(one, q)) use2 = true; else use1 = true;
+        if (dist(two, q) <= dist(one, q)) { use2 = true; w2 = Math.max(w2, L.w); } else { use1 = true; w1 = Math.max(w1, L.w); }
       });
-      var d = '', d1, d2;
-      if (use1) { d1 = self.stickEnd(nid, e1, one, I.length ? nIn : nIn.concat(nOut)); d += 'M' + num(d1[0]) + ' ' + num(d1[1]) + ' L' + num(e1[0]) + ' ' + num(e1[1]); }   // reversible: either
-      if (use2) { d2 = self.stickEnd(nid, e2, two, nOut); d += (d ? ' ' : '') + 'M' + num(e2[0]) + ' ' + num(e2[1]) + ' L' + num(d2[0]) + ' ' + num(d2[1]); }
-      var ant = '<path d="' + d + '" fill="none"' + ink('stroke', col) + wa + '/>';
+      var d = '', d1, d2, s1 = '', s2 = '';
+      if (use1) { d1 = self.stickEnd(nid, e1, one, I.length ? nIn : nIn.concat(nOut)); s1 = 'M' + num(d1[0]) + ' ' + num(d1[1]) + ' L' + num(e1[0]) + ' ' + num(e1[1]); }   // reversible: either
+      if (use2) { d2 = self.stickEnd(nid, e2, two, nOut); s2 = 'M' + num(e2[0]) + ' ' + num(e2[1]) + ' L' + num(d2[0]) + ' ' + num(d2[1]); }
+      var stick = function (d, w) { return '<path d="' + d + '" fill="none"' + ink('stroke', col) + (w !== 1 ? ' stroke-width="' + num(w) + '"' : '') + '/>'; };
+      var ant = !use1 || !use2 || w1 === w2 ? stick(s1 + (s1 && s2 ? ' ' : '') + s2, use1 ? w1 : w2) : stick(s1, w1) + stick(s2, w2);   // one path when both sticks are alike
       n.svg = self.groups ? n.svg.replace(/^(<g data-n="[^"]*">)/, function (m) { return m + ant; }) : ant + n.svg;
       if (use1) self.boxes.push([one[0], one[1], 0, 0]);
       if (use2) self.boxes.push([two[0], two[1], 0, 0]);
@@ -508,13 +557,13 @@
     for (var i = 0; i < dds.length; i++) if (this.cls.has(get(dds[i], 'key'))) return pyStrip(leadText(dds[i]));
     return '';
   };
-  YMap.prototype.readGraph = function (graph, top, parent) {   // compartments, then complexes, then the rest (yrender.py's read_graph)
+  YMap.prototype.readGraph = function (graph, parent) {   // compartments, then complexes, then the rest (yrender.py's read_graph)
     var self = this, nodes = elems(graph).filter(function (el) { return el.namespaceURI === G && el.localName === 'node'; });
     nodes = nodes.map(function (el, i) { return [paintLayer(el), i, el]; }).sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; }).map(function (q) { return q[2]; });
     var k = 0;
     elems(graph).forEach(function (el) {
       if (el.namespaceURI !== G) return;
-      if (el.localName === 'node') { el = nodes[k++]; self.readNode(el, parent); if (top) self.order.push(['block']); }
+      if (el.localName === 'node') { el = nodes[k++]; self.readNode(el, parent); }
       else if (el.localName === 'edge') {
         self.order.push(['e', [el, parent]]);
         iter(el, Y, ['Point']).forEach(function (q) { self.boxes.push([pyFloat(get(q, 'x')), pyFloat(get(q, 'y')), 0, 0]); });
@@ -544,10 +593,11 @@
       // the generic square white as every process (Newt fills an association dark grey)
       s = '<g class="sbgn-' + sc + '">' + c + '</g><g class="sbgn-generic" display="none">' + outlines.map(function (o) { return shapeSvg(o, '#FFFFFF', stroke, rl); }).join('') + '</g>';
     }
-    var aux = [];   // the outlines of its state variables and units of information (visualEnd)
+    var aux = [], under = nameUnder(node, r, x, y, w, h);   // aux: the outlines of its state variables and units of information (visualEnd); under: a complex's name with no room inside
     kids(r, Y, 'NodeLabel').forEach(function (lab) {
       if (get(lab, 'visible') === 'false') return;
       var box = labelPlace(lab, x, y, w, h);
+      if (under && box && box[1] < y + h && get(lab, 'modelName') === 'internal' && (get(lab, 'modelPosition') || '').indexOf('b') === 0 && !get(lab, 'iconData')) box = under;
       if (!box) { if (get(lab, 'iconData') || pyStrip(itertext(lab))) refuse(where, 'label without a position'); return; }
       var ax = box[0], ay = box[1], lw = box[2], lh = box[3];
       self.boxes.push([ax, ay, lw, lh]);
@@ -570,7 +620,7 @@
     if (sub) {
       var st = kid(r, Y, 'State');
       if (st && get(st, 'closed') === 'true') refuse(where, 'closed group');
-      else this.readGraph(sub, false, fill ? rl : parent);
+      else this.readGraph(sub, fill ? rl : parent);
     }
   };
   YMap.prototype.edgeSvg = function (e, parent) {
@@ -681,15 +731,12 @@
     var mx = function (f) { return xs.reduce(function (a, g) { return Math.max(a, f(g)); }, -Infinity); };
     var x0 = Math.floor(mn(function (g) { return g[0]; })) - MARGIN, y0 = Math.floor(mn(function (g) { return g[1]; })) - MARGIN;
     var x1 = Math.ceil(mx(function (g) { return g[0] + g[2]; })) + MARGIN, y1 = Math.ceil(mx(function (g) { return g[1] + g[3]; })) + MARGIN;
-    var W = x1 - x0, H = y1 - y0, body = [], pending = [], painted = new Set();
-    this.order.forEach(function (item) {
-      if (item[0] === 'n') { body.push(self.nodes[item[1]].svg); painted.add(item[1]); }
-      else if (item[0] === 'e') pending.push(item[1]);
-      else pending.slice().forEach(function (e) {
-        if (painted.has(get(e[0], 'source')) && painted.has(get(e[0], 'target'))) { body.push(self.edgeSvg(e[0], e[1])); pending.splice(pending.indexOf(e), 1); }
-      });
+    var W = x1 - x0, H = y1 - y0, body = [], edges = [];
+    this.order.forEach(function (item) {   // every node, then every edge over them (SBGN PD 4.2.2: an edge crossing a node is drawn on top)
+      if (item[0] === 'n') body.push(self.nodes[item[1]].svg);
+      else if (item[0] === 'e') edges.push(item[1]);
     });
-    pending.forEach(function (e) { body.push(self.edgeSvg(e[0], e[1])); });
+    edges.forEach(function (e) { body.push(self.edgeSvg(e[0], e[1])); });
     var int = function (v) { return String(v === 0 ? 0 : v); };
     return '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + int(W) + '" height="' + int(H) +
       '" viewBox="0 0 ' + int(W) + ' ' + int(H) + '" stroke-linecap="butt" stroke-miterlimit="10">\n<g transform="translate(' + int(-x0) + ',' + int(-y0) + ')">\n' +
@@ -748,7 +795,7 @@
     if (kind === 'white_delta') return [poly([tip, at(16, 6), at(16, -6)], 'white'), 15];
     if (kind === 'white_circle') { var c = at(4, 0); return ['<circle cx="' + num(c[0]) + '" cy="' + num(c[1]) + '" r="4"' + white() + ink('stroke', col) + '/>', 8]; }
     if (kind === 'white_diamond') return [poly([tip, at(8, 6), at(16, 0), at(8, -6)], 'white'), 15];
-    if (kind === 'white_delta_bar') return [poly([tip, at(16, 6), at(16, -6)], 'white') + bar(21, 8), 21];
+    if (kind === 'white_delta_bar') return [poly([tip, at(16, 6), at(16, -6)], 'white') + bar(21, 8), 15];   // the line runs through the bar to the head's base, as SBGN draws it
     return [bar(0, 5), 0];
   }
 

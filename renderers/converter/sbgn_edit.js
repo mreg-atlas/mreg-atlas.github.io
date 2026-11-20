@@ -14,6 +14,8 @@
 //     port's place; a glyph with ports in the GraphML but none in the file gets them (<port> after its bbox, its id
 //     with .1 for the consumptions, .2 for the products, the arcs pointed at them), so a turned process keeps its turn.
 //   tests/sbgn-edit.js checks both ways against the converter on every SBGN-ML map of the demo.
+//   unique(sbgnText, baseGraphml, opt) -> sbgnText with a glyph whose id an earlier glyph has renamed as sbgnml.read
+//     reads it, arcs at the ends baseGraphml gives them (tests/sbgn-unique.js).
 // Glyphs the converter leaves out (tags, terminals, clone markers have no box) and arcs to them are not moved.
 (function (root) {
   'use strict';
@@ -105,6 +107,52 @@
     return S;
   }
   function xy(el) { return el ? [F(el.getAttribute('x')), F(el.getAttribute('y'))] : null; }
+  // A glyph whose id an earlier glyph of the map has is given <id>_<k> (k from 2, the first id not in the map: glyphs,
+  // ports, arcs), as sbgnml.read reads it (unique_ids); each arc naming such an id takes the end the build's GraphML g0
+  // gave it (sbgnml.read chose by where the arc's end lies), and a render style listing the id lists the new one too.
+  // The file made valid when it is opened for editing, under the ids of g0. A file without such ids is returned as it is.
+  function unique(t, g0, opt) {
+    var re = /<(?:[\w.-]+:)?glyph\b[^>]*?\sid\s*=\s*(["'])([^"']*)\1/g, m, seen0 = {}, dup = false;
+    while ((m = re.exec(t)) && !dup) { dup = !!seen0[m[2]]; seen0[m[2]] = 1; }
+    if (!dup) return t;
+    var doc = new (DP(opt))().parseFromString(t.replace(/^﻿/, ''), 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length) return t;
+    var map = kids(doc.documentElement, 'map')[0];
+    if (!map) return t;
+    var all = Array.prototype.slice.call(map.getElementsByTagName('*')), taken = {}, seen = {}, shared = {}, made = [];
+    all.forEach(function (e) { if (e.getAttribute('id')) taken[e.getAttribute('id')] = 1; });
+    all.forEach(function (g) {
+      if (g.localName !== 'glyph') return;
+      var i = g.getAttribute('id');
+      if (!seen[i]) { seen[i] = 1; return; }
+      var k = seen[i] + 1; while (taken[i + '_' + k]) k++;
+      seen[i] = k; taken[i + '_' + k] = 1; made.push([g, i, i + '_' + k]);
+      (shared[i] = shared[i] || [i]).push(i + '_' + k);
+    });
+    if (!made.length) return t;
+    var T = new Tags(t, doc);
+    made.forEach(function (q) { T.set(q[0], 'id', q[2]); });
+    all.forEach(function (st) {   // the renamed glyph keeps the style of its id (sbgnml.read styles both by the file's id)
+      if (st.localName !== 'style' || !st.getAttribute('idList')) return;
+      var l = st.getAttribute('idList').split(/\s+/), add = made.filter(function (q) { return l.indexOf(q[1]) >= 0; }).map(function (q) { return q[2]; });
+      if (add.length) T.set(st, 'idList', l.concat(add).join(' '));
+    });
+    var ends = {}, k2 = {};   // arc id -> the ends of g0's edges of that id, in order (two arcs of one id matched by their order)
+    if (g0) Array.prototype.forEach.call(new (DP(opt))().parseFromString(g0, 'application/xml').getElementsByTagNameNS(GNS, 'edge'), function (e) {
+      (ends[e.getAttribute('id')] = ends[e.getAttribute('id')] || []).push({ s: e.getAttribute('source'), t: e.getAttribute('target') });
+    });
+    all.forEach(function (a) {
+      if (a.localName !== 'arc') return;
+      var id = a.getAttribute('id'), j = k2[id] = (k2[id] || 0) + 1, e = (ends[id] || [])[j - 1];
+      if (!e) return;   // not drawn: as it was
+      [['source', e.s], ['target', e.t]].forEach(function (q) {
+        var r = a.getAttribute(q[0]);
+        if (shared[r] && q[1] !== r && shared[r].indexOf(q[1]) >= 0) T.set(a, q[0], q[1]);
+      });
+    });
+    return T.text();
+  }
+
   function centre(b) { return [b[0] + b[2] / 2, b[1] + b[3] / 2]; }
   function boxCut(b, aim) {   // where the line from the box's centre toward aim leaves the box
     var c = centre(b), u = [aim[0] - c[0], aim[1] - c[1]];
@@ -167,22 +215,25 @@
       T.cut(G.node[id].el);
     });
     // a submap as sbgnml.read reads it by the file's language (else a file turned PD draws it as AF's phenotype):
-    // under Activity Flow a phenotype, the arcs at its terminals at it; else yEd's Submap, the arcs at its terminals left out
-    var afL = afLang(t), term = function (x) { return !!S.glyph[x] && S.glyph[x].el.getAttribute('class') === 'terminal'; };
+    // under Activity Flow a phenotype, the arcs at its terminals at it; else yEd's Submap with its terminals, tags on its border
+    var afL = afLang(t);
     Object.keys(G.edge).forEach(function (id) {   // at a glyph deleted, or deleted itself (every edge of the converter's is an arc of the file)
-      var a = S.arc[id];
-      if (!a || (!afL && (term(a.getAttribute('source')) || term(a.getAttribute('target'))))) T.cut(G.edge[id].el);
+      if (!S.arc[id]) T.cut(G.edge[id].el);
     });
     Object.keys(G.node).forEach(function (id) {
       var g = S.glyph[id], n = G.node[id];
       if (!g) return;
       if (g.el.getAttribute('class') === 'submap') { var sc = afL ? 'Phenotype' : 'Submap', sr = n.geo.parentNode; if (sr.localName === 'GenericNode' && cfgOf(sr) !== sc) T.set(sr, 'configuration', 'com.yworks.sbgn.' + sc); }
+      if (/^(tag|terminal)$/.test(g.el.getAttribute('class') || '')) setWay(T, n.geo.parentNode, fileWay(g.el));   // its orientation as the file has it
+      var ec = (g.el.getAttribute('class') || '').replace(/ multimer$/, ''), er = n.geo.parentNode;   // an entity made another (entityKind): its shape the file's class
+      if (ENTITY.test(ec) && ENTITY.test(classOfCfg(cfgOf(er)) || '') && cfgOf(er) !== MAKE[ec]) T.set(er, 'configuration', 'com.yworks.sbgn.' + MAKE[ec]);
       var B = g.box, w = B[2], h = B[3], to = function (el, k, v) { if (el.getAttribute(k) !== v) T.set(el, k, v); };
       ['x', 'y', 'width', 'height'].forEach(function (k, j) { to(n.geo, k, repr(B[j])); });
-      if (LOOKED.test(g.el.getAttribute('class') || '')) setLook(T, G, id, fileLook(St, id));   // the file's look (a draft, a build of an older converter)
-      // what graphml.write works out from the box: the state variables' places (their ratios read from the file as
-      // sbgnml.read reads them), the units of information spread evenly along the top (graphml.write, whatever the
-      // file's places), a compartment's name where the file has it. Counted by kind: one deleted in the editor is cut
+      var gc = g.el.getAttribute('class') || '';
+      var nw = LOOKS.test(gc) ? setLook(T, G, id, fileLook(St, id, gc), B) : null;   // nw: the name's width at the file's font, where it differs   // the file's look (a draft, a build of an older converter): what its styles state, else the converter's template
+      // what graphml.write works out from the box: the state variables' and units of information's places (their ratios
+      // read from the file as sbgnml.read reads them; a unit without a box spread along the top), a compartment's name
+      // where the file has it. Counted by kind: one deleted in the editor is cut
       var r = n.geo.parentNode, labs = kids(r, 'NodeLabel'), icons = labs.filter(function (l) { return l.getAttribute('iconData'); });
       var states = kids(g.el, 'glyph').filter(function (c) { return c.getAttribute('class') === 'state variable'; }), units = unitsOf(g.el), js = 0, ju = 0;
       var R = G.R || (G.R = resources(G));
@@ -196,7 +247,12 @@
           to(p, 'nodeRatioX', repr(rx)); to(p, 'nodeRatioY', repr(ry));
         } else if (kind === 'UnitOfInformation') {
           if ((j = ju++) >= units.length) { T.cut(l); return; }
-          rx = uRatio(j, units.length); ry = -0.5;
+          var ub = kid(units[j], 'bbox');   // where the file places it, as sbgnml.read reads it; else spread along the top
+          rx = uRatio(j, units.length); ry = -0.5;   // its slot, kept where the file's place is the slot (layout.own_places)
+          if (ub && w && h) {
+            var ux = (F(ub.getAttribute('x')) + F(ub.getAttribute('w')) / 2 - B[0] - w / 2) / w, uy = (F(ub.getAttribute('y')) + F(ub.getAttribute('h')) / 2 - B[1] - h / 2) / h;
+            if (Math.abs(ux - rx) > 1e-6 || Math.abs(uy - ry) > 1e-6) { rx = ux; ry = uy; }
+          }
           to(p, 'nodeRatioX', repr(rx)); to(p, 'nodeRatioY', repr(ry));
         } else { rx = F(p.getAttribute('nodeRatioX')); ry = F(p.getAttribute('nodeRatioY')); }
         to(l, 'x', repr((0.5 + rx) * w - F(l.getAttribute('width')) / 2)); to(l, 'y', repr((0.5 + ry) * h - F(l.getAttribute('height')) / 2));
@@ -204,7 +260,7 @@
       if (g.el.getAttribute('class') === 'compartment') {
         var l = labs.filter(function (x) { return !x.getAttribute('iconData'); })[0], lab = kid(g.el, 'label'), lb = lab && kid(lab, 'bbox');
         if (!l) return;
-        var lw = F(l.getAttribute('width'));
+        var lw = nw != null ? nw : F(l.getAttribute('width'));
         if (!lb) { to(l, 'x', repr((w - lw) / 2)); to(l, 'y', '0.0'); return; }
         var lx = F(lb.getAttribute('x')) - B[0], ly = F(lb.getAttribute('y')) - B[1], np = namePlace(lx, ly, lw, F(l.getAttribute('height')), w, h);
         to(l, 'x', repr(lx)); to(l, 'y', repr(ly));
@@ -214,6 +270,8 @@
     Object.keys(G.edge).forEach(function (id) {
       var a = S.arc[id], e = G.edge[id];
       if (!a) return;
+      var fl = fileLook(St, id);
+      setLine(T, e.el, fl.line); setWidth(T, e.el, fl.width);   // the file's colour and width (a draft, a build of an older converter)
       var E = ends(S, a), pts = E[4], want = ARROW[a.getAttribute('class')], ar = e.el.getElementsByTagNameNS(YNS, 'Arrows')[0];
       if (want != null && ar && ar.getAttribute('target') !== want) T.set(ar, 'target', want);   // an id used again by another arc (else a draft reopened over an old build keeps the old arrowhead)
       [['source', 's', 0], ['target', 't', 1]].forEach(function (q) {   // an end moved to another glyph in the editor: that glyph
@@ -253,12 +311,14 @@
       var g = S.glyph[id], cls = g.el.getAttribute('class') || '', name = nameIn(g.el);
       var au = cls === 'biological activity' ? fileUnit(g.el) : null;   // an activity: its unit
       if (!G.node[id]) {
-        var base = au != null ? actCls(au) : cls === 'perturbation' ? 'perturbing agent' : cls.replace(/ multimer$/, ''), dk = au != null ? cls : base;   // AF's perturbation: yEd's perturbing agent
-        if (!MAKE[base] || (g.el.parentNode.localName !== 'map' && !inCx(g.el)) || perf[id]) return;   // a member of a complex: made beside it, then nested (nestG)
+        var base = au != null ? actCls(au) : cls === 'perturbation' ? 'perturbing agent' : cls === 'terminal' ? 'tag' : cls.replace(/ multimer$/, ''), dk = au != null ? cls : base;   // AF's perturbation: yEd's perturbing agent; a terminal: a tag
+        if (cls === 'terminal' && (afLang(t) || g.el.parentNode.getAttribute('class') !== 'submap')) return;   // under AF the converter draws none
+        if (!MAKE[base] || (g.el.parentNode.localName !== 'map' && !inCx(g.el) && cls !== 'terminal') || perf[id]) return;   // a member of a complex: made beside it, then nested (nestG)
         St = St || styles(S); D = D || {}; D[dk] = D[dk] || defaults(t, opt, dk);
-        var lk = fileLook(St, id), cref = g.el.getAttribute('compartmentRef');
+        var lk = fileLook(St, id, base), cref = g.el.getAttribute('compartmentRef');
         out = add(out, { id: id, cls: base, activity: au, label: name, box: g.box, parent: cref && S.glyph[cref] ? cref : null, fill: lk.fill, line: lk.line, width: lk.width, font: lk.font || D[dk].font,
-                         states: svOf(g), units: unitsOf(g.el).map(unitText), multimer: fileMulti(g.el) }, opt);
+                         states: svOf(g), units: unitsOf(g.el).map(unitText), multimer: fileMulti(g.el), way: base === 'tag' ? fileWay(g.el) : null }, opt);
+        if (cls === 'terminal') { Hfor = null; out = terminal(out, id, true, opt); }
         var nlb = cls === 'compartment' && kid(g.el, 'label') && kid(kid(g.el, 'label'), 'bbox');
         if (nlb) {   // its name where the file has it (namePlace), as graphml() reads a compartment of the base
           var NG = gml(out, opt), nl = labelsOf(NG, id).main;
@@ -318,11 +378,116 @@
       A.push([id, E[0], E[1], o, head, pts]);
     });
     if (A.length) out = edgesIn(out, H, A);
-    return out;
+    return countsIn(out, S, opt);
+  }
+
+  // ---------- cardinality (the converter's D37): an arc's cardinality glyph in the file, its number as a label on the
+  // edge in the GraphML, placed as layout.count_box and graphml.write place it (the same arithmetic, so the same digits)
+  var CARD = /^\s*(\d+(\.\d+)?|\?)\s*$/;
+  var LAB = ['<y:EdgeLabel alignment="center" backgroundColor="#FFFFFF" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="9" fontStyle="plain" height="',
+    '" horizontalTextPosition="center" iconTextGap="4" lineColor="#000000" modelName="six_pos" modelPosition="', '" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="',
+    '" x="', '" xml:space="preserve" y="', '">', '<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>'];
+  function countText(v) {   // layout.count_text: ?, or a number as Python writes it (2, not 2.0; 2.5); anything else null
+    var m = CARD.exec(v == null ? '' : String(v));
+    if (!m) return null;
+    if (m[1] === '?') return '?';
+    var n = Number(m[1]);
+    return n === Math.floor(n) ? String(n) : repr(n);
+  }
+  function arcCard(a) { return kids(a, 'glyph').filter(function (c) { return c.getAttribute('class') === 'cardinality'; })[0] || null; }
+  function arcCount(a) { var g = arcCard(a), l = g && kid(g, 'label'); return l ? countText(l.getAttribute('text')) : null; }
+  function edgeLab(e) { return Array.prototype.filter.call(e.getElementsByTagNameNS(YNS, 'EdgeLabel'), function (l) { return CARD.test(ownText(l)); })[0] || null; }
+  function isProcN(G, id) { var n = G.node[id]; return !!n && cfgOf(n.geo.parentNode) === 'Process'; }
+  function fluxE(G, e) {   // layout.flux on the GraphML: a plain line at a process (either way) or a production out of one
+    var ar = e.el.getElementsByTagNameNS(YNS, 'Arrows')[0], hd = ar ? ar.getAttribute('target') : 'none', s = isProcN(G, e.s), t = isProcN(G, e.t);
+    return !!G.node[e.s] && !!G.node[e.t] && (((hd === 'none' || !hd) && s !== t) || (hd === 'delta' && s && !t));
+  }
+  function centreOf(b) { return [b[0] + b[2] / 2, b[1] + b[3] / 2]; }
+  function borderOf(b, p) {   // sbgnml.border: where the line from the box's centre to p leaves it
+    var c = centreOf(b), dx = p[0] - c[0], dy = p[1] - c[1];
+    if (!dx && !dy) return c;
+    var t = Math.min(dx ? b[2] / 2 / Math.abs(dx) : Infinity, dy ? b[3] / 2 / Math.abs(dy) : Infinity);
+    return [c[0] + t * dx, c[1] + t * dy];
+  }
+  function countBox(G, e, text) {   // layout.count_box: beside the line near its entity, above it, right of a line near upright
+    var first = !isProcN(G, e.s), E = G.node[first ? e.s : e.t].box, Hc = centreOf(G.node[first ? e.t : e.s].box), ar = e.el.getElementsByTagNameNS(YNS, 'Arrows')[0];
+    var at = first ? e.off.slice(0, 2) : e.off.slice(2), hub = first ? e.off.slice(2) : e.off.slice(0, 2), pts = first ? e.pts : e.pts.slice().reverse();
+    var nxt = pts.length ? pts[0] : [Hc[0] + hub[0], Hc[1] + hub[1]], Ec = centreOf(E);
+    var p0 = at[0] || at[1] ? [Ec[0] + at[0], Ec[1] + at[1]] : borderOf(E, nxt);
+    var dx = nxt[0] - p0[0], dy = nxt[1] - p0[1], L = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+    if (Math.abs(ny) < 0.2 ? nx < 0 : ny > 0) { nx = -nx; ny = -ny; }
+    var w = 6 * text.length + 6, h = 13, along = 4 + Math.abs(ux) * w / 2 + Math.abs(uy) * h / 2 + (ar && ar.getAttribute('target') === 'delta' ? 16 : 0), side = 1 + Math.abs(nx) * w / 2 + Math.abs(ny) * h / 2;
+    var cx = p0[0] + ux * along + nx * side, cy = p0[1] + uy * along + ny * side;
+    return [cx - w / 2, cy - h / 2, w, h];
+  }
+  function labXml(G, e, text) {   // graphml.write's label: its place from where the line leaves its source
+    var b = countBox(G, e, text), S = G.node[e.s].box, Sc = centreOf(S);
+    var s0 = e.off[0] || e.off[1] ? [Sc[0] + e.off[0], Sc[1] + e.off[1]] : borderOf(S, e.pts.length ? e.pts[0] : centreOf(G.node[e.t].box));
+    return LAB[0] + repr(b[3]) + LAB[1] + (isProcN(G, e.s) ? 'head' : 'tail') + LAB[2] + repr(b[2]) + LAB[3] + repr(b[0] - s0[0]) + LAB[4] + repr(b[1] - s0[1]) + LAB[5] + esc(text) + LAB[6];
+  }
+  function countSet(T, G, e, want) {   // the edge's label made, changed or taken out (as lxml writes it: before the </y:PolyLineEdge>)
+    var have = edgeLab(e.el), x = want ? labXml(G, e, want) : '';
+    if (have) { var s0 = T.at.get(have)[0], s1 = T.end(have); if (T.t.slice(s0, s1) !== x) T.ed.push([s0, s1, x]); return; }
+    if (!want) return;
+    var pl = e.el.getElementsByTagNameNS(YNS, 'PolyLineEdge')[0] || e.path.parentNode, end = T.end(pl), close = T.t.lastIndexOf('</', end);
+    T.ed.push([close, close, x]);
+  }
+  function countsIn(t, S, opt) {   // graphml(): every edge's label as its arc's cardinality (the converter's GraphML)
+    if (t.indexOf('<y:EdgeLabel') < 0 && !Object.keys(S.arc).some(function (k) { return arcCard(S.arc[k]); })) return t;
+    var G = gml(t, opt), T = new Tags(t, G.doc);
+    Object.keys(G.edge).forEach(function (id) {
+      var a = S.arc[id], e = G.edge[id];
+      if (!a || !/^(consumption|production)$/.test(a.getAttribute('class') || '')) { if (edgeLab(e.el) && a) countSet(T, G, e, null); return; }
+      countSet(T, G, e, fluxE(G, e) ? arcCount(a) : null);
+    });
+    return T.text();
+  }
+  //   countOf(g, id) -> the number on the line (its cardinality: '' for none), undefined for a line that takes none
+  //   recount(g, id, v) -> g with the line's number v ('' or null: none)
+  function countOf(t, id, opt) {
+    var G = gml(t, opt), e = G.edge[id];
+    if (!e || !fluxE(G, e)) return undefined;
+    var l = edgeLab(e.el);
+    return l ? countText(ownText(l)) : '';
+  }
+  function recount(t, id, v, opt) {
+    var G = gml(t, opt), e = G.edge[id], want = countText(v);
+    if (!e || !fluxE(G, e)) return t;
+    var T = new Tags(t, G.doc);
+    countSet(T, G, e, want === '1' ? null : want);
+    return T.text();
+  }
+  // write(): every arc's cardinality glyph as the GraphML's label says, the rest byte for byte; a glyph whose arc this save
+  // moved (start, next or end changed from the file t0) placed again beside it
+  function countsOut(t, gtext, opt, t0) {
+    if (gtext.indexOf('<y:EdgeLabel') < 0 && !/class="cardinality"/.test(t)) return t;
+    var G = gml(gtext, opt), S = sbgn(t, opt), T = new Tags(t, S.doc), ids = {}, S0 = t0 && t0 !== t ? sbgn(t0, opt) : null;
+    var route = function (a) { return a ? kids(a).filter(function (c) { return /^(start|next|end)$/.test(c.localName); }).map(function (c) { return c.getAttribute('x') + ',' + c.getAttribute('y'); }).join(' ') : null; };
+    Array.prototype.forEach.call(S.doc.getElementsByTagName('*'), function (el) { var i = el.getAttribute && el.getAttribute('id'); if (i) ids[i] = 1; });
+    Object.keys(S.arc).forEach(function (id) {
+      var a = S.arc[id], e = G.edge[id];
+      if (!e || !/^(consumption|production)$/.test(a.getAttribute('class') || '')) return;
+      var l = fluxE(G, e) && edgeLab(e.el), want = l ? countText(ownText(l)) : null, g = arcCard(a), have = arcCount(a);
+      if (want === have && (!g || !S0 || !want || route(S0.arc[id]) === route(a))) return;
+      if (!want) { T.cut(g); return; }
+      var b = countBox(G, e, want);
+      if (g) {
+        if (kid(g, 'label')) { if (have !== want) T.set(kid(g, 'label'), 'text', want); }
+        else { var at0 = kid(g, 'bbox') ? T.at.get(kid(g, 'bbox'))[0] : T.end(g) - '</glyph>'.length; T.ed.push([at0, at0, '<label text="' + esc(want) + '"/>']); }
+        if (kid(g, 'bbox') && S0 && route(S0.arc[id]) !== route(a)) ['x', 'y', 'w', 'h'].forEach(function (k, j) { T.set(kid(g, 'bbox'), k, num(b[j])); });
+        return;
+      }
+      var at = kids(a).filter(function (c) { return /^(glyph|port|start)$/.test(c.localName); })[0], gid = id + '_card', k = 2;   // (b above)
+      while (ids[gid]) gid = id + '_card' + k++;
+      var x = '<glyph class="cardinality" id="' + esc(gid) + '"><label text="' + esc(want) + '"/><bbox x="' + num(b[0]) + '" y="' + num(b[1]) + '" w="' + num(b[2]) + '" h="' + num(b[3]) + '"/></glyph>';
+      if (at) { var p = T.at.get(at)[0]; T.ed.push([p, p, x + '\n' + T.indent(at)]); }
+      else { var e1 = T.end(a), c1 = T.t.lastIndexOf('</', e1); T.ed.push([c1, c1, x]); }
+    });
+    return T.text();
   }
 
   // ---------- back into the SBGN-ML text ----------
-  function write(t, gtext, opt) { return nest(write0(t, gtext, opt), gtext, opt, t); }
+  function write(t, gtext, opt) { return countsOut(nest(write0(t, gtext, opt), gtext, opt, t), gtext, opt, t); }
   function write0(t, gtext, opt) {
     var dropped = {}, was = gone(gtext), t0 = t;   // dropped: glyphs one of whose units of information was deleted; was: ids never given again (the comment stays with the GraphML)
     var own = mapKind(t);   // the file's own kind before the glyphs deleted in the editor go (else the last process deleted leaves the map PD)
@@ -367,7 +532,7 @@
       if (want != null && g.el.getAttribute('class') === 'biological activity' && (want !== fileUnit(g.el) || (af && actText(G, id) !== fileUText(g.el)))) aChanged[id] = want;
     });
     // units of information changed in the editor (one added, deleted or retyped): all of the glyph's written again where
-    // the converter draws them, spread evenly along the top (layout.decorations); untouched ones stay as the file has them
+    // the GraphML has them (uBoxAt, layout.decorations' size); untouched ones stay as the file has them
     var uChanged = {};
     Object.keys(S.glyph).forEach(function (id) {
       var g = S.glyph[id];
@@ -382,7 +547,7 @@
     };
     // the glyphs: their boxes, and what they carry mapped from the old box to the new (centres scaled with the box,
     // a label kept at its place from the top left)
-    var svMoved = new Set();   // state variables the editor moved along their glyph's border: placed below, not mapped here
+    var svMoved = new Set(), uMovedTo = new Map();   // state variables and units the editor moved along their glyph's border: placed below, not mapped here
     Object.keys(S.glyph).forEach(function (id) {
       var g = S.glyph[id], n = G.node[id];
       if (!n || !NAMED.test(g.el.getAttribute('class') || '')) return;
@@ -392,6 +557,14 @@
         if (!cb) return;
         var rx = (F(cb.getAttribute('x')) + F(cb.getAttribute('w')) / 2 - B[0] - B[2] / 2) / B[2], ry = (F(cb.getAttribute('y')) + F(cb.getAttribute('h')) / 2 - B[1] - B[3] / 2) / B[3];
         if (!close(rx, q[1]) || !close(ry, q[2])) svMoved.add(cb);
+      });
+      if (uChanged[id]) return;   // units written whole below
+      var hu = unitsOf(g.el);
+      iconsOf(id, 'UnitOfInformation').forEach(function (q, j) {   // a unit moved along the border: the same
+        var cb = hu[j] && kid(hu[j], 'bbox'), B = g.box;
+        if (!cb) return;
+        var rx = (F(cb.getAttribute('x')) + F(cb.getAttribute('w')) / 2 - B[0] - B[2] / 2) / B[2], ry = (F(cb.getAttribute('y')) + F(cb.getAttribute('h')) / 2 - B[1] - B[3] / 2) / B[3];
+        if (!close(rx, q[1]) || !close(ry, q[2])) { svMoved.add(cb); uMovedTo.set(cb, q); }
       });
     });
     // a compartment's name put in another of its six places in the editor (nameAt), or its compartment resized: its bbox
@@ -496,8 +669,10 @@
       }
       // made a multimer or a single macromolecule again: the class, where the converter would read the
       // file otherwise (a multimer with N:1 reads as one unit: left as it is)
-      var base = cls.replace(/ multimer$/, ''), multi = isMulti(G, id);
-      if (MULTI.test(base) && multi !== drawnMulti(cls, iconsOf(id, 'UnitOfInformation').map(function (q) { return q[0]; }))) T.set(g.el, 'class', base + (multi ? ' multimer' : ''));   // judged by the units as now typed
+      // an entity made another (entityKind): its class from the GraphML's shape, a multimer kept where the new class has one
+      var b0 = cls.replace(/ multimer$/, ''), cf = classOfCfg(cfgOf(n.geo.parentNode)) || '', base = ENTITY.test(b0) && ENTITY.test(cf) ? cf : b0, multi = isMulti(G, id);
+      var nowCls = MULTI.test(base) && (base !== b0 || multi !== drawnMulti(cls, iconsOf(id, 'UnitOfInformation').map(function (q) { return q[0]; }))) ? base + (multi ? ' multimer' : '') : base !== b0 ? base : null;   // judged by the units as now typed
+      if (nowCls && nowCls !== cls) T.set(g.el, 'class', nowCls);
       var have = kids(g.el, 'glyph').filter(function (c) { return c.getAttribute('class') === 'state variable'; }), more = '';
       var icons = iconsOf(id), hu = unitsOf(g.el), ui = iconsOf(id, 'UnitOfInformation'), cutEls = [];
       have.slice(icons.length).forEach(function (c) { T.cut(c); cutEls.push(c); });   // deleted in the editor
@@ -505,7 +680,7 @@
       if (uChanged[id]) {   // units of information: their text, all placed as the converter draws them, new ones written
         hu.slice(ui.length).forEach(function (c) { T.cut(c); cutEls.push(c); });
         ui.forEach(function (q, k) {
-          var ub = uBox(q[0], n.box, k, ui.length);
+          var ub = uBoxAt(q[0], n.box, q[1], q[2]);
           if (k >= hu.length) { moreU += uiXml(id, k, q[0], ub, T.indent(g.bbox)); return; }
           var cb2 = kid(hu[k], 'bbox'), lab2 = kid(hu[k], 'label');
           if (unitText(hu[k]) !== q[0]) {
@@ -517,6 +692,10 @@
           if (!close(F(cb2.getAttribute('h')), ub[3])) T.set(cb2, 'h', num(ub[3]));
         });
       }
+      hu.forEach(function (c) {   // a unit moved along the border: its box centred there, its size kept
+        var cb = kid(c, 'bbox'), q = cb && uMovedTo.get(cb);
+        if (q) setXY(cb, [n.box[0] + (0.5 + q[1]) * n.box[2] - F(cb.getAttribute('w')) / 2, n.box[1] + (0.5 + q[2]) * n.box[3] - F(cb.getAttribute('h')) / 2]);
+      });
       icons.forEach(function (q, j) {
         if (j >= have.length) { more += svXml(id, j, q, n.box, T.indent(g.bbox)); return; }
         var cb = kid(have[j], 'bbox');
@@ -534,14 +713,42 @@
     });
     // the look set in the editor's properties: fill, border colour and width
     var St = styles(S), looks = new Map();   // glyph id -> the look wanted, where it is not the file's
+    var mf = null, mapFont = function () { return mf != null ? mf : (mf = Math.round(14 * scaleOf(S) + 0.01)); };   // the converter's font for a glyph whose file states none
     Object.keys(S.glyph).forEach(function (id) {
       var cls = S.glyph[id].el.getAttribute('class') || '';
-      if (!G.node[id] || !LOOKED.test(cls)) return;   // the glyphs the editor restyles (other kinds keep their templates' borders: a compartment's 2)
-      var want = lookG(G, id), have = fileLook(St, id);
-      if (want.fill !== have.fill || want.line !== have.line || want.width !== have.width) looks.set(id, { fill: want.fill, line: want.line, width: want.width, font: have.font, cls: cls });
+      if (!G.node[id] || !LOOKS.test(cls)) return;   // the glyphs the editor restyles
+      var want = lookG(G, id), have = fileLook(St, id, cls);
+      // the name's font: written where it differs from the file's (a file stating none drawn at the map's, graphml.write)
+      var font = NAMED.test(cls) && want.font != null && want.font !== (have.font != null ? have.font : mapFont()) ? want.font : have.font;
+      if (want.fill !== have.fill || want.line !== have.line || want.width !== have.width || font !== have.font) looks.set(id, { fill: want.fill, line: want.line, width: want.width, font: font, cls: cls });
+    });
+    Object.keys(S.arc).forEach(function (id) {   // a line's colour and width: the rest of its style (a fill some tools give) kept
+      if (!G.edge[id]) return;
+      var want = lineOf(G.edge[id].el), ww = widthOf(G.edge[id].el), have = fileLook(St, id), w = St.some(function (st) { return st.plain && st.has.width && st.ids.indexOf(id) >= 0; });
+      if (want !== have.line || ww !== have.width) looks.set(id, { fill: have.fill, line: want, width: ww !== 1 || w ? ww : null, font: have.font, cls: 'arc' });   // black and 1 with nothing else: only out of its styles; 1 written where its style gave a width (Newt's own default is 1.25)
+    });
+    Object.keys(S.glyph).forEach(function (id) {   // a tag or terminal turned in the editor: its orientation
+      var el = S.glyph[id].el;
+      if (G.node[id] && /^(tag|terminal)$/.test(el.getAttribute('class') || '') && isTag(G, id) && fileWay(el) !== wayOf(G.node[id].geo.parentNode)) T.set(el, 'orientation', wayOf(G.node[id].geo.parentNode));
     });
     var mapEl = kids(S.doc.documentElement, 'map')[0], tops = kids(mapEl, 'glyph'), last = tops[tops.length - 1];
     var ind0 = last ? T.indent(last) : T.indent(mapEl) + '  ', fresh = '', front = '', made = {};
+    // terminals made in the editor: inside their submap (subNode), the file's one or one made in this pass (termXml, written
+    // with it below), after what it holds
+    var termXml = {}, termOf = {};
+    G.ids.forEach(function (id) {
+      if (S.glyph[id] || !isTerm(G, id)) return;
+      var sm = subNode(G, id);
+      if (!sm || (S.glyph[sm] && S.glyph[sm].el.getAttribute('class') !== 'submap')) return;
+      termOf[id] = sm;
+      var L0 = labelsOf(G, id), tn = L0.main ? ownText(L0.main) : '', si = S.glyph[sm] ? T.indent(S.glyph[sm].bbox) : ind0 + '  ';
+      var xml = '<' + pre + 'glyph class="terminal" id="' + esc(id) + '" orientation="' + wayOf(G.node[id].geo.parentNode) + '">' + (tn ? '\n' + si + '  <' + pre + 'label text="' + esc(tn) + '"/>' : '') +
+        '\n' + si + '  ' + bboxXml(G.node[id].box) + '\n' + si + '</' + pre + 'glyph>';
+      if (S.glyph[sm]) { var se = T.t.lastIndexOf('</', T.end(S.glyph[sm].el) - 1); T.ed.push([se, se, '  ' + xml + '\n' + T.indent(S.glyph[sm].el)]); }
+      else termXml[sm] = (termXml[sm] || '') + '\n' + si + xml;
+      var lk = lookG(G, id), lf = L0.main ? F(L0.main.getAttribute('fontSize')) || 12 : null, own = lf != null && lf !== mapFont();   // its look, as a glyph made below
+      if (lk.fill || lk.line || lk.width !== 1 || own) looks.set(id, { fill: lk.fill, line: lk.line, width: lk.width, font: L0.main ? lf : null, cls: 'terminal', fresh: true });
+    });
     G.ids.forEach(function (id) {
       if (S.glyph[id] || S.port[id] || S.arc[id] || id.indexOf('|') >= 0) return;
       var n = G.node[id], cls = classOfR(n.geo.parentNode), act = af ? afUnitOf(G, id) : null;
@@ -549,19 +756,21 @@
       if (af && act == null && !n.el.getAttribute('yfiles.foldertype') && unitFor(cls) != null) act = unitFor(cls);   // a plain entity made: under AF its activity (a protein's with no unit)
       if (act != null) cls = 'biological activity';   // on an Activity Flow map (elsewhere written as its entity)
       if (af && cls === 'perturbing agent') cls = 'perturbation';   // AF's name for it
+      if (termOf[id]) { made[id] = 1; return; }   // a terminal: written with its submap (termXml)
       made[id] = 1;
       var up = n.el.parentNode; while (up && up.localName !== 'node') up = up.parentNode;
       var uid = up && up.getAttribute('id'), cref = uid && (S.glyph[uid] ? S.glyph[uid].el.getAttribute('class') === 'compartment' : !!G.node[uid] && cfgOf(G.node[uid].geo.parentNode) === 'Compartment') ? uid : null;   // a compartment of the file or made with it
       var L = labelsOf(G, id), name = L.main && !PROC.test(cls) ? ownText(L.main) : '', lk = lookG(G, id);   // a process's sign is its class, no label
       if (GATES.test(cls)) name = /^(equivalence|delay)$/.test(cls) ? '' : GATE[cls];   // a gate's label as sbgnml.write writes it (none on the equivalence, the spec 2.9.4, nor on a delay: its class says it)
       var fu = iconsOf(id, 'UnitOfInformation');
-      var xml = '\n' + ind0 + '<' + pre + 'glyph class="' + cls + (isMulti(G, id) && MULTI.test(cls) ? ' multimer' : '') + '" id="' + esc(id) + '"' + (cref ? ' compartmentRef="' + esc(cref) + '"' : '') + '>' +
+      var xml = '\n' + ind0 + '<' + pre + 'glyph class="' + cls + (isMulti(G, id) && MULTI.test(cls) ? ' multimer' : '') + '" id="' + esc(id) + '"' + (cref ? ' compartmentRef="' + esc(cref) + '"' : '') + (cls === 'tag' ? ' orientation="' + wayOf(n.geo.parentNode) + '"' : '') + '>' +
         (name ? '\n' + ind0 + '  <' + pre + 'label text="' + esc(name) + '"' + (cls === 'compartment' && labelBbox(id) ? '>\n' + ind0 + '    ' + labelBbox(id) + '\n' + ind0 + '  </' + pre + 'label>' : '/>') : '') + '\n' + ind0 + '  ' + bboxXml(n.box) +
         (act != null ? (act || (fu[0] && fu[0][0]) ? actUnitXml(id, act, n.box, ind0 + '  ', null, fu[0] ? fu[0][0] : '') : '') :   // under AF no state variables, one unit with its text
         iconsOf(id).map(function (q, k) { return svXml(id, k, q, n.box, ind0 + '  '); }).join('') +
-        fu.map(function (q, k) { return uiXml(id, k, q[0], uBox(q[0], n.box, k, fu.length), ind0 + '  '); }).join('')) + '\n' + ind0 + '</' + pre + 'glyph>';
+        fu.map(function (q, k) { return uiXml(id, k, q[0], uBoxAt(q[0], n.box, q[1], q[2]), ind0 + '  '); }).join('')) + (termXml[id] || '') + '\n' + ind0 + '</' + pre + 'glyph>';
       if (cls === 'compartment') front += xml; else fresh += xml;   // a compartment before the glyphs, as the editor draws it under them
-      if (lk.fill || lk.line || lk.width !== 1) looks.set(id, { fill: lk.fill, line: lk.line, width: lk.width, font: L.main ? F(L.main.getAttribute('fontSize')) : null, cls: cls, fresh: true });
+      var lf = L.main ? F(L.main.getAttribute('fontSize')) || 12 : null, own = lf != null && NAMED.test(cls) && lf !== mapFont();   // a font of its own, not the map's
+      if (lk.fill || lk.line || lk.width !== 1 || own) looks.set(id, { fill: lk.fill, line: lk.line, width: lk.width, font: L.main ? lf : null, cls: cls, fresh: true });
     });
     var ext = restyle0(S, T, St, looks, pre);   // a render extension written for an empty <map/>: put into it below
     if (front && tops.length) { var f0 = T.at.get(tops[0])[0]; T.ed.push([f0, f0, front.replace(/^\n\s*/, '') + '\n' + T.indent(tops[0])]); }
@@ -656,10 +865,18 @@
           // the arc named the glyph: now the port its glyph's other consumptions (products) use, else a port made
           var have = kids(S.glyph[s.gid].el, 'port').map(function (x) { return x.getAttribute('id'); }), other = use[s.gid + '\u0000' + (3 - no)];
           var pid = use[s.gid + '\u0000' + no] || (have.length >= 2 ? have.filter(function (x) { return x !== other; })[other ? 0 : no - 1] : null);
+          var proc = !GATES.test(S.glyph[s.gid].el.getAttribute('class') || ''), d2 = function (Q) { return Q ? Math.hypot(Q[0] - P[0], Q[1] - P[1]) : Infinity; };
+          if (no === 2 && proc && have.length >= 2) {   // a production of a reversible process leaves from the nearer port (the converter's sbgnml.write)
+            var now = function (x) { return portAt[x] || (map[s.gid] ? map[s.gid](xy(S.port[x])) : xy(S.port[x])); };
+            var near = have.slice().sort(function (x, y) { return d2(now(x)) - d2(now(y)); })[0];
+            if (near !== pid && d2(now(near)) + 0.5 < d2(now(pid))) pid = near;
+          }
           if (pid) { ref[j0] = pid; portAt[pid] = portAt[pid] || P; }
           else {
-            (newPorts[s.gid] = newPorts[s.gid] || {})[no] = newPorts[s.gid][no] || P;
-            ref[j0] = newId(s.gid, no);
+            var np = newPorts[s.gid] = newPorts[s.gid] || {}, k = no;
+            if (no === 2 && proc && np[2] && d2(np[2]) > 0.5 && (!np[1] || d2(np[1]) <= 0.5)) k = 1;   // a bare process's second production, on the other side: its port in
+            np[k] = np[k] || P;
+            ref[j0] = newId(s.gid, k);
           }
         }
         setXY(el, P);
@@ -851,7 +1068,9 @@
                // bare as a process is, its ports written by its first arc
                and: 'Operator', or: 'Operator', not: 'Operator', equivalence: 'Operator',
                // Activity Flow's delay (the palette's AF tab): yEd's Operator labelled tau (graphml.DELAY), drawn as the equivalence
-               delay: 'Operator' };
+               delay: 'Operator',
+               // a tag, and a submap's terminal (the node property SBGN class terminal): yEd's Tag, its point by its way
+               tag: 'Tag' };
   var SIGN = { 'omitted process': '\\\\', 'uncertain process': '?' }, PROC = /^(process|omitted process|uncertain process)$/;
   var GATE = { and: 'AND', or: 'OR', not: 'NOT', equivalence: '\u2261', delay: '\u03c4' }, GATES = /^(and|or|not|equivalence|delay)$/;   // sbgnml.OPERATORS
   // sizes at the map's scale: the converter's standard ones (style.py) where it has them, else on the 8 grid near the
@@ -860,7 +1079,7 @@
                'perturbing agent': [80, 40], 'source and sink': [32, 32], phenotype: [120, 40], submap: [120, 64], compartment: [400, 320],
                process: [18, 18], 'omitted process': [18, 18], 'uncertain process': [18, 18],   // a process: the yEd maps' 18
                and: [30, 30], or: [30, 30], not: [30, 30], equivalence: [30, 30], delay: [30, 30],   // a gate: the yEd maps' 30 (yed.graphml's Operator)
-               'biological activity': [80, 40] };   // every activity a protein's size, whatever its unit: 80 by 40
+               'biological activity': [80, 40], tag: [60, 30] };   // every activity a protein's size, whatever its unit: 80 by 40; a tag yEd's palette's 60 by 30
   function cfgOf(r) { return r.localName === 'GroupNode' ? 'Compartment' : (r.getAttribute('configuration') || '').replace('com.yworks.sbgn.', ''); }
   function classOfCfg(cfg) { var c = null; Object.keys(MAKE).forEach(function (k) { if (!c && MAKE[k] === cfg) c = k; }); return c; }
   function classOfR(r) {   // the class a realizer of the editor's GraphML stands for: a process's by its sign
@@ -870,7 +1089,66 @@
     if (cfg === 'Operator') return Object.keys(GATE).filter(function (k) { return GATE[k] === t || GATE[k] === t.toUpperCase(); })[0] || null;   // tau as it is (its upper case is another letter)
     return Object.keys(SIGN).filter(function (k) { return SIGN[k] === t; })[0] || 'process';
   }
-  var NAMED = /^(macromolecule|simple chemical|nucleic acid feature|unspecified entity|perturbing agent|phenotype|complex|submap|compartment)( multimer)?$|^(biological activity|perturbation)$/;   // names kept in step both ways
+  // a tag's or terminal's way (its point): SBGN-ML's orientation (horizontal, its default, to the right); in the GraphML
+  // yEd's two, plain to the right and the style property inverse to the left, and orientation up or down (graphml.write)
+  var WAYS = /^(left|right|up|down)$/;
+  function fileWay(el) { var o = el.getAttribute('orientation') || ''; return WAYS.test(o) ? o : 'right'; }
+  function wayOf(r) {
+    var p = {};
+    kids(kid(r, 'StyleProperties') || r, 'Property').forEach(function (q) { p[(q.getAttribute('name') || '').replace('com.yworks.sbgn.style.', '')] = q.getAttribute('value'); });
+    return WAYS.test(p.orientation || '') ? p.orientation : p.inverse === 'true' ? 'left' : 'right';
+  }
+  function wayXml(w) {
+    return w === 'right' ? '' : '<y:StyleProperties>\n            ' + (w === 'left' ? '<y:Property class="java.lang.Boolean" name="com.yworks.sbgn.style.inverse" value="true"/>'
+      : '<y:Property class="java.lang.String" name="com.yworks.sbgn.style.orientation" value="' + w + '"/>') + '\n          </y:StyleProperties>\n';
+  }
+  function setWay(T, r, w) {   // a Tag's realizer pointing that way; other style properties a yEd file gave kept
+    if (wayOf(r) === w) return;
+    var sp = kid(r, 'StyleProperties'), ps = sp ? kids(sp, 'Property') : [], mine = function (q) { return /\.style\.(inverse|orientation)$/.test(q.getAttribute('name') || ''); };
+    if (sp && ps.some(function (q) { return !mine(q); })) {   // its own properties stay: only the way's taken out and put in
+      ps.filter(mine).forEach(function (q) { T.cut(q); });
+      var m = wayXml(w).match(/<y:Property[^>]*\/>/), e1 = T.t.lastIndexOf('</', T.end(sp) - 1);
+      if (m) T.ed.push([e1, e1, '  ' + m[0] + '\n' + T.indent(sp)]);
+      return;
+    }
+    if (sp) T.cut(sp);
+    var e = T.t.lastIndexOf('</', T.end(r) - 1);
+    if (w !== 'right') T.ed.push([e, e, '  ' + wayXml(w) + T.indent(r)]);
+  }
+  function isTag(G, id) { return !!G.node[id] && cfgOf(G.node[id].geo.parentNode) === 'Tag'; }
+  function isTerm(G, id) { var d = isTag(G, id) && propEl(G, id, 'SBGN class'); return !!d && ownText(d).trim() === 'terminal'; }
+  //   way(g, id, w) -> g with the tag pointing w (left, right, up, down); terminal(g, id, on) -> g with the tag a submap's
+  //   terminal (on its border) or a free tag again
+  function way(t, id, w, opt) {
+    var G = gml(t, opt);
+    if (!isTag(G, id) || !WAYS.test(w)) return t;
+    var T = new Tags(t, G.doc); setWay(T, G.node[id].geo.parentNode, w); return T.text();
+  }
+  // a terminal's node right after its submap's node and the terminals it has, as the converter reads a submap's
+  // terminals after it (the file holds them inside the submap's glyph); the submap: the one its box touches, the nearest
+  function subNode(G, id) {
+    var b = G.node[id].box, best = null, bd = Infinity;
+    G.ids.forEach(function (k) {
+      var q = G.node[k].box;
+      if (cfgOf(G.node[k].geo.parentNode) !== 'Submap' || b[0] > q[0] + q[2] + 1 || q[0] > b[0] + b[2] + 1 || b[1] > q[1] + q[3] + 1 || q[1] > b[1] + b[3] + 1) return;
+      var d = Math.hypot(b[0] + b[2] / 2 - q[0] - q[2] / 2, b[1] + b[3] / 2 - q[1] - q[3] / 2);
+      if (d < bd) { bd = d; best = k; }
+    });
+    return best;
+  }
+  function termPlace(t, id, opt) {
+    var G = gml(t, opt), sm = subNode(G, id);
+    if (!sm) return t;
+    var after = sm, sib = kids(G.node[sm].el.parentNode, 'node').map(function (n) { return n.getAttribute('id'); });
+    for (var j = sib.indexOf(sm) + 1; j < sib.length && sib[j] !== id && isTerm(G, sib[j]) && subNode(G, sib[j]) === sm; j++) after = sib[j];
+    if (sib[sib.indexOf(after) + 1] === id) return t;
+    var at = nodeAt(t, id), end = elEnd(t, 'node', at), nl = t.lastIndexOf('\n', at - 1), from = nl >= 0 && /^[ \t]*$/.test(t.slice(nl + 1, at)) ? nl : at, block = t.slice(at, end);
+    t = t.slice(0, from) + t.slice(end);
+    var a = nodeAt(t, after), ae = elEnd(t, 'node', a), al = t.lastIndexOf('\n', a - 1), ind = al >= 0 && /^[ \t]*$/.test(t.slice(al + 1, a)) ? t.slice(al + 1, a) : '';
+    return t.slice(0, ae) + (ind ? '\n' + ind : '') + block + t.slice(ae);
+  }
+  function terminal(t, id, on, opt) { t = setProps(t, id, { 'SBGN class': on ? 'terminal' : null }, opt); return on ? termPlace(t, id, opt) : t; }
+  var NAMED = /^(macromolecule|simple chemical|nucleic acid feature|unspecified entity|perturbing agent|phenotype|complex|submap|compartment)( multimer)?$|^(biological activity|perturbation|tag|terminal)$/;   // names kept in step both ways
   function ownText(el) { var t = ''; for (var c = el.firstChild; c; c = c.nextSibling) if (c.nodeType === 3 || c.nodeType === 4) t += c.nodeValue; return t; }
   function labelBox(text, w, h, k) {   // graphml._label: the label's box estimated and centred
     var lines = text ? text.split('\n') : [], n = 0;
@@ -973,6 +1251,7 @@
         '<y:ModelParameter><y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/></y:ModelParameter></y:NodeLabel>';
     } else label = mainLabel(o.label || '', w, h, fs);
     var round = o.cls === 'macromolecule' || o.cls === 'nucleic acid feature';   // the templates with yEd's radius 10
+    if (o.cls === 'tag' && o.way && o.way !== 'right') return nodeXml(Object.assign({}, o, { way: null })).replace('        </y:GenericNode>', '          ' + wayXml(o.way) + '        </y:GenericNode>');
     return '<node id="' + esc(o.id) + '"><data key="ng">\n        <y:GenericNode configuration="com.yworks.sbgn.' + MAKE[o.cls] + '">\n' +
       '          <y:Geometry height="' + repr(h) + '" width="' + repr(w) + '" x="' + repr(o.box[0]) + '" y="' + repr(o.box[1]) + '"/>\n' +
       '          ' + fill + '\n          ' + border + '\n          ' + label +
@@ -1073,56 +1352,74 @@
   }
   // a new glyph's fill where the map has no glyph of its kind (never left transparent; one with glyphs of its kind none
   // of which is filled gets none, drawn white as they are): the viewer's Default colour scheme, an activity's by its
-  // unit's kind; processes, gates, submaps none. The master of these colours for the editor; the viewer keeps its own
+  // unit's kind; a submap white as the other entities; processes and gates none. The master of these colours for the editor; the viewer keeps its own
   // copy as SCHEMES.default in _includes/atlas-app.html (compartment, complex, protein, metabolite, ..., white), kept the same
   var FILL = { macromolecule: '#C8D8EB', 'simple chemical': '#DBEBDB', compartment: '#F7F6F3', complex: '#FFFFFF', 'nucleic acid feature': '#FFFFFF',
-               'unspecified entity': '#FFFFFF', 'perturbing agent': '#FFFFFF', phenotype: '#FFFFFF' };
+               'unspecified entity': '#FFFFFF', 'perturbing agent': '#FFFFFF', phenotype: '#FFFFFF', submap: '#FFFFFF' };
   function fillFor(cls, unit) { return FILL[cls === 'biological activity' ? actCls(unit) : (cls || '').replace(/ multimer$/, '')] || null; }
-  function defaults(t, opt, cls, unit) {   // unit: an activity's, for its fill
-    cls = cls || 'macromolecule';
-    var S = sbgn(t, opt), hs = [], best = null, n = 0, same = {};
-    Object.keys(S.glyph).forEach(function (id) {   // a protein's activity is a protein to the converter (sbgnml.ACTIVITY)
+  function scaleOf(S) {   // the map's scale from its proteins, as style.scale_of (a protein's activity is a protein to the converter, sbgnml.ACTIVITY)
+    var hs = [];
+    Object.keys(S.glyph).forEach(function (id) {
       var c = S.glyph[id].el.getAttribute('class');
       if (c === 'macromolecule' || (c === 'biological activity' && actCls(fileUnit(S.glyph[id].el)) === 'macromolecule')) hs.push(S.glyph[id].box[3]);
+    });
+    hs.sort(function (a, b) { return a - b; });
+    var m = hs.length ? (hs.length % 2 ? hs[(hs.length - 1) / 2] : (hs[hs.length / 2 - 1] + hs[hs.length / 2]) / 2) : 40, s = m / 40;
+    return s > 1.2 || s < 1 / 1.2 ? s : 1;
+  }
+  function defaults(t, opt, cls, unit) {   // unit: an activity's, for its fill
+    cls = cls || 'macromolecule';
+    var S = sbgn(t, opt), best = null, n = 0, same = {};
+    Object.keys(S.glyph).forEach(function (id) {
+      var c = S.glyph[id].el.getAttribute('class');
       // the same kind: a multimer counts as its kind, an activity only as one of the same unit kind (so a metabolite
       // activity does not take the protein activities' fill)
       if ((c || '').replace(/ multimer$/, '') === cls && (c !== 'biological activity' || unit === undefined || actCls(fileUnit(S.glyph[id].el)) === actCls(unit))) same[id] = 1;
     });
-    hs.sort(function (a, b) { return a - b; });
-    var m = hs.length ? (hs.length % 2 ? hs[(hs.length - 1) / 2] : (hs[hs.length / 2 - 1] + hs[hs.length / 2]) / 2) : 40, s = m / 40;   // the map's scale from its proteins, as style.scale_of
-    if (!(s > 1.2 || s < 1 / 1.2)) s = 1;
+    // the size most glyphs of that kind have on the map (the three process kinds counted as one, drawn alike), when two
+    // share it or the kind has one glyph; else the size below at the map's scale. Compartments, complexes and submaps are
+    // sized to what they hold, so theirs stay the size below
+    var PROC = /^(omitted |uncertain )?process$/, cnt = {}, all = 0, top = null;
+    if (!/^(compartment|complex|submap)$/.test(cls)) Object.keys(S.glyph).forEach(function (id) {
+      var c = (S.glyph[id].el.getAttribute('class') || '').replace(/ multimer$/, ''), b = S.glyph[id].box, k = b[2] + ',' + b[3];
+      if (PROC.test(cls) ? PROC.test(c) : same[id]) { all++; cnt[k] = (cnt[k] || 0) + 1; if (!top || cnt[k] > cnt[top]) top = k; }
+    });
+    var own = top && (cnt[top] > 1 || all === 1) ? top.split(',').map(Number) : null;
+    var s = scaleOf(S);
     var filled = false;   // a glyph of that kind with a fill: a map whose glyphs of that kind have none (CaMKII) gets none
     styles(S).forEach(function (st) { var k = st.ids.filter(function (i) { return same[i]; }).length; if (st.fill && k) filled = true; if (st.fill && st.plain && k > n) { n = k; best = st; } });
     var sz = SIZE[cls] || SIZE.macromolecule, fallback = !best && (filled || !Object.keys(same).length);   // the Default colours only on a map with no glyph of that kind (a New map)
-    return { w: sz[0] * s, h: sz[1] * s, font: best && best.font || Math.round(14 * s + 0.01), fill: best ? best.fill : fallback ? fillFor(cls, unit) : null, fallback: fallback,   // fallback: the fill is the Default colours' (create.js: dropped under No colours)
+    // w0, h0: the size below, whatever the map has (the palette's Style: Default)
+    return { w: own ? own[0] : sz[0] * s, h: own ? own[1] : sz[1] * s, w0: sz[0] * s, h0: sz[1] * s, font: best && best.font || Math.round(14 * s + 0.01), fill: best ? best.fill : fallback ? fillFor(cls, unit) : null, fallback: fallback,   // fallback: the fill is the Default colours' (create.js: dropped under No colours)
              line: best && best.line !== '#000000' ? best.line : null, width: cls === 'compartment' ? 2 : best && best.width || 1 };   // a new compartment's border 2 whatever the map's
   }
   // ---------- the look of a glyph (Properties as yEd's, with Newt's fields): its fill, border colour and
   // width (size: resize(); multimer: multimer()). In the GraphML as graphml.write writes them; in the SBGN-ML file in the
   // render extension, read as sbgnml.read reads it (each attribute from the last style naming the glyph that gives it; a
-  // black border and a width of 1 are the defaults)
-  var LOOKED = /^(macromolecule|simple chemical)( multimer)?$|^biological activity$/;   // the glyphs the editor restyles (an activity too)
+  // black border and a width of 1 are the defaults, a compartment's 2). LOOKS: every glyph Properties restyles
+  var LOOKS = /^(macromolecule|simple chemical|nucleic acid feature|complex)( multimer)?$|^(biological activity|unspecified entity|perturbing agent|perturbation|phenotype|submap|source and sink|compartment|process|omitted process|uncertain process|association|dissociation|and|or|not|equivalence|delay)$/;
   function lookG(G, id) { return lookOf(G.node[id].geo.parentNode); }
-  function lookOf(r) {   // a node's realizer: its fill, border colour (null: black) and width, drawn as a multimer
+  function lookOf(r) {   // a node's realizer: its fill, border colour (null: black) and width, drawn as a multimer, its name's font size (null: no name label)
     var fl = kid(r, 'Fill'), bs = kid(r, 'BorderStyle'), line = ((bs && bs.getAttribute('color')) || '#000000').toUpperCase();
-    return { fill: fl && fl.getAttribute('hasColor') !== 'false' && fl.getAttribute('color') ? fl.getAttribute('color').toUpperCase() : null,
+    var lab = kids(r, 'NodeLabel').filter(function (l) { return !l.getAttribute('iconData'); })[0];
+    return { font: lab ? F(lab.getAttribute('fontSize')) || 12 : null, fill: fl && fl.getAttribute('hasColor') !== 'false' && fl.getAttribute('color') ? fl.getAttribute('color').toUpperCase() : null,
              line: line === '#000000' ? null : line, width: bs && bs.getAttribute('width') ? F(bs.getAttribute('width')) : 1,
              multimer: kids(kid(r, 'StyleProperties') || r, 'Property').some(function (q) { return q.getAttribute('name') === 'com.yworks.sbgn.style.mcount' && q.getAttribute('value') !== '1'; }) };
   }
-  function fileLook(St, id) {
-    var o = { fill: null, line: null, width: 1, font: null };
+  function fileLook(St, id, cls) {   // cls: the glyph's, for the converter's default border (a compartment's 2, else 1)
+    var o = { fill: null, line: null, width: cls === 'compartment' ? 2 : 1, font: null };
     St.forEach(function (st) {
       if (!st.plain || st.ids.indexOf(id) < 0) return;
       if (st.has.fill) o.fill = st.fill;
       if (st.has.line) o.line = st.line;
-      if (st.has.width) o.width = st.width || 1;
+      if (st.has.width) o.width = st.width || o.width;
       if (st.has.font) o.font = st.font;
     });
     if (o.line === '#000000') o.line = null;
     return o;
   }
   // the node's look in the GraphML set to o (fill, line, width: those given)
-  function setLook(T, G, id, o) {
+  function setLook(T, G, id, o, keep) {   // keep: setFont's; returns the name's new width where its font changed
     var n = G.node[id], r = n.geo.parentNode, fl = kid(r, 'Fill'), bs = kid(r, 'BorderStyle'), now = lookG(G, id);
     if ('fill' in o && o.fill !== now.fill && fl) {   // as graphml.write writes it: color first, or hasColor last
       var fs0 = T.at.get(fl), tr = fl.getAttribute('transparent') || 'false';
@@ -1130,9 +1427,29 @@
     }
     if ('line' in o && o.line !== now.line && bs) T.set(bs, 'color', o.line || '#000000');
     if ('width' in o && o.width !== now.width && bs) T.set(bs, 'width', repr(o.width));
+    if (o.font != null && now.font != null && o.font !== now.font) return setFont(T, G, id, o.font, keep);
   }
-  //   lookOf(realizer) -> { fill, line, width, multimer } of a node of the editor's GraphML (its parsed realizer)
-  //   restyle(g, id, o) -> g with the node's look set to o (any of fill, line, width)
+  // the name's font size in the GraphML, its label box measured again for it (as label() and graphml.write's _label);
+  // a group's other realizers (folded in yEd) the same size
+  // keep: graphml()'s box of the node (the DOM still has the old one): a compartment's name left where it is (graphml()
+  // places it from the file, with the width returned); returns
+  // the label's new width, else null
+  function setFont(T, G, id, fs, keep) {
+    var n = G.node[id], L = labelsOf(G, id).main;
+    if (!L) return null;
+    var w = (keep || n.box)[2], h = (keep || n.box)[3], b = labelBox(ownText(L), w, h, fs / 14), inner = L.getAttribute('modelName') === 'internal', z = repr(fs).replace(/\.0$/, '');
+    var at = [['width', b[0]], ['height', b[1]]];
+    if (!inner) at.push(['x', b[2]], ['y', b[3]]);
+    else if (cfgOf(L.parentNode) === 'Complex') at.push(['x', (w - b[0]) / 2], ['y', L.getAttribute('modelPosition') === 'b' ? h - b[1] : (h - b[1]) / 2]);   // as graphml.write: centred, on the bottom edge with members
+    else if (!keep && Math.abs(F(L.getAttribute('x')) + F(L.getAttribute('width')) / 2 - w / 2) < 0.5) at.push(['x', (w - b[0]) / 2]);   // a compartment's centred name stays centred
+    T.set(L, 'fontSize', z);
+    at.forEach(function (q) { T.set(L, q[0], repr(q[1])); });
+    var rs = L.parentNode.parentNode;
+    if (rs && rs.localName === 'Realizers') kids(rs).forEach(function (r) { var l2 = r !== L.parentNode && kid(r, 'NodeLabel'); if (l2) T.set(l2, 'fontSize', z); });
+    return b[0];
+  }
+  //   lookOf(realizer) -> { fill, line, width, multimer, font } of a node of the editor's GraphML (its parsed realizer)
+  //   restyle(g, id, o) -> g with the node's look set to o (any of fill, line, width, font: its name's size)
   function restyle(t, id, o, opt) {
     var G = gml(t, opt);
     if (!G.node[id]) return t;
@@ -1140,11 +1457,59 @@
     setLook(T, G, id, o);
     return T.text();
   }
+  //   restyleAll(g, { id: o }, opt, lines) -> g with each node's look set and, with lines (edge id -> #rrggbb or null for
+  //   black, or a function of the edge id), each edge's colour; one parse for them all (a whole map recoloured)
+  function restyleAll(t, M, opt, lines) {
+    var G = gml(t, opt), T = new Tags(t, G.doc);
+    Object.keys(M).forEach(function (id) { if (G.node[id]) setLook(T, G, id, M[id]); });
+    if (lines) Object.keys(G.edge).forEach(function (id) { var c = typeof lines === 'function' ? lines(id) : lines[id]; if (c !== undefined) setLine(T, G.edge[id].el, c); });
+    return T.text();
+  }
+  // a line's colour (Properties): in the GraphML its y:LineStyle color, as graphml.write draws Arc.line; in the SBGN-ML
+  // file a style naming the arc, its stroke the colour (sbgnml.read's Arc.line). null: black, the default
+  function lineOf(e) {   // an edge of the editor's GraphML (its parsed element)
+    var ls = e.getElementsByTagNameNS(YNS, 'LineStyle')[0], c = ((ls && ls.getAttribute('color')) || '#000000').toUpperCase().replace(/^(#[0-9A-F]{6})FF$/, '$1');
+    return c === '#000000' ? null : c;
+  }
+  function setLine(T, e, c) { var ls = e.getElementsByTagNameNS(YNS, 'LineStyle')[0]; if (ls && lineOf(e) !== c) T.set(ls, 'color', c || '#000000'); }
+  // a line's width (Properties): its y:LineStyle width, as graphml.write draws Arc.weight; in the SBGN-ML file the
+  // stroke-width of a style naming the arc (sbgnml.read's Arc.weight). 1 the default
+  function widthOf(e) { var ls = e.getElementsByTagNameNS(YNS, 'LineStyle')[0]; return (ls && F(ls.getAttribute('width'))) || 1; }
+  function setWidth(T, e, w) { var ls = e.getElementsByTagNameNS(YNS, 'LineStyle')[0]; if (ls && widthOf(e) !== w) T.set(ls, 'width', repr(w)); }
+  //   colours(g) -> { node: { id: { fill, line } }, edge: { id: c } }: every node's fill and border colour and every edge's
+  //   colour as they are (lookOf, lineOf; null: none, black), in one parse; restyleAll puts them back
+  function colours(t, opt) {
+    var G = gml(t, opt), o = { node: {}, edge: {} };
+    G.ids.forEach(function (id) { var L = lookG(G, id); o.node[id] = { fill: L.fill, line: L.line }; });
+    Object.keys(G.edge).forEach(function (id) { o.edge[id] = lineOf(G.edge[id].el); });
+    return o;
+  }
+  //   recolour(g, id, c) -> g with the edge's colour set to c (#RRGGBB, null for black)
+  function recolour(t, id, c, opt) {
+    var G = gml(t, opt), e = G.edge[id];
+    if (!e) return t;
+    var T = new Tags(t, G.doc);
+    setLine(T, e.el, c);
+    return T.text();
+  }
+  //   rewidth(g, id, w) -> g with the edge's width set to w (1 the default)
+  function rewidth(t, id, w, opt) {
+    var G = gml(t, opt), e = G.edge[id];
+    if (!e) return t;
+    var T = new Tags(t, G.doc);
+    setWidth(T, e.el, w);
+    return T.text();
+  }
   // the looks wanted put into the file's render styles: each glyph out of the styles naming it, into a plain style of its
   // fill, border and font (for a glyph made in the editor, a style with no font as well: the map's own), the one most of
   // the map's glyphs of its class use; else a style made for it, with the attributes of its old style it does not set
   // (font family, text colour), its colours in the map's colour definitions; a style left naming nothing taken out. Returns
   // the render extension's text when it is new and the map an empty <map/> (write() puts it in with the glyphs made)
+  function carried(old) {   // the attributes a glyph's old styles give that a look does not set (font family, text colour)
+    var at = {};
+    old.forEach(function (st) { if (st.g) Array.prototype.forEach.call(st.g.attributes, function (a) { if (!/^(fill|stroke|stroke-width|font-size)$/.test(a.localName || a.name) && !/^xmlns/.test(a.name)) at[a.name] = a.value; }); });
+    return at;
+  }
   function restyle0(S, T, St, looks, pre) {
     if (!looks.size) return;
     var lists = new Map(), made = {}, order = [], used = {};
@@ -1155,30 +1520,47 @@
     looks.forEach(function (o, id) {
       var old = [];   // every style naming it, in order (a later one's attributes win, as sbgnml.read takes them)
       St.forEach(function (st) { if (st.plain && st.ids.indexOf(id) >= 0) { old.push(st); lists.set(st, (lists.get(st) || st.ids.slice()).filter(function (x) { return x !== id; })); } });
-      var cand = St.filter(function (x) { return x.plain && x.fill === o.fill && (x.line === '#000000' ? null : x.line) === o.line && (x.width || 1) === o.width && (x.font === o.font || (o.fresh && x.font == null)); });
+      var arc = o.cls === 'arc';
+      if (arc && !o.line && !o.fill && o.width == null && !o.font) return;   // a line set back to black: out of the styles that coloured it
+      var cand = St.filter(function (x) { return x.plain && x.fill === o.fill && (x.line === '#000000' ? null : x.line) === o.line && (o.width == null ? !x.has.width : (x.has.width ? x.width || 1 : o.cls === 'compartment' ? 2 : 1) === o.width) &&
+        (x.font === o.font || (o.fresh && x.font == null)) && x.ids.every(function (i) { return !!S.arc[i] === arc; }); });   // arcs' styles and glyphs' apart
       cand.sort(function (a, b) { return (b.font === o.font) - (a.font === o.font) || cnt(b, o.cls) - cnt(a, o.cls); });
       if (cand[0]) { lists.set(cand[0], (lists.get(cand[0]) || cand[0].ids.slice()).concat(id)); return; }
-      var key = [o.fill, o.line, o.width, o.font, o.fresh ? '' : old.map(function (x) { return St.indexOf(x); }).join(',')].join('\u0000');
+      var key = [arc, o.fill, o.line, o.width, o.font, JSON.stringify(carried(o.fresh ? [] : old))].join('\u0000');   // arcs' styles and glyphs' apart   // the same look and the same attributes kept: one style
       if (!made[key]) { made[key] = { o: o, old: o.fresh ? [] : old, ids: [] }; order.push(made[key]); }
       made[key].ids.push(id);
     });
     lists.forEach(function (ids, st) { if (ids.length) T.set(st.el, st.idName, ids.join(' ')); else T.cut(st.el); });   // a style left naming nothing taken out
-    if (!order.length) return;
-    var lsEl = first('listOfStyles'), lcEl = first('listOfColorDefinitions'), defs = St.defs, mapEl = kids(S.doc.documentElement, 'map')[0];
+    var lsEl = first('listOfStyles'), lcEl = first('listOfColorDefinitions'), defs = St.defs, mapEl = kids(S.doc.documentElement, 'map')[0], newRefs = {};
+    // a colour definition the change left unused taken out (one a style used before, named by no style or other element
+    // after it), so the file keeps no leftovers; one unused before stays as the file had it
+    var tidy = function () {
+      if (!lcEl) return;
+      var isDef = function (v) { return Object.prototype.hasOwnProperty.call(defs, v); };
+      var refs = function (el, into) { Array.prototype.forEach.call(el.getElementsByTagName('*'), function (e) { Array.prototype.forEach.call(e.attributes, function (a) { if (isDef(a.value)) into[a.value] = 1; }); }); };
+      var before = {}, after = Object.assign({}, newRefs);
+      St.forEach(function (st) { refs(st.el, before); var l = lists.get(st); if (!l || l.length) refs(st.el, after); });   // a style cut names nothing after
+      Array.prototype.forEach.call(all, function (e) {   // any other element naming a colour (a background, a text colour)
+        if (e.localName === 'colorDefinition' || e.localName === 'style') return;
+        for (var u = e.parentNode; u; u = u.parentNode) if (u.localName === 'style' || u.localName === 'listOfColorDefinitions') return;
+        Array.prototype.forEach.call(e.attributes, function (a) { if (isDef(a.value)) after[a.value] = 1; });
+      });
+      kids(lcEl, 'colorDefinition').forEach(function (d) { var i = av(d, 'id'); if (before[i] && !after[i]) T.cut(d); });
+    };
+    if (!order.length) { tidy(); return; }
     var rp = lsEl && lsEl.prefix ? lsEl.prefix + ':' : '', ap = St.some(function (x) { return x.idName.indexOf(':') > 0; }) ? rp : '', bi = lsEl ? T.indent(lsEl) : T.indent(mapEl) + '      ', colours = '', styles = '';
     var cid = function (v) {   // a colour's id in the map's definitions, one added when it has none
       if (!lcEl && lsEl) return v;   // a map whose styles give their colours as values
-      for (var k in defs) if (defs[k] && defs[k].toUpperCase().replace(/^(#[0-9A-F]{6})FF$/, '$1') === v) return k;
+      for (var k in defs) if (defs[k] && defs[k].toUpperCase().replace(/^(#[0-9A-F]{6})FF$/, '$1') === v) { newRefs[k] = 1; return k; }
       var i = fresh('color_e'); defs[i] = v;
       colours += '\n' + bi + '  <' + rp + 'colorDefinition ' + ap + 'id="' + i + '" ' + ap + 'value="' + v.toLowerCase() + '"/>';
       return i;
     };
     order.forEach(function (m) {
-      var o = m.o, at = {};
-      m.old.forEach(function (st) { if (st.g) Array.prototype.forEach.call(st.g.attributes, function (a) { if (!/^(fill|stroke|stroke-width|font-size)$/.test(a.localName || a.name) && !/^xmlns/.test(a.name)) at[a.name] = a.value; }); });
+      var o = m.o, at = carried(m.old);
       at[ap + 'stroke'] = cid(o.line || '#000000');
       if (o.fill) at[ap + 'fill'] = cid(o.fill);
-      at[ap + 'stroke-width'] = num(o.width);
+      if (o.width != null) at[ap + 'stroke-width'] = num(o.width);   // a line's width only where its style gave one
       if (o.font) at[ap + 'font-size'] = num(o.font);
       styles += '\n' + bi + '  <' + rp + 'style ' + ap + 'id="' + fresh('style_e') + '" ' + ap + 'idList="' + m.ids.map(esc).join(' ') + '">\n' + bi + '    <' + rp + 'g' +
         Object.keys(at).map(function (k) { return ' ' + k + '="' + esc(at[k]) + '"'; }).join('') + '/>\n' + bi + '  </' + rp + 'style>';
@@ -1189,6 +1571,7 @@
       var e = T.t.lastIndexOf('</', T.end(el) - 1), ls = T.t.lastIndexOf('\n', e - 1);
       T.ed.push(/^\s*$/.test(T.t.slice(ls + 1, e)) ? [ls, ls, xml] : [e, e, xml + '\n' + T.indent(el)]);
     };
+    tidy();
     if (lsEl) { if (colours) into(lcEl, colours); into(lsEl, styles); return; }
     var i0 = T.indent(mapEl) + '  ', R = 'http://www.sbml.org/sbml/level3/version1/render/version1';
     if (lcEl) {   // colour definitions but no styles yet: a list of styles beside them
@@ -1233,8 +1616,8 @@
     return T.text();
   }
   function svLabel(G, id, j, kind) { var L = G.node[id] && labelsOf(G, id); return L ? (L.icons.filter(function (x) { return x[1].kind === (kind || 'StateVariable'); })[j] || [])[0] : null; }
-  function stateMove(t, id, j, rx, ry, opt) {   // the j-th state variable moved to rx, ry on its node's border (the editor's GraphML)
-    var G = gml(t, opt), l = svLabel(G, id, j);
+  function stateMove(t, id, j, rx, ry, opt, kind) {   // the j-th state variable (kind UnitOfInformation: unit) moved to rx, ry on its node's border (the editor's GraphML)
+    var G = gml(t, opt), l = svLabel(G, id, j, kind);
     if (!l) return t;
     var T = new Tags(t, G.doc), p = l.getElementsByTagNameNS(YNS, 'SmartNodeLabelModelParameter')[0], b = G.node[id].box;
     T.set(p, 'nodeRatioX', repr(rx)); T.set(p, 'nodeRatioY', repr(ry));
@@ -1253,13 +1636,13 @@
     var left = g ? (unit ? unitsOf(g.el) : kids(g.el, 'glyph').filter(function (c) { return c.getAttribute('class') === 'state variable'; })).filter(function (c) { return del.indexOf(c.getAttribute('id')) < 0; }) : [];
     return j < left.length && left[j].getAttribute('id') ? goneMark(t, [left[j].getAttribute('id')]) : t;
   }
-  // units of information (free text): spread evenly along the top as
-  // graphml.write places them, (k + 1) / (n + 1) of the width, again whenever one is added or deleted
+  // units of information (free text) on the top edge: spread evenly along it as graphml.write places them,
+  // (k + 1) / (n + 1) of the width, again whenever one is added or deleted; a unit moved to another side stays there
   function uRatio(k, n) { return (k + 1) / (n + 1) - 0.5; }
   function respace(t, id, opt) {
     var G = gml(t, opt), n = G.node[id], L = n && labelsOf(G, id);
     if (!L) return t;
-    var us = L.icons.filter(function (q) { return q[1].kind === 'UnitOfInformation'; }), T = new Tags(t, G.doc), b = n.box;
+    var us = L.icons.filter(function (q) { var p = q[0].getElementsByTagNameNS(YNS, 'SmartNodeLabelModelParameter')[0]; return q[1].kind === 'UnitOfInformation' && p && Math.abs(F(p.getAttribute('nodeRatioY')) + 0.5) < 1e-6; }), T = new Tags(t, G.doc), b = n.box;
     us.forEach(function (q, k) {
       var l = q[0], p = l.getElementsByTagNameNS(YNS, 'SmartNodeLabelModelParameter')[0], rx = uRatio(k, us.length), set = function (el, a, v) { if (el.getAttribute(a) !== v) T.set(el, a, v); };
       set(p, 'nodeRatioX', repr(rx)); set(p, 'nodeRatioY', repr(-0.5));
@@ -1273,6 +1656,7 @@
   }
   function unitValue(t, id, j, value, opt) { return withText(stateValue(t, id, j, value, opt, 'UnitOfInformation'), id, value, opt); }
   function unitDelete(t, id, j, opt) { return stateDelete(t, id, j, opt, 'UnitOfInformation'); }
+  function unitMove(t, id, j, rx, ry, opt) { return stateMove(t, id, j, rx, ry, opt, 'UnitOfInformation'); }
   // a multimer (Make multimer, Make macromolecule): yEd's two shapes, mcount 2 (graphml.write); the
   // count, if any, is a unit of information the reader types (N:3)
   var MCOUNT = '<y:Property class="java.lang.Integer" name="com.yworks.sbgn.style.mcount" value="2"/>', MULTI = /^(macromolecule|simple chemical|nucleic acid feature)$/;
@@ -1281,6 +1665,18 @@
     return sp ? kids(sp, 'Property').filter(function (p) { return p.getAttribute('name') === 'com.yworks.sbgn.style.mcount'; })[0] || null : null;
   }
   function isMulti(G, id) { var p = mcountOf(G, id); return !!p && p.getAttribute('value') !== '1'; }
+  // an entity made another: macromolecule, simple chemical, nucleic acid feature or unspecified entity, as a
+  // CellDesigner species' class is changed; its box, name, icons and lines kept, its multimer dropped where the new
+  // class has none; write() writes the class
+  var ENTITY = /^(macromolecule|simple chemical|nucleic acid feature|unspecified entity)$/;
+  function entityKind(t, id, cls, opt) {
+    var G = gml(t, opt), n = G.node[id], r = n && n.geo.parentNode;
+    if (!r || !ENTITY.test(cls) || !ENTITY.test(classOfCfg(cfgOf(r)) || '') || cfgOf(r) === MAKE[cls]) return t;
+    var T = new Tags(t, G.doc), p = !MULTI.test(cls) && mcountOf(G, id);
+    T.set(r, 'configuration', 'com.yworks.sbgn.' + MAKE[cls]);
+    if (p) T.cut(p);
+    return T.text();
+  }
   function multimer(t, id, on, opt) {
     var G = gml(t, opt), n = G.node[id];
     if (!n || isMulti(G, id) === !!on) return t;
@@ -1304,7 +1700,7 @@
     var n = units.filter(function (u) { return /^N:\d+$/.test(u); })[0];
     return (n ? parseInt(n.slice(2), 10) : 2) > 1;
   }
-  function uBox(txt, b, k, n) { var uw = Math.max(3, txt.length) * 7; return [b[0] + (k + 1) / (n + 1) * b[2] - uw / 2, b[1] - 7.5, uw, 15]; }   // layout.decorations
+  function uBoxAt(txt, b, rx, ry) { var uw = Math.max(3, txt.length) * 7; return [b[0] + (0.5 + rx) * b[2] - uw / 2, b[1] + (0.5 + ry) * b[3] - 7.5, uw, 15]; }   // layout.decorations
   // a node's box set (a macromolecule or a simple chemical resized by its handles or its size typed):
   // the box written, its name kept centred, its state variables at their places on the border (yEd's ratios), and the
   // ends of its lines that are off its centre moved with the box in proportion, so a port on the border stays on it;
@@ -1322,6 +1718,20 @@
       T.set(l, 'x', repr((0.5 + F(p.getAttribute('nodeRatioX'))) * w - F(l.getAttribute('width')) / 2));
       T.set(l, 'y', repr((0.5 + F(p.getAttribute('nodeRatioY'))) * h - F(l.getAttribute('height')) / 2));
     });
+    scaleOn(T, G, id, o, box);
+    return T.text();
+  }
+  // the ends of node id's lines that are off its centre moved with its box (o to box) in proportion, so a port on the
+  // border stays on it: a glyph resized, a complex resized by its handles (scaleEnds: its box already written)
+  function scaleEnds(t, id, o, box, opt) {
+    var G = gml(t, opt);
+    if (!G.node[id]) return t;
+    var T = new Tags(t, G.doc);
+    scaleOn(T, G, id, o, box);
+    return T.text();
+  }
+  function scaleOn(T, G, id, o, box) {
+    var w = box[2], h = box[3];
     // an end that comes to lie within 1.5 of the line from the centre toward the line's next point is read by the
     // converter as aimed at the centre (sbgnml.at): set so here too, so the editor draws what the file will hold
     var kx = o[2] ? w / o[2] : 1, ky = o[3] ? h / o[3] : 1, c = centre(box);
@@ -1341,7 +1751,6 @@
         T.set(e.path, q[1], repr(v[0])); T.set(e.path, q[2], repr(v[1]));
       });
     });
-    return T.text();
   }
   function remove(t, ids, opt) {   // nodes deleted in the editor's GraphML, with every line at them; their ids kept for write()
     var G = gml(t, opt), T = new Tags(t, G.doc), del = {};
@@ -1395,7 +1804,7 @@
   // bare process gets its two ports and its orientation then), and graphml() makes the edge again from the file.
   // graphml.py's ARROW (its master), by SBGN class
   var ARROW = { consumption: 'none', production: 'delta', catalysis: 'white_circle', inhibition: 't_shape', modulation: 'white_diamond',
-                stimulation: 'white_delta', 'necessary stimulation': 'white_delta_bar', 'logic arc': 'none' };
+                stimulation: 'white_delta', 'necessary stimulation': 'white_delta_bar', 'logic arc': 'none', 'equivalence arc': 'none' };
   // Activity Flow's influences, drawn with the arrowheads of the modulations they read as (sbgnml.HEAD); after them, so
   // an arrowhead reads back as the PD class (headClass), named again by AF_ARC where the map is Activity Flow
   var AF_ARC = { stimulation: 'positive influence', inhibition: 'negative influence', modulation: 'unknown influence' }, PD_ARC = {};
@@ -1471,6 +1880,7 @@
   function connect(t, id, s, tg, cls, opt) {
     var G = gml(t, opt);
     if (!G.node[s] || !G.node[tg] || !ARROW[cls]) return t;
+    if (ARROW[cls] === 'none' && isTag(G, s) && !isTag(G, tg)) { var sw = s; s = tg; tg = sw; }   // a line at a tag: an equivalence arc, from the entity
     var off = [0, 0, 0, 0], cfg = function (x) { return G.node[x].geo.parentNode.getAttribute('configuration') || ''; };
     var hub = function (x) { return /\.(Process|Operator)$/.test(cfg(x)); };
     var S = opt && opt.sbgn ? (sLast[0] === opt.sbgn ? sLast[1] : (sLast = [opt.sbgn, sbgn(opt.sbgn, opt)])[1]) : null;   // read once for the arcs of one step (only read, never edited)
@@ -1534,6 +1944,51 @@
     });
     return T.text();
   }
+  // a process made reversible (Make reversible, as on CellDesigner reactions): each consumption turned into a production
+  // leaving from the same port (the line reversed: its ends, its bend points, its colour and width kept), so the process
+  // has productions on both sides, as SBGN draws a reversible process (only with a production already: else the reaction
+  // would be drawn backwards); made irreversible: the productions on the port-in side (the file's port .1 where it has
+  // its own ports) turned back into consumptions (at least one production stays). Lines between entities only, never
+  // a gate's. The new arcs carry the line's colour, width and dash, not the file arc's notes or annotation. ids: one new edge id for each arc turned (the
+  // old ids marked deleted for write()). reversibility(g, id) -> null for no process, else { can: the consumptions
+  // Make reversible would turn, rev: the productions on the port-in side Make irreversible would turn back }
+  function revSides(G, pid, opt) {   // [consumptions, productions on the port-in side, productions]
+    var n = G.node[pid], c = centre(n.box), es = Object.keys(G.edge).map(function (k) { return G.edge[k]; });
+    var ent = function (x) { return G.node[x] && !/\.(Process|Operator)$/.test(G.node[x].geo.parentNode.getAttribute('configuration') || ''); };   // an entity, not a gate or another process
+    var cons = es.filter(function (e) { return e.t === pid && headOf(e) === 'none' && ent(e.s); });
+    var prods = es.filter(function (e) { return e.s === pid && headOf(e) === ARROW.production && ent(e.t); });
+    if (!prods.length) return [[], [], prods];   // no production: turning its consumptions would draw the reaction backwards
+    if (cons.length || prods.length < 2) return [cons, [], prods];
+    var dir = function (e) { return Math.abs(e.off[0]) > 1e-9 || Math.abs(e.off[1]) > 1e-9 ? [e.off[0], e.off[1]] : (function (f) { return [f[0] - c[0], f[1] - c[1]]; })(e.pts.length ? e.pts[0] : centre(G.node[e.t].box)); };
+    var S = opt && opt.sbgn ? sbgn(opt.sbgn, opt) : null, f = S && S.glyph[pid], fp = f ? kids(f.el, 'port') : [], pin;
+    if (fp.length >= 2) { var fc = centre(f.box), q1 = xy(fp[0]); pin = [q1[0] - fc[0], q1[1] - fc[1]]; }   // the file's own ports: its first (.1) is in, SBGN-ML's way
+    else { var pp = hubPorts(G, pid, null, true, S); pin = pp[0] || (function (d) { return [-d[0], -d[1]]; })(dir(prods[0])); }
+    var ins = prods.filter(function (e) { var d = dir(e); return d[0] * pin[0] + d[1] * pin[1] > 0; });
+    return [cons, ins.length < prods.length ? ins : [], prods];
+  }
+  function reversibility(t, pid, opt) {
+    var G = gml(t, opt);
+    if (!G.node[pid] || !/\.Process$/.test(G.node[pid].geo.parentNode.getAttribute('configuration') || '')) return null;
+    var r = revSides(G, pid, opt);
+    return { can: r[0].length, rev: r[1].length };   // how many arcs each way would turn
+  }
+  function reversible(t, pid, on, ids, opt) {
+    var G = gml(t, opt);
+    if (!G.node[pid]) return t;
+    var r = revSides(G, pid, opt), turn = on ? r[0] : r[1];
+    if (!turn.length || ids.length < turn.length) return t;
+    var looks = turn.map(function (e) { var ls = e.el.getElementsByTagNameNS(YNS, 'LineStyle')[0]; return ls ? [ls.getAttribute('color') || '#000000', ls.getAttribute('width') || '1.0', ls.getAttribute('type') || 'line'] : null; });
+    var list = turn.map(function (e, k) { return [ids[k], e.t, e.s, [e.off[2], e.off[3], e.off[0], e.off[1]], on ? ARROW.production : 'none', e.pts.slice().reverse()]; });
+    t = arcRemove(t, turn.map(function (e) { return e.el.getAttribute('id'); }), opt);
+    t = edgesIn(t, gml(t, opt), list);
+    list.forEach(function (q, k) {   // the line's own colour and width, as before
+      var L = looks[k];
+      if (!L || (L[0].toUpperCase() === '#000000' && F(L[1]) === 1 && L[2] === 'line')) return;
+      var at = t.indexOf('<edge id="' + esc(q[0]) + '"'), ls = at >= 0 ? t.indexOf('<y:LineStyle ', at) : -1, end = ls >= 0 ? t.indexOf('>', ls) + 1 : -1;
+      if (end > 0) t = t.slice(0, ls) + '<y:LineStyle color="' + esc(L[0]) + '" type="' + esc(L[2]) + '" width="' + esc(L[1]) + '"/>' + t.slice(end);
+    });
+    return t;
+  }
   function arcRemove(t, ids, opt) {   // arcs deleted in the editor's GraphML; their ids kept for write()
     var G = gml(t, opt), T = new Tags(t, G.doc), del = [];
     ids.forEach(function (id) { if (G.edge[id]) { del.push(id); T.cut(G.edge[id].el); } });
@@ -1543,6 +1998,7 @@
     var h = headOf(e);
     if (h !== 'none') return headClass(h);
     var tc = S && S.glyph[e.t] ? S.glyph[e.t].el.getAttribute('class') || '' : '', sc = S && S.glyph[e.s] ? S.glyph[e.s].el.getAttribute('class') || '' : '';
+    if (/^(tag|terminal)$/.test(tc) || /^(tag|terminal)$/.test(sc) || isTag(G, e.t) || isTag(G, e.s)) return 'equivalence arc';   // a line at a tag
     return GATES.test(tc) || sc === 'equivalence' ? 'logic arc' : 'consumption';   // into a gate, or out of an equivalence to its entity
   }
   function headClass(h) { return h === 'none' ? null : Object.keys(ARROW).filter(function (k) { return ARROW[k] === h; })[0] || null; }
@@ -2074,9 +2530,11 @@
     return t;
   }
 
-  var api = { graphml: graphml, write: write, join: join, joinable: joinable, nameAt: nameAt, namePlaces: namePlaces, stack: stack, restack: restack, stackMoves: stackMoves, NAME_PLACES: NAME_PLACES, defaults: defaults, add: add, lookOf: lookOf, restyle: restyle, label: label, state: state, stateValue: stateValue, stateMove: stateMove, stateDelete: stateDelete,
-              unit: unit, unitValue: unitValue, unitDelete: unitDelete, multimer: multimer, classOf: classOf, MAKE: MAKE, kind: kind, PROCESSES: ['process'].concat(Object.keys(SIGN)), SIGN: SIGN, remove: remove, resize: resize, gone: gone, nameable: nameable,
-              moveInto: moveInto, connect: connect, arcRemove: arcRemove, arcKind: arcKind, GATE: GATE, ARROW: ARROW, MODULATIONS: ['stimulation', 'catalysis', 'inhibition', 'necessary stimulation', 'modulation'],
-              activity: activity, activities: activities, proteinBoxes: proteinBoxes, afUnitBox: afUnitBox, afUnitFont: afUnitFont, isAf: isAf, mapKind: mapKind, unitFor: unitFor, fillFor: fillFor, AF_ARC: AF_ARC, UNITS: Object.keys(UNIT_CLS).filter(function (u) { return u && u !== 'perturbation'; }), unitClass: actCls };
+  var api = { unique: unique, LOOKS: LOOKS, NAMED: NAMED, MULTI: MULTI, graphml: graphml, write: write, join: join, joinable: joinable, nameAt: nameAt, namePlaces: namePlaces, stack: stack, restack: restack, stackMoves: stackMoves, NAME_PLACES: NAME_PLACES, defaults: defaults, add: add, lookOf: lookOf, restyle: restyle, restyleAll: restyleAll, colours: colours, lineOf: lineOf, recolour: recolour, widthOf: widthOf, rewidth: rewidth, label: label, state: state, stateValue: stateValue, stateMove: stateMove, unitMove: unitMove, entityKind: entityKind, ENTITIES: ['macromolecule', 'simple chemical', 'nucleic acid feature', 'unspecified entity'], stateDelete: stateDelete,
+              unit: unit, unitValue: unitValue, unitDelete: unitDelete, multimer: multimer, classOf: classOf, MAKE: MAKE, kind: kind, PROCESSES: ['process'].concat(Object.keys(SIGN)), SIGN: SIGN, remove: remove, resize: resize, scaleEnds: scaleEnds, gone: gone, nameable: nameable,
+              moveInto: moveInto, connect: connect, reversible: reversible, reversibility: reversibility, arcRemove: arcRemove, arcKind: arcKind, GATE: GATE, ARROW: ARROW, MODULATIONS: ['stimulation', 'catalysis', 'inhibition', 'necessary stimulation', 'modulation'],
+              activity: activity, activities: activities, proteinBoxes: proteinBoxes, afUnitBox: afUnitBox, afUnitFont: afUnitFont, isAf: isAf, mapKind: mapKind, unitFor: unitFor, fillFor: fillFor, AF_ARC: AF_ARC, UNITS: Object.keys(UNIT_CLS).filter(function (u) { return u && u !== 'perturbation'; }), unitClass: actCls,
+              way: way, wayOfR: function (r) { return cfgOf(r) === 'Tag' ? wayOf(r) : null; }, wayOf: function (t, id, opt) { var G = gml(t, opt); return isTag(G, id) ? wayOf(G.node[id].geo.parentNode) : null; }, terminal: terminal,
+              countOf: countOf, recount: recount, Tags: Tags, repr: repr, num: num };   // Tags, repr and num serve sbml_edit.js too
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.sbgn_edit = api;
 })(typeof self !== 'undefined' ? self : this);
