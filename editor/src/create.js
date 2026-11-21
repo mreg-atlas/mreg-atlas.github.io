@@ -24,7 +24,7 @@
     var PRESET = { 'nucleic acid feature ct:gene': ['nucleic acid feature', ['ct:gene']], 'nucleic acid feature ct:mRNA': ['nucleic acid feature', ['ct:mRNA']] };
     function baseKind(k) { return PRESET[k] ? PRESET[k][0] : k; }
     var PAL_PD = [   // groups named as SBGN's PD reference card, ordered
-      // nodes first, the gates, the arcs last;
+      // nodes first, the gates, the arcs last; the gates and the arcs each start a block of the one list (palSigns);
       // each sign fills the 24-unit box as far as the tools' own signs do (as large as the ? beside them)
       ['Entity pool nodes', [['macromolecule', 'Macromolecule', '<rect x="1.5" y="5" width="21" height="14" rx="3.5"/>'],
         ['simple chemical', 'Simple chemical', '<circle cx="12" cy="12" r="7"/>'],   // as tall as the macromolecule's sign
@@ -49,7 +49,7 @@
       ['Other nodes', [['compartment', 'Compartment', '<rect x="1.5" y="3" width="21" height="18" rx="4.5" stroke-width="2.2"/>'],
         ['submap', 'Submap', '<rect x="1.5" y="4" width="21" height="16"/>'],
         // a tag: dropped on a submap's border it is that submap's terminal, sliding along it; elsewhere a free tag. Only
-        // with Settings, Editing, CellDesigner compatible unticked (CellDesigner has neither; compat()); its sign the
+        // with the palette's CellDesigner compatible unticked (CellDesigner has neither; compat()); its sign the
         // macromolecule's box with the phenotype's point
         ['tag', 'Tag', '<path d="M1.5 5h16.5l4.5 7-4.5 7h-16.5z"/>']]],
       // logic gates (with SBGN's equivalence operator), a
@@ -58,7 +58,7 @@
       ['Logical operators', [['and', 'AND', '<circle cx="12" cy="12" r="10"/><text x="12" y="14.7" text-anchor="middle" font-size="7.4" letter-spacing="-.1">AND</text>'],
         ['or', 'OR', '<circle cx="12" cy="12" r="10"/><text x="12" y="14.9" text-anchor="middle" font-size="8.2">OR</text>'],
         ['not', 'NOT', '<circle cx="12" cy="12" r="10"/><text x="12" y="14.7" text-anchor="middle" font-size="7.4" letter-spacing="-.1">NOT</text>'],
-        ['equivalence', 'Equivalence', '<circle cx="12" cy="12" r="10"/><path d="M7.5 8.8h9M7.5 12h9M7.5 15.2h9" class="in"/>']]],
+        ['equivalence', 'Equivalence', '<circle cx="12" cy="12" r="10"/><path d="M7.5 8.8h9M7.5 12h9M7.5 15.2h9" class="in"/>']], true],
       // arcs: drawn by a drag from a node with the arc's sign picked
       ['Connecting arcs', [['consumption', 'Consumption / logic arc', '<path d="M3 12h18"/>'],
         ['production', 'Production', '<path d="M3 12h11"/><path d="M13 7.5l8 4.5-8 4.5z" fill="currentColor"/>'],
@@ -67,7 +67,7 @@
         ['stimulation', 'Stimulation', '<path d="M3 12h10"/><path d="M13 7.5l8 4.5-8 4.5z"/>'],
         ['inhibition', 'Inhibition', '<path d="M3 12h17M20 6v12"/>'],
         ['necessary stimulation', 'Necessary stimulation', '<path d="M3 12h10M10 7v10"/><path d="M13 7.5l8 4.5-8 4.5z"/>'],
-        ['modulation', 'Modulation', '<path d="M3 12h10"/><path d="M13 12l4-4 4 4-4 4z"/>']]]
+        ['modulation', 'Modulation', '<path d="M3 12h10"/><path d="M13 12l4-4 4 4-4 4z"/>']], true]
     ];
     // Activity Flow (two tabs, PD and AF, and under AF the
     // view, Reduced notation (CellDesigner) or SBGN: one set of rules, two ways of drawing the nodes). A node made in either
@@ -134,8 +134,8 @@
       return [
         ['Activity nodes', [sbgnLook ? first : [first[0], first[1], PD_SIGN.macromolecule]].concat(sbgnLook ? ACT_REST : ACT_REST_CD, [PHENO, PERT])],
         OTHER,
-        ['Logical operators', GATES_PD.concat([DELAY])],
-        ['Arcs', INFL.map(function (x) { var q = ARC_PD[x[0]]; return [q[0], sbgnLook || x[0] === 'necessary stimulation' ? x[1] : q[1] + ' (' + x[1].toLowerCase() + ')', q[2]]; }).concat([LOGIC])]
+        ['Logical operators', GATES_PD.concat([DELAY]), true],
+        ['Arcs', INFL.map(function (x) { var q = ARC_PD[x[0]]; return [q[0], sbgnLook || x[0] === 'necessary stimulation' ? x[1] : q[1] + ' (' + x[1].toLowerCase() + ')', q[2]]; }).concat([LOGIC]), true]
       ];
     }
     var PALS = { pd: PAL_PD, rn: palAf(false), sbgn: palAf(true), rnP: palAf(false, true), sbgnP: palAf(true, true) };
@@ -163,8 +163,9 @@
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">' + q[2] + '</svg></button>';
     }
     // the one list in blocks: a group marked as starting a block (its third item, true) begins a new row, so the list reads
-    // as a few small groups with no names; kept while the blocks cost no row more than the plain list would at the panel's
-    // width and at every width up to its usual one (palBlocks), else the plain list, so a narrowed panel stays compact
+    // as a few small groups with no names; always at the panel's usual width, and on a narrowed panel kept while they cost
+    // no row more than the plain list would at its width and every width below the usual one (palBlocks), else the plain
+    // list, so a narrowed panel stays compact
     function palSigns(set) {
       var blocks = [];
       set.forEach(function (s, i) { if (!i || s[2]) blocks.push(0); blocks[blocks.length - 1] += s[1].length; });
@@ -201,10 +202,11 @@
     function palView(look, name, title) { return '<button type="button" role="radio" data-look="' + look + '" title="' + title + '" aria-label="' + title + '" aria-checked="false"><span class="m2-ed-radio" aria-hidden="true"></span>' + name + '</button>'; }
     // the circled i beside the views and the tick boxes: its text in data-info, shown in the page's info window (.m2-itip, atlas-app.html)
     var INFO = {
-      strict: 'Corresponds to CellDesigner\'s Reduced Notation: stimulation, inhibition, necessary stimulation and modulation may also end on entities, which makes a hybrid map. Such links are outside the SBGN Process Description specification, and some tools may not read or save the SBGN-ML file correctly.',
+      strict: 'Corresponds to CellDesigner\'s Reduced Notation. Stimulation, inhibition, necessary stimulation and modulation may also link entities, phenotypes and submaps. Such maps open in CellDesigner and MINERVA, but other SBGN-ML tools may not read them. Unticked, the SBGN Process Description rules alone.',
       rn: 'Corresponds to CellDesigner\'s Reduced Notation palette, which enables an Activity Flow type of representation.',
       sbgn: 'Follows the SBGN Activity Flow specification. The map is saved as an Activity Flow SBGN-ML file.',
-      prot: 'When ticked, shows the auxiliary unit on protein activities. An activity with no auxiliary unit is by default a protein activity.'
+      prot: 'When ticked, shows the auxiliary unit on protein activities. An activity with no auxiliary unit is by default a protein activity.',
+      cdc: 'Keeps maps to what CellDesigner and MINERVA can hold. Unticked, the palette also offers tags, and submaps with terminals on their border. What a map already holds is not changed by it.'
     };
     function palTip(line, name, t) {
       t = t.replace(/&/g, '&amp;').replace(/"/g, '&quot;');   // into attributes
@@ -213,13 +215,14 @@
     pal.innerHTML = '<div class="m2-ed-prow m2-ed-pnot" role="group" aria-label="Notation">' +
       palBtn('data-lang="pd"', 'Process Description', '<text x="12" y="17.3" text-anchor="middle" font-size="15">PD</text>') +
       palBtn('data-lang="af"', 'Activity Flow', '<text x="12" y="17.3" text-anchor="middle" font-size="15">AF</text>') +
-      '<span class="m2-ed-pext" title="Settings, Editing, CellDesigner compatible is unticked: the palette offers SBGN glyphs CellDesigner cannot hold (tags, submap terminals)">SBGN extended</span></div>' +
+      '</div>' +
       // AF's two views as named round choices under the tabs (icons there would read as
       // glyphs to drag onto the map), shown only where the views apply (palViews)
       '<div class="m2-ed-plook" role="radiogroup" aria-label="Activity Flow view">' +
       palTip(palView('rn', 'Reduced notation view', 'Reduced notation view: each activity drawn as its entity'), 'Reduced notation view', INFO.rn) +
       palTip(palView('sbgn', 'SBGN AF view', 'SBGN Activity Flow view: each entity drawn as its SBGN activity'), 'SBGN Activity Flow view', INFO.sbgn) + '</div>' +
       '<div class="m2-ed-pblk m2-ed-pprot">' + palTip('<label class="m2-ed-phyb" title="Ticked: every protein activity carries the auxiliary unit of a macromolecule, drawn and saved in the file; unticked: none has it"><input type="checkbox"><span>Protein auxiliary unit</span></label>', 'Protein auxiliary unit', INFO.prot) + '</div>' +
+      '<div class="m2-ed-pblk m2-ed-pcdc">' + palTip('<label class="m2-ed-phyb" title="Ticked: the palette offers only what CellDesigner and MINERVA can hold; unticked: tags and submaps\u2019 terminals too"><input type="checkbox"><span>CellDesigner compatible</span></label>', 'CellDesigner compatible', INFO.cdc) + '</div>' +
       '<div class="m2-ed-pblk m2-ed-pstrict">' + palTip('<label class="m2-ed-phyb" title="Ticked (the default): under PD a modulation may also end on an entity, and a logic gate\u2019s output go to one (CellDesigner\u2019s reduced notation); with a process on the map the file stays Process Description, without one such a link makes it Activity Flow. Unticked: Process Description only"><input type="checkbox"><span>Reduced notation</span></label>', 'Reduced notation', INFO.strict) + '</div>' +
       '<div class="m2-ed-psigns"></div>';
     var palSignsEl = pal.querySelector('.m2-ed-psigns'), palShown = null;
@@ -229,16 +232,19 @@
       var n = row.dataset.blocks.split(',').map(Number), all = n.reduce(function (a, x) { return a + x; }, 0);
       var gap = parseFloat(getComputedStyle(row).columnGap) || 0, step = b.offsetWidth + gap, most = parseFloat(getComputedStyle(pal).maxWidth) || row.clientWidth;
       var cols = Math.max(1, Math.floor((row.clientWidth + gap) / step)), top = Math.max(cols, Math.floor((most + gap) / step)), flat = false;
-      for (var c = cols; c <= top && !flat; c++) flat = n.reduce(function (a, x) { return a + Math.ceil(x / c); }, 0) > Math.ceil(all / c);
+      for (var c = cols; c < top && !flat; c++) flat = n.reduce(function (a, x) { return a + Math.ceil(x / c); }, 0) > Math.ceil(all / c);
       row.classList.toggle('m2-ed-pflat', flat);
     }
     if (window.ResizeObserver) new ResizeObserver(palBlocks).observe(palSignsEl);
     function palKey() { return palLangNow() === 'pd' ? 'pd' : palLookNow() + (protOn ? 'P' : ''); }
-    // Settings, Editing, CellDesigner compatible (kept in this browser, atlas-app.html): ticked, the palette offers only
-    // what CellDesigner can hold; unticked, SBGN extended adds the tag (and the submap's terminals). What a map already
-    // holds is never changed by it
-    var EXTENDED = { tag: 1 };
-    function compat() { try { return localStorage.getItem('atlas-cd-compatible') === 'on'; } catch (e) { return false; } }
+    // CellDesigner compatible, the palette's tick box above Reduced notation (kept in this browser for every map, undone as
+    // a setting): ticked, the palette offers only what CellDesigner can hold; unticked, the palette adds the tag (and
+    // the submap's terminals) and AF's delay (CellDesigner has no delay, the converter joins its input to its target; the
+    // equivalence stays, written as CellDesigner's unknown gate); a missing key reads unticked. What a map already holds is never changed by it. Not shown on
+    // a CellDesigner map, whose palette is CellDesigner's own
+    var EXTENDED = { tag: 1, delay: 1 };
+    var CDC_KEY = 'atlas-cd-compatible';
+    function compat() { try { return localStorage.getItem(CDC_KEY) === 'on'; } catch (e) { return false; } }
     function palSet0(set) { return compat() ? set.map(function (g) { return [g[0], g[1].filter(function (q) { return !EXTENDED[q[0]]; }), g[2]]; }) : set; }
     // the tick box's state lives in the file: on opening, ticked when the map's protein activities all
     // carry the protein's unit, unticked when none or some do; read again after every change where they all agree (an
@@ -528,7 +534,8 @@
       pb.hidden = !palViews();   // only on an Activity Flow map or an empty one (proteinBoxes leaves a map turned PD as it is)
       if (!pb.hidden) { var pf = protFile(); if (pf != null) protOn = pf; k = palKey(); }
       if (pbc.checked !== protOn) pbc.checked = protOn;
-      pal.querySelector('.m2-ed-pext').hidden = compat();
+      var cc = pal.querySelector('.m2-ed-pcdc'), ccb = cc.querySelector('input'); cc.hidden = false;   // hidden on a CellDesigner map (cdFill)
+      if (ccb.checked !== compat()) ccb.checked = compat();
       if (palShown === k + compat()) return;
       palShown = k + compat();
       if (tool && !palOk(tool.kind)) tool = null;   // a sign in hand that this set lacks (e.g. a delay kept after the map turned PD)
@@ -551,6 +558,12 @@
       if (b && !b.disabled) palDid([PAL_KEY], function () { palPick(b.dataset.lang, b.dataset.look); });
     });
     pal.querySelector('.m2-ed-pstrict input').addEventListener('change', function (e) { e.target.blur(); if (cdPal()) return; palDid([PAL_KEY], function () { palSet.strict = !e.target.checked; palKeep(); }); });   // a CellDesigner map's own: cdcreate.js   // blurred: the editor's keys (undo) work at once
+    pal.querySelector('.m2-ed-pcdc input').addEventListener('change', function (e) {
+      var v = e.target.checked; e.target.blur();   // the editor's keys (undo) work at once
+      palDid([CDC_KEY], function () { try { if (v) localStorage.setItem(CDC_KEY, 'on'); else localStorage.removeItem(CDC_KEY); } catch (er) {} });
+      if (tool && !palOk(tool.kind)) tool = null;   // a tag in hand
+      palShown = null; palShow(); paint();
+    });
     pal.querySelector('.m2-ed-pprot input').addEventListener('change', function (e) {   // every protein activity given the box or not, one undo step
       protOn = e.target.checked; e.target.blur();   // the editor's keys (undo) work at once, not the tick box's
       var t2 = palOn() ? sbJs.proteinBoxes(text, protOn) : text;
@@ -592,7 +605,7 @@
       var b = e.target.closest('button[data-make]');
       if (b) palTake(b.dataset.make, true);
     });
-    document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#m2-set-edit, #m2-set-cdc')) setTimeout(palShow, 0); }, true);   // Settings, Editing changed
+    document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#m2-set-edit')) setTimeout(palShow, 0); }, true);   // Settings, Editing changed
     document.addEventListener('keydown', function (e) { if (tool && e.key === 'Escape') palTake(null); }, true);
 
     // the map clicked with something in hand: a press only noted, so a drag still moves the map; the click is taken on release
@@ -889,7 +902,7 @@
       var bx0 = [+fmt(X), +fmt(Y2), w, h], c = holder(bx0, function () { return false; }, boxOf), id = freeId('glyph_'), onCx = innermost(P, function (n) { return n.shape.kind === 'Complex'; }) >= 0;   // c: the innermost compartment holding its box
       var t2, way = null, sm = cls === 'tag' ? subAt(P, Math.max(w, h) / 2) : -1;
       if (cls === 'tag') { var on = sm >= 0 ? onBorder([X, Y2, w, h], boxOf(sm)) : null; way = on ? on[1] : 'right'; if (!on && bx0[3] > bx0[2]) bx0 = [+fmt(P[0] - h / 2), +fmt(P[1] - w / 2), h, w]; if (on) { bx0 = on[0].map(function (v) { return +fmt(v); }); c = nodes2[sm].up; } }   // its box onto the submap's side, pointing in, held where its submap is
-      try { t2 = sbJs.add(text, { id: id, cls: act != null ? sbJs.unitClass(act) : cls, activity: act, label: '', box: bx0, parent: c != null ? nodes2[c].id : null, fill: D.fill, line: D.line, width: D.width, multimer: D.multimer, font: D.font, units: units || undefined, way: way }); if (sm >= 0) t2 = sbJs.terminal(t2, id, true); }
+      try { t2 = sbJs.add(text, { id: id, cls: act != null ? sbJs.unitClass(act) : cls, activity: act, label: '', box: bx0, parent: c != null ? nodes2[c].id : null, fill: D.fill, line: D.line, width: D.width, multimer: D.multimer, font: D.font, units: units || undefined, way: way, letters: sbJs.GLT.test(cls) ? stdLetters() : null }); if (sm >= 0) t2 = sbJs.terminal(t2, id, true); }
       catch (err) { warn('The ' + (act != null ? 'activity' : cls) + ' could not be added: ' + (err && err.message || err) + '.'); return; }
       remember(false); text = t2;
       if (cls === 'compartment') {   // what it covers taken in, in the same undo step
@@ -1555,6 +1568,7 @@
       var inside = function (b, R) { var cx = b.left + b.width / 2, cy = b.top + b.height / 2; return cx >= R[0] && cx <= R[2] && cy >= R[1] && cy <= R[3]; };
       return Array.prototype.filter.call(g.querySelectorAll('text:not(.m2-af-ut)'), function (t) {   // not an activity's unit text of the SBGN AF view
         if (t.closest('[data-n]') !== g) return false;   // a member's own drawing, if nested, is not this node's text
+        if (!t.getClientRects().length) return false;   // not drawn (a site hidden by Show sites)
         var b = t.getBoundingClientRect();
         return j == null ? !svs.some(function (q) { return inside(b, rect(q)); }) : inside(b, rect(svs[j]));
       });
@@ -1926,10 +1940,10 @@
     // or vertical (sbgn_edit.connect). A sign picked in the palette's Connecting arcs is used as it is, from any node,
     // selected or not; let go on empty space, nothing is made. Delete, or Delete in the right-click menu, removes an arc.
     var link = null;   // { from, x, y, moved, to, P, how }
-    function linkEnd(P, not) {   // the innermost entity, process, gate or phenotype under P (a complex, not its member: roleOf), not node `not`
+    function linkEnd(P, not) {   // the innermost entity, process, gate, phenotype or submap under P (a complex, not its member: roleOf), not node `not`
       var R = 4 / V.z, best = -1, ba = Infinity;
       nodes2.forEach(function (n, i) {
-        var b = boxOf(i), r = cd ? cdRole(i) : roleOf(i);
+        var b = boxOf(i), r = cd ? cdRole(i) : roleOf(i) || (hybOn() && nodes2[i].shape.kind === 'Submap' ? 'sub' : null);   // a submap, with Reduced notation ticked: linkKind0 decides
         if (i === not || !r || P[0] < b[0] - R || P[0] > b[0] + b[2] + R || P[1] < b[1] - R || P[1] > b[1] + b[3] + R) return;
         if (b[2] * b[3] < ba) { ba = b[2] * b[3]; best = i; }
       });
@@ -1980,6 +1994,7 @@
       if ((ks === 'EmptySet' && !(cls === 'pair' || cls === 'consumption')) || (kt === 'EmptySet' && !(cls === 'pair' || cls === 'production'))) return 'An empty set is only consumed or produced.';
       if ((ks === 'PerturbingAgent' && (flux || cls === 'catalysis' || cls === 'logic arc')) || kt === 'PerturbingAgent') return 'A perturbing agent only starts a modulation, stimulation, inhibition or necessary stimulation.';
       if (cls === 'catalysis' && ks === 'NucleicAcidFeature') return 'A nucleic acid feature is no catalyst.';
+      if (cls === 'catalysis' && (ks === 'Phenotype' || ks === 'Submap' || kt === 'Submap')) return 'A catalysis goes from an entity to a process.';
       if (cls === 'consumption' && roleOf(t) === 'proc') {   // a reversible process has productions on both sides, no consumption (3.5.2.5)
         var rv = sbJs.reversibility(text, nodes2[t].id, { sbgn: src() });
         if (rv && rv.rev) return 'A reversible process has productions on both sides.';
@@ -2019,7 +2034,18 @@
         if (room) return { no: room };
         return has(a, b, 'none') || has(b, a, 'none') ? { no: 'This equivalence arc is there already.' } : { cls: 'equivalence arc' };
       }
-      if (ra === 'pheno') return { no: 'Nothing leaves a phenotype: it is modulated by an entity or a logic gate.' };
+      // Reduced notation ticked: a phenotype or a submap starts a modulation as an entity does, and a submap takes one as a
+      // phenotype does (CellDesigner has one glyph for phenotype, submap and perturbing agent, with lines both ways);
+      // unticked, SBGN PD's rules alone
+      var loose = hybOn(), subA = loose && nodes2[a].shape.kind === 'Submap', subB = loose && nodes2[b].shape.kind === 'Submap';
+      if (subB) rb = 'pheno';
+      if (loose && (ra === 'pheno' || subA)) {
+        if ((want && !MODK[want]) || want === 'catalysis') return { no: 'A phenotype or a submap starts a stimulation, inhibition, necessary stimulation or modulation.' };
+        if (rb !== 'proc' && rb !== 'pheno' && rb !== 'epn') return { no: 'A line from a phenotype or a submap goes to a process, an entity, a phenotype or a submap.' };
+        var u = want || usual(b, 'stimulation');
+        return ok(u === 'catalysis' ? 'stimulation' : u);   // the map's usual kind into a process may be catalysis
+      }
+      if (ra === 'pheno') return { no: 'Nothing leaves a phenotype: it is modulated by an entity or a logic gate (Reduced notation is unticked in the palette).' };
       if (ra === 'gate' && outs(a)) return { no: 'A logic gate has one line out, and this one has it.' };   // SBGN PD; the converter's rules for the equivalence
       var word = function (i) { var l = nodes2[i].el.getElementsByTagNameNS(Y, 'NodeLabel')[0]; return l ? l.textContent.trim() : ''; };   // a gate's word as drawn (a made one is not in the file yet)
       if (rb === 'gate' && (word(b) === '\u03c4' || word(b).toUpperCase() === 'NOT') && ins(b)) return { no: 'A ' + (word(b) === '\u03c4' ? 'delay' : 'NOT gate') + ' has one input, and this one has it.' };
@@ -2102,7 +2128,7 @@
     }
     function linkMake(a, b, how) {
       if (cd) { cdLink(a, b, how); return; }
-      var ia = nodes2[a].id, ib = nodes2[b].id, t2 = text, ids = [], o = { sbgn: src() };
+      var ia = nodes2[a].id, ib = nodes2[b].id, t2 = text, ids = [], o = { sbgn: src(), ant: antNow() };   // ports worked out at the antenna Style gives
       try {
         if (how.cls) { ids.push(freeId('arc_')); t2 = sbJs.connect(t2, ids[0], ia, ib, how.cls, o); }
         else {   // two entities: a process midway on the grid, a consumption from the first, a production to the second
@@ -2162,7 +2188,7 @@
     }
     function sbSizable(i) {   // a glyph made from the palette, a complex's member too (the complex grows round it), a compartment
       var n = nodes2[i];
-      return !!n.comp || (isMade(n) && n.shape.kind !== 'Process' && n.shape.kind !== 'Operator');   // a compartment too (holderSize); a process or gate keeps its size (its antennas)
+      return !!n.comp || isMade(n);   // a compartment too (holderSize); a process or gate too, its antennas kept as long (sbgn_edit.resize)
     }
     function sbSetSize(pairs) {   // each node given its box, one undo step with the compartments round them grown to hold them
       var ids = [], was = {}, t2 = text, tids = [];   // tids: the terminals of a submap resized, kept on its sides (termsFix)
@@ -2193,7 +2219,7 @@
     // default; state variables and units of information have their own ways on the map, Cloned skipped). A field is
     // applied on Enter or when it is left (Esc puts it back), a colour also when the picker closes; one undo step each.
     // Shown for any glyph selected that sbgn_edit restyles (LOOKS), its rows by its class (sbOff); Width and Height for a
-    // member of a complex too (Pack keeps member sizes), not for a process or gate (their antennas), a holder's typed as
+    // member of a complex too (Pack keeps member sizes), a process or gate too (its antennas kept: sbgn_edit.fit), a holder's typed as
     // its handles resize it (holderSize). Grid size is beside the Grid and Snap switches (core.js)
     var ROWS = [['label', 'Label', 'text'], ['font', 'Font size', 'num', ' min="1" max="200"', 'The name\u2019s size'], ['w', 'Width', 'num'], ['h', 'Height', 'num'], ['fill', 'Fill colour', 'colour'],
       ['line', 'Border colour', 'colour'], ['width', 'Border width', 'num'], ['multimer', 'Multimer', 'check']];
@@ -2218,7 +2244,9 @@
       return '<tr data-k="' + r[0] + '"' + (r[4] ? ' title="' + r[4] + '"' : '') + '><th><label for="' + id + '">' + r[1] + '</label></th><td>' + f + '</td></tr>';
     }).join('') + '</table>'; }
     props.innerHTML = '<p>Properties</p>' + table(ROWS, ' m2-ed-pnode') + table(EROWS, ' m2-ed-pedge') + table(RROWS, ' m2-ed-prx') + '<table class="m2-ed-ptab m2-ed-pcard" hidden></table>' +
-      '<button type="button" class="m2-ed-pdef" title="The next ones of this kind made from the palette take these">Set as default</button>';
+      '<button type="button" class="m2-ed-pdef" title="The next ones of this kind made from the palette take these">Set as default</button>' +
+      '<button type="button" class="m2-ed-pall" title="Every glyph of this kind on the map (every process, or every logic gate) takes this one\u2019s size and antenna">Apply to all of this kind</button>' +
+      '<button type="button" class="m2-ed-pstd" title="The standard size and antenna of processes and logic gates, at the map\u2019s scale (Style, Standard sizes)">Standard size</button>';
     pal.insertAdjacentElement('afterend', props);
     props.insertAdjacentElement('afterend', pmap);
     var inW = props.querySelector('#m2-ed-w'), inH = props.querySelector('#m2-ed-h');
@@ -2247,8 +2275,9 @@
       if (TAGS.test(c)) return !/^(label|w|h)$/.test(k);
       if (k === 'label' || k === 'font') return !sbJs.NAMED.test(c);   // a font size where there is a name
       if (k === 'multimer') return !sbJs.MULTI.test(c.replace(/ multimer$/, ''));
+      if (k === 'ant') return !hubGroup(i) || sbAnts()[nodes2[i].id] == null;   // a process's or gate's antenna, once it has ports
       if (EXTRA.indexOf(k) >= 0) return true;   // another format's own rows (propRows)
-      if (k === 'def') return !/^(macromolecule|simple chemical)( multimer)?$|^biological activity$/.test(c);
+      if (k === 'def') return !/^(macromolecule|simple chemical)( multimer)?$|^biological activity$/.test(c) && !hubGroup(i);
       return false;
     }
     // every glyph's class in the SBGN-ML file as written now, read once per change of the editor's text (src() writes the file)
@@ -2274,7 +2303,7 @@
       var rx = propRx();
       if (rx && !propFmt().rx.withNode) {   // one reaction: its Reversible tick box alone (a CellDesigner reaction; an SBGN-ML process shows it under its own rows, below)
         props.hidden = false;
-        ['.m2-ed-pnode', '.m2-ed-pedge', '.m2-ed-pdef'].forEach(function (c) { props.querySelector(c).hidden = true; });
+        ['.m2-ed-pnode', '.m2-ed-pedge', '.m2-ed-pdef', '.m2-ed-pall', '.m2-ed-pstd'].forEach(function (c) { props.querySelector(c).hidden = true; });
         props.querySelector('.m2-ed-prx').hidden = false;
         var fr = field('rev');
         if (all || document.activeElement !== fr) fr.checked = rx.on;
@@ -2295,6 +2324,7 @@
       if (!pNow) { props.hidden = true; return; }
       Array.prototype.forEach.call(props.querySelectorAll('.m2-ed-pnode tr[data-k]'), function (tr) { tr.hidden = (/^[wh]$/.test(tr.dataset.k) && !sizable(i)) || pf.off(tr.dataset.k, i); });
       props.querySelector('.m2-ed-pdef').hidden = !pf.def || pf.off('def', i);   // the part may keep it from a kind (CellDesigner: species only)
+      props.querySelector('.m2-ed-pall').hidden = props.querySelector('.m2-ed-pstd').hidden = !pf.hub || !pf.hub(i);   // a process or gate (the part's answer: SBGN-ML's hubGroup)
       if (rx) { props.querySelector('.m2-ed-prx').hidden = false; var fr2 = field('rev'); if (all || document.activeElement !== fr2) fr2.checked = rx.on; rxCounts(rx, all); }   // an SBGN-ML process: Reversible after its own rows
       pNow.w = r2(b[2]); pNow.h = r2(b[3]); ROWS.forEach(function (r) { if (r[2] === 'num' && pNow[r[0]] != null) pNow[r[0]] = r2(pNow[r[0]]); });
       ROWS.forEach(function (r) {
@@ -2318,7 +2348,8 @@
       if (Ls.some(function (L) { return !L; })) { props.hidden = true; return; }
       props.hidden = false;
       props.querySelector('.m2-ed-pnode').hidden = false; props.querySelector('.m2-ed-pedge').hidden = true;
-      props.querySelector('.m2-ed-pdef').hidden = true;
+      props.querySelector('.m2-ed-pdef').hidden = props.querySelector('.m2-ed-pall').hidden = true;
+      props.querySelector('.m2-ed-pstd').hidden = !pf.hub || !ns.every(pf.hub);   // several processes or gates: Standard size for all of them
       ROWS.forEach(function (r) {
         var tr = props.querySelector('.m2-ed-pnode tr[data-k="' + r[0] + '"]'), f = field(r[0]);
         tr.hidden = r[0] === 'label' || ns.some(function (i, j) { pNow = Ls[j]; return (/^[wh]$/.test(r[0]) && (!sizable(i) || holds(i))) || pf.off(r[0], i); });   // a holder's size alone (holderSize)
@@ -2370,6 +2401,10 @@
     }
     function sbSet(k, v, is) {   // every node of is given the value, one undo step; true when the text changed
       var ids = is.map(function (i) { return nodes2[i].id; }), t2 = text;
+      if (k === 'ant') {   // 1 to 200: the nearest, silently; the processes and gates of them, in one reading (sbgn_edit.fit)
+        var L = parseFloat(v);
+        return isFinite(L) && fitHubs(is.filter(function (i) { return hubGroup(i); }).map(function (i) { return { id: nodes2[i].id, ant: Math.min(Math.max(L, 1), 200) }; }));
+      }
       ids.forEach(function (id) {
         if (k === 'label') t2 = sbJs.label(t2, id, v.replace(/[\r\n]+/g, ' '));
         else if (k === 'multimer') t2 = sbJs.multimer(t2, id, v);   // a count, if any, stays the unit of information typed (N:3)
@@ -2413,7 +2448,7 @@
       if (sbRxSeen[0] !== key) { var rv = null; try { rv = sbJs.reversibility(text, id, { sbgn: src() }); } catch (e) { rv = null; } sbRxSeen = [key, rv && (rv.can || rv.rev) ? { rid: id, on: rv.rev > 0 } : null]; }
       return sbRxSeen[1];
     }
-    var PF_SB = { sizable: sbSizable, size: sbSetSize, node: sbNode, set: sbSet, def: sbDef, ends: sbEnds,
+    var PF_SB = { sizable: sbSizable, size: sbSetSize, node: sbNode, set: sbSet, def: sbDef, ends: sbEnds, hub: function (i) { return !!hubGroup(i); },
       rx: { of: sbRxOf, set: function (pid, on) { return sbReversible(pid, on, true); }, withNode: true },
       line: { colour: sbLineColour, set: sbLineSet, width: function (k) { return sbJs.widthOf(sbEdgeEl(k)); }, setWidth: sbLineWidth, ports: true,   // a line's colour, width and its ports' rows (edgeShow, edgeSet)
         count: sbCount, setCount: function (k, v) { return sbLineTo(k, sbJs.recount(text, edges2[k].id, v)); } },   // a consumption's or production's cardinality
@@ -2421,7 +2456,8 @@
       look: function (i) {
         var r = realizerOf(nodes2[i].el), o = sbJs.lookOf(r), wf = field('way');
         if (wf) { wf.disabled = nodes2[i].sub != null; wf.title = wf.disabled ? 'A terminal points into its submap, set by the side it sits on' : ''; }
-        return { label: nameOf(i), font: o.font, fill: o.fill ? o.fill.slice(0, 7).toLowerCase() : '', line: (o.line || '#000000').slice(0, 7).toLowerCase(), width: o.width, multimer: o.multimer, way: (sbJs.wayOfR && sbJs.wayOfR(r)) || 'right' };
+        var an = hubGroup(i) ? sbAnts()[nodes2[i].id] : null;   // read only for a process or gate (every antenna in one reading of the text)
+        return { label: nameOf(i), font: o.font, fill: o.fill ? o.fill.slice(0, 7).toLowerCase() : '', line: (o.line || '#000000').slice(0, 7).toLowerCase(), width: o.width, multimer: o.multimer, way: (sbJs.wayOfR && sbJs.wayOfR(r)) || 'right', ant: an == null ? '' : an };
       } };
     // a line's Properties, one line selected on a map whose format's part has a line's answers (PF_SB.line): Line colour
     // and its ports as yEd gives them, offsets from its glyph's centre (sx, sy at the source, tx, ty at the target), set
@@ -2491,7 +2527,7 @@
     }
     function atHub(k, end) { var e = edges2[k], n = end ? e.t : e.s; return n == null || !!nodes2[n].hub; }
     function edgeShow(k, all, r2, rxLine) {   // rxLine: the line of a whole reaction selected (its colour, not one participant's number)
-      props.querySelector('.m2-ed-pdef').hidden = true;
+      props.querySelector('.m2-ed-pdef').hidden = props.querySelector('.m2-ed-pall').hidden = props.querySelector('.m2-ed-pstd').hidden = true;
       var e = edges2[k], pl = propFmt().line, card = !rxLine && pl.count ? pl.count(k) : undefined;
       var now = { ecol: (pl.colour(k) || '#000000').slice(0, 7).toLowerCase(), ewid: r2(pl.width(k)), card: card || '' };
       ['sx', 'sy', 'tx', 'ty'].forEach(function (a) { now[a] = r2(num(e.path, a) || 0); });
@@ -2554,6 +2590,7 @@
       rows.forEach(function (r, j) { ROWS.splice(k + 1 + j, 0, r); EXTRA.push(r[0]); propListen(r); });
     }
     propRows([['way', 'Orientation', 'select', ['right', 'left', 'up', 'down']]]);   // a tag's (sbOff)
+    propRows([['ant', 'Antenna', 'num', ' min="1" max="200"', 'The stick from a process or logic gate to its port, in px from its side']]);   // a process's or gate's (sbOff)
     props.addEventListener('keydown', function (e) {   // Enter keeps the value, Esc takes it back; the map's keys stay out of the fields
       if (e.key === 'Enter') { e.target.blur(); e.preventDefault(); }
       else if (e.key === 'Escape') { propsShow(true); e.target.blur(); e.preventDefault(); }   // the value put back first, so leaving the field changes nothing
@@ -2602,8 +2639,76 @@
     });
     function keepLook(key, all) { try { localStorage.setItem(key, JSON.stringify(all)); return true; } catch (e) { warn('The default could not be kept in this browser.'); return false; } }
     function sbDef(i) {
-      var o = sbJs.lookOf(realizerOf(nodes2[i].el)), b = boxOf(i), all = defsKept();
-      all[kindOf(i)] = { w: b[2], h: b[3], fill: o.fill, line: o.line, width: o.width, multimer: o.multimer, font: o.font };   // as it is, no share of another size
+      var o = sbJs.lookOf(realizerOf(nodes2[i].el)), b = boxOf(i), all = defsKept(), g = hubGroup(i);
+      if (g) HUB_KINDS[g].forEach(function (c) { all[c] = { w: b[2], h: b[3], fill: o.fill, line: o.line, width: o.width, ant: sbAnts()[nodes2[i].id] }; });   // every kind drawn alike (a process's three, the gates), the letters left standard
+      else all[kindOf(i)] = { w: b[2], h: b[3], fill: o.fill, line: o.line, width: o.width, multimer: o.multimer, font: o.font };   // as it is, no share of another size
       if (!keepLook(DEF_KEY, all)) return;
       keepMapChoice('style', 'custom'); keepMapChoice('cols', 'custom'); styleRow(); sbColsRow();
     }
+    // Processes and logic gates as two kinds for sizes and antennas (each drawn alike: Apply to all, Set as default, the
+    // antenna of new arcs): hubGroup, the kind of node i ('process', 'gate' or null); sbAnts, every antenna of the map
+    // (sbgn_edit.antennas), read once per text
+    var HUB_KINDS = { process: ['process', 'omitted process', 'uncertain process'], gate: ['and', 'or', 'not', 'equivalence', 'delay'] };
+    function hubGroup(i) {
+      var c = i != null && nodes2[i] ? sbClasses()[nodes2[i].id] || '' : '';
+      return HUB_KINDS.process.indexOf(c) >= 0 ? 'process' : HUB_KINDS.gate.indexOf(c) >= 0 ? 'gate' : null;
+    }
+    var antMemo = [null, {}];
+    function sbAnts() { if (antMemo[0] !== text) antMemo = [text, sbJs.antennas(text, { sbgn: src() })]; return antMemo[1]; }
+    // the antenna new arcs give a process or gate with no port yet (sbgn_edit.connect's opt.ant), by Style: Standard
+    // sizes the standard (sbgn_edit.ANT), Custom the one kept by Set as default, From map (and Custom with none) the one
+    // most of that kind have on the map, else the standard
+    function antNow() {
+      var st = palStyle(), kept = defsKept(), A = sbAnts(), out = {};
+      Object.keys(HUB_KINDS).forEach(function (g) {
+        var k = kept[HUB_KINDS[g][0]];
+        if (st === 'default') { out[g] = sbJs.ANT * stdScale(); return; }
+        if (st === 'custom' && k && k.ant != null) { out[g] = k.ant; return; }
+        var cnt = {}, top = null;
+        nodes2.forEach(function (n, i) { var L = A[n.id]; if (L == null || hubGroup(i) !== g) return; cnt[L] = (cnt[L] || 0) + 1; if (top == null || cnt[L] > cnt[top]) top = L; });
+        out[g] = top != null ? +top : sbJs.ANT * stdScale();
+      });
+      return out;
+    }
+    // Apply to all of this kind (one process or gate selected): every other of its kind on the map takes its size (each
+    // keeping its centre), its antenna and, a gate, its letters' size; Standard size (one or several selected): each
+    // takes the standard size, antenna and letters at the map's scale. One undo step each, in one reading of the text
+    // (sbgn_edit.fit); the compartments round them grown to hold them, as a resize does
+    function stdScale() { var D = sbJs.defaults(src(), null, 'process'); return D.w0 / sbJs.SIZE.process[0]; }   // the map's scale (sbgn_edit.defaults)
+    function stdLetters() { return Math.round(sbJs.GATE_FONT * stdScale() * 2) / 2; }
+    function fitHubs(items) {
+      if (!items.length) return false;
+      var was = {}; items.forEach(function (it) { var i = nodes2.findIndex(function (n) { return n.id === it.id; }); was[it.id] = boxOf(i); });
+      var t2;
+      try { t2 = sbJs.fit(text, items, { sbgn: src() }); } catch (err) { warn('Not changed: ' + (err && err.message || err) + '.'); return false; }
+      if (t2 === text) return false;
+      var sel = selN.map(function (i) { return nodes2[i].id; });
+      remember(false); text = t2; parse(); dirty = true;
+      selN = []; nodes2.forEach(function (n, k) { if (sel.indexOf(n.id) >= 0) selN.push(k); });
+      var ks = nodes2.map(function (n, k) { return was[n.id] ? k : -1; }).filter(function (k) { return k >= 0; });
+      if (ks.length) setBoxes(grown(ks, boxOf, function (k) { return was[nodes2[k].id] || boxOf(k); }, function () { return false; }));   // their holders grown round them (sbSetSize)
+      refit(Object.keys(was));
+      render(); paint(); changed();
+      return true;
+    }
+    props.querySelector('.m2-ed-pall').addEventListener('click', function () {
+      var i = propNode(), g = i >= 0 ? hubGroup(i) : null;
+      if (!g) return;
+      var b = boxOf(i), ant = sbAnts()[nodes2[i].id], lt = sbJs.GLT.test(sbClasses()[nodes2[i].id] || '') ? sbJs.lookOf(realizerOf(nodes2[i].el)).font : null;
+      var items = nodes2.map(function (n, k) {
+        if (k === i || hubGroup(k) !== g) return null;
+        var o = boxOf(k);
+        return { id: n.id, box: [+fmt(o[0] + o[2] / 2 - b[2] / 2), +fmt(o[1] + o[3] / 2 - b[3] / 2), b[2], b[3]], ant: ant, letters: lt };
+      }).filter(Boolean);
+      if (!keepSel(function () { return fitHubs(items); })) warn('Every one of this kind already has this size and antenna.');
+    });
+    props.querySelector('.m2-ed-pstd').addEventListener('click', function () {
+      var ns = propNodes().filter(function (i) { return hubGroup(i); });
+      if (!ns.length) return;
+      var s = stdScale(), lt = stdLetters();
+      var items = ns.map(function (i) {
+        var gate = hubGroup(i) === 'gate', S = sbJs.SIZE[gate ? 'and' : 'process'], o = boxOf(i), w = S[0] * s, h = S[1] * s;
+        return { id: nodes2[i].id, box: [+fmt(o[0] + o[2] / 2 - w / 2), +fmt(o[1] + o[3] / 2 - h / 2), w, h], ant: sbJs.ANT * s, letters: gate ? lt : null };
+      });
+      if (!keepSel(function () { return fitHubs(items); })) warn('Already at the standard size and antenna.');
+    });

@@ -278,6 +278,13 @@
     });
     this.cnames = {};
     findall(model, 's:listOfCompartments/s:compartment').forEach(function (c) { self.cnames[get(c, 'id')] = get(c, 'name') || get(c, 'id'); });
+    // a compartment drawn as a picture (MINERVA's glyphs: 'Glyph: glyphs/x.png' in its notes): opt.glyph gives the
+    // picture's address for that path, or nothing; with no opt.glyph every compartment is drawn as lines
+    this.glyph = {};
+    if (opt.glyph) findall(model, 's:listOfCompartments/s:compartment').forEach(function (c) {
+      var n = find(c, 's:notes'), m = n && /Glyph:\s*(.+?\.png)/i.exec(n.textContent || ''), href = m && opt.glyph(m[1]);
+      if (href) self.glyph[get(c, 'id')] = href;
+    });
     this.alias = new Map();
     findall(ext, 'cd:listOfComplexSpeciesAliases/cd:complexSpeciesAlias').concat(findall(ext, 'cd:listOfSpeciesAliases/cd:speciesAlias')).forEach(function (a) {
       if (!species.has(get(a, 'species'))) throw new Error('KeyError: ' + get(a, 'species'));
@@ -319,7 +326,9 @@
     var x = box ? box[0] : x0, y = box ? box[1] : y0, w = box ? box[2] : F(get(b, 'w')), h = box ? box[3] : F(get(b, 'h'));
     var dl = find(a, 'cd:doubleLine');
     var t = dl ? F(get(dl, 'thickness', 12)) : 12, ow = dl ? F(get(dl, 'outerWidth', 2)) : 2, iw = dl ? F(get(dl, 'innerWidth', 1)) : 1;
-    self.out.push(compartmentShape(x, y, w, h, t, ow, iw, colour(get(find(a, 'cd:paint'), 'color'))[0], text(find(a, 'cd:class')) === 'OVAL'));
+    var pic = has(self.glyph, get(a, 'compartment')) ? self.glyph[get(a, 'compartment')] : null;
+    self.out.push(pic ? '<image href="' + escape(pic).replace(/"/g, '&quot;') + '" x="' + fmt(x) + '" y="' + fmt(y) + '" width="' + fmt(w) + '" height="' + fmt(h) + '" preserveAspectRatio="none"/>'
+      : compartmentShape(x, y, w, h, t, ow, iw, colour(get(find(a, 'cd:paint'), 'color'))[0], text(find(a, 'cd:class')) === 'OVAL'));
     var np = find(a, 'cd:namePoint'), nm = has(self.cnames, get(a, 'compartment')) ? self.cnames[get(a, 'compartment')] : '';
     // a name at the top middle of its bounds stays at the top middle of a live box (cd_edit's place() keeps it so)
     // a name at one of the nine places stays there in a live box; one at the top middle by an older rule stays centred
@@ -438,7 +447,7 @@
       var e = 1e-6, o = onBorder(b, ang), fx = w ? (o[0] - x) / w - 0.5 : 0, fy = h ? (o[1] - y) / h - 0.5 : 0;
       var p = onBorder([x + 9, y + 9, Math.max(w - 18, 0), Math.max(h - 18, 0)], ang);
       var tx = p[0] + (fx <= -0.5 + e ? 2 : fx >= 0.5 - e ? -2 : 0), ty = p[1] + (fy <= -0.5 + e ? 2 : fy >= 0.5 - e ? -2 : 0);
-      self.text(site, tx, ty + 3.5, 10, fx < -e ? 'start' : fx > e ? 'end' : 'middle');
+      self.text(site, tx, ty + 3.5, 10, fx < -e ? 'start' : fx > e ? 'end' : 'middle', undefined, ' class="sv-site" display="none"');   // hidden unless Show sites (cdrender.py)
     };
     this.residues.forEach(function (r) {
       if (r[2] === pid && !mods.has(r[3])) {
@@ -827,7 +836,7 @@
     return [svg, { aliases: aliases, reactions: reactions }];
   }
   var api = { render: render, renderHits: renderHits, Drawing: Drawing, py: py, xml: xml, SQUARE: SQUARE, ANCHOR: ANCHOR, fromFrame: fromFrame, toFrame: toFrame,
-    editPoints: editPoints, unit: unit, onBorder: onBorder, width: width, target: target, plainName: plainName, NAME: NAME, GATE: GATE, SYMBOL: SYMBOL, ROLE: ROLE, ANCHOR: ANCHOR, anchorAt: anchorAt, frontBox: frontBox, compartmentShape: compartmentShape, nameLeft: nameLeft, NAME_PLACES: NAME_PLACES, namePoint: namePoint, namePlaceOf: namePlaceOf };   // GATE: the editor's palette checks its signs against it   // NAME: cd_make.js writes names
+    editPoints: editPoints, unit: unit, onBorder: onBorder, width: width, target: target, plainName: plainName, NAME: NAME, GATE: GATE, SYMBOL: SYMBOL, ROLE: ROLE, anchorAt: anchorAt, frontBox: frontBox, compartmentShape: compartmentShape, nameLeft: nameLeft, NAME_PLACES: NAME_PLACES, namePoint: namePoint, namePlaceOf: namePlaceOf };   // GATE: the editor's palette checks its signs against it   // NAME: cd_make.js writes names
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.cdrender = api;
 
   if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {   // node cdrender.js map.xml out.svg

@@ -1323,7 +1323,7 @@
         kpic = new Promise(function (res) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(V.img); }; im.src = URL.createObjectURL(new Blob([V.recolour(pl[0])], { type: 'image/svg+xml' })); });
       }
       if (site && site.id && moved)   // not atSite(): a CellDesigner map's text follows a move only once drawn
-        V.kept = { id: site.id, v: site.v, sha: site.sha, pic: kpic, width: map.width, height: map.height, x0: picX0(), y0: picY0(), text: src(), svg: nowSvg(), file: name, ref: siteRef, cur: nowRef(), draft: !!site.pending && !site.mine, mine: !!site.mine };
+        V.kept = { sites: V.sites, id: site.id, v: site.v, sha: site.sha, pic: kpic, width: map.width, height: map.height, x0: picX0(), y0: picY0(), text: src(), svg: nowSvg(), file: name, ref: siteRef, cur: nowRef(), draft: !!site.pending && !site.mine, mine: !!site.mine };
       if (helpBox) help(false);
       on = false; drag = null; band = null; V.grid.classList.remove('m2-editing'); paint(); buttons();
       if (site && site.mine && !localTimer) V.refreshMine();   // its last version saved already: the list takes it (else local() does)
@@ -2126,7 +2126,10 @@
             else if (P[2]) o = rel(P[1]);
             else { var all = ports(k), nx = all[1]; o = rel(Math.hypot(P[1][0] - nx[0], P[1][1] - nx[1]) <= Math.hypot(P[0][0] - nx[0], P[0][1] - nx[1]) ? P[1] : P[0]); }
           }
-          list.push({ k: k, end: end, to: [-o[1], o[0]] });
+          var L = Math.abs(o[0]) >= Math.abs(o[1]) ? Math.abs(o[0]) - b[2] / 2 : Math.abs(o[1]) - b[3] / 2, port = L > 0.5 && Math.min(Math.abs(o[0]), Math.abs(o[1])) <= 0.5;
+          // turned round the centre and put on the side it turns to: a port at the same antenna, any other end scaled
+          // to the box (a glyph not square keeps an end on its side on a side)
+          list.push({ k: k, end: end, to: port ? (Math.abs(o[0]) >= Math.abs(o[1]) ? [0, Math.sign(o[0]) * (b[3] / 2 + L)] : [-Math.sign(o[1]) * (b[2] / 2 + L), 0]) : [-o[1] * b[2] / b[3], o[0] * b[3] / b[2]] });
         });
       });
       if (list.length) setPorts(list);
@@ -2308,7 +2311,7 @@
         if (edges2.some(function (f) { return f.id.indexOf(rid) === 0 && (f.s === i || f.t === i); })) return false;
         return !proc(here) && !/\|g\d*$/.test(nodes2[end ? e.s : e.t].id) && !proc(i) && !nd.comp && !(nd.up != null && !nodes2[nd.up].comp);
       }
-      if (i === other || !r || a[0] !== 'none') return false;
+      if (i === other || (!r && !(hybOn() && nodes2[i].shape.kind === 'Submap')) || a[0] !== 'none') return false;
       if (a[1] === 'none') {   // the arrowhead-less line: its hub end at a process or gate, its other end at an entity (or a gate into a gate)
         if (!hub(roleOf(e.s)) && !hub(roleOf(e.t))) return false;   // a plain line between other glyphs (an equivalence arc): not this line
         var h = hub(roleOf(e.t)) ? 1 : 0;
@@ -2317,7 +2320,9 @@
       if (a[1] === 'delta') return hub(roleOf(end ? e.t : e.s)) ? r === 'proc' : r === 'epn';   // a production: from a process to an entity
       // a modulation: from an entity or gate to a process or phenotype; an influence (Activity Flow) or a reduced
       // notation one (Hybrid) to an entity too, as the palette makes them (linkHow), never a catalysis
-      if (MODS.test(a[1])) return end ? r === 'proc' || r === 'pheno' || (r === 'epn' && a[1] !== 'white_circle' && (roleOf(e.t) === 'epn' || palLangNow() === 'af' || hybOn())) : r === 'epn' || r === 'gate';
+      // Reduced notation ticked: a phenotype or a submap also at either end, a catalysis aside (linkKind0)
+      var loose = hybOn() && a[1] !== 'white_circle' && (r === 'pheno' || nodes2[i].shape.kind === 'Submap');
+      if (MODS.test(a[1])) return loose || (end ? r === 'proc' || r === 'pheno' || (r === 'epn' && a[1] !== 'white_circle' && (roleOf(e.t) === 'epn' || palLangNow() === 'af' || hybOn())) : r === 'epn' || r === 'gate');
       return false;
     }
     function takes(k, end, i) {   // takes0, and SBGN PD's table for the line as it would be (pdLimit)

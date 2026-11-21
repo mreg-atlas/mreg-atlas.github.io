@@ -79,7 +79,7 @@
       return cdStrictMemo[1];
     }
     function cdFill() {
-      ['.m2-ed-pnot', '.m2-ed-plook', '.m2-ed-pprot'].forEach(function (c) { pal.querySelector(c).hidden = true; });   // no PD and AF on a CellDesigner map
+      ['.m2-ed-pnot', '.m2-ed-plook', '.m2-ed-pprot', '.m2-ed-pcdc'].forEach(function (c) { pal.querySelector(c).hidden = true; });   // no PD and AF on a CellDesigner map
       pal.querySelector('.m2-ed-pnot').style.display = 'none';   // a row: its display wins over hidden
       var hy = pal.querySelector('.m2-ed-pstrict'), hyc = hy.querySelector('input'), strict = cdStrict();
       hy.hidden = false;
@@ -1320,7 +1320,7 @@
         setCount: function (k, v) { return cdLineTo(k, function (t, id) { return cdMk.restoich(t, id, v); }); } },
       node: function (i) { return cdProp(i) ? i : -1; },
       off: function (k, i) {   // pNow: look's, read just before; a compartment no border width, multimer or font size (CellDesigner keeps none for its name), a complex no multimer, an Unknown no border width
-        return k === 'line' || (k === 'ss' && /^(COMPARTMENT|DEGRADED)$/.test(pNow.cls)) || (/^(mem|outer|inner)$/.test(k) && pNow.cls !== 'COMPARTMENT') || (/^(label|font|fill|multimer)$/.test(k) && pNow.cls === 'DEGRADED') || (/^(width|multimer|def|font)$/.test(k) && pNow.cls === 'COMPARTMENT') || (/^(multimer|def)$/.test(k) && pNow.cls === 'COMPLEX') || (k === 'width' && pNow.cls === 'UNKNOWN');   // an Unknown has no outline in CellDesigner, so no border width
+        return k === 'line' || k === 'ant' || (k === 'ss' && /^(COMPARTMENT|DEGRADED)$/.test(pNow.cls)) || (/^(mem|outer|inner)$/.test(k) && pNow.cls !== 'COMPARTMENT') || (/^(label|font|fill|multimer)$/.test(k) && pNow.cls === 'DEGRADED') || (/^(width|multimer|def|font)$/.test(k) && pNow.cls === 'COMPARTMENT') || (/^(multimer|def)$/.test(k) && pNow.cls === 'COMPLEX') || (k === 'width' && pNow.cls === 'UNKNOWN');   // an Unknown has no outline in CellDesigner, so no border width
       },
       look: function (i) {   // null while the file is behind the map read (an undo not drawn yet); read once per node and file (it runs with every paint)
         var id = nodes2[i].id;
