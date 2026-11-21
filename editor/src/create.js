@@ -49,8 +49,9 @@
       ['Other nodes', [['compartment', 'Compartment', '<rect x="1.5" y="3" width="21" height="18" rx="4.5" stroke-width="2.2"/>'],
         ['submap', 'Submap', '<rect x="1.5" y="4" width="21" height="16"/>'],
         // a tag: dropped on a submap's border it is that submap's terminal, sliding along it; elsewhere a free tag. Only
-        // with Settings, Editing, CellDesigner compatible unticked (CellDesigner has neither; compat())
-        ['tag', 'Tag', '<path d="M1.5 7h15l6 5-6 5h-15z"/>']]],
+        // with Settings, Editing, CellDesigner compatible unticked (CellDesigner has neither; compat()); its sign the
+        // macromolecule's box with the phenotype's point
+        ['tag', 'Tag', '<path d="M1.5 5h16.5l4.5 7-4.5 7h-16.5z"/>']]],
       // logic gates (with SBGN's equivalence operator), a
       // circle with its word or sign, made bare as a process, its antennas grown by its arcs; marks inside a sign are class
       // 'in', a dot class 'dot', letters plain <text>: their weight is the Edit window's one rule (atlas-app.html, Sign weights)
@@ -723,16 +724,16 @@
       });
     }
     parseFix.push(terminals);
-    // a submap's terminal: on its border, sliding along it (as units of information along a glyph); its point out of the
-    // submap, so its way is the side it is on (up, down, left, right), long across the side (a tag's two sizes swapped
-    // between a left or right side and the top or bottom). subAt: the submap whose border passes within d of P
+    // a submap's terminal: its flat back on its border, sliding along it (as units of information along a glyph), its point
+    // into the submap (SBGN PD's examples), so its way is away from the side it is on, long across the side (a tag's two sizes swapped
+    // between a left or right side and the top or bottom). subAt: the submap P lies in, or whose border passes within d of it
     function subAt(P, d) {
       var best = -1, bd = Infinity;
       nodes2.forEach(function (n, j) {
         if (n.shape.kind !== 'Submap') return;
         var q = boxOf(j), ins = P[0] >= q[0] && P[0] <= q[0] + q[2] && P[1] >= q[1] && P[1] <= q[1] + q[3];
-        var e = ins ? Math.min(P[0] - q[0], q[0] + q[2] - P[0], P[1] - q[1], q[1] + q[3] - P[1]) : Math.hypot(Math.max(q[0] - P[0], 0, P[0] - q[0] - q[2]), Math.max(q[1] - P[1], 0, P[1] - q[1] - q[3]));
-        if (e <= d && e < bd) { bd = e; best = j; }
+        var e = ins ? 0 : Math.hypot(Math.max(q[0] - P[0], 0, P[0] - q[0] - q[2]), Math.max(q[1] - P[1], 0, P[1] - q[1] - q[3]));
+        if (e <= d && (e < bd || (e === bd && best >= 0 && q[2] * q[3] < boxOf(best)[2] * boxOf(best)[3]))) { bd = e; best = j; }   // inside several: the innermost
       });
       return best;
     }
@@ -741,9 +742,47 @@
       var oy = Math.max(q[1] - c[1], 0, c[1] - q[1] - q[3]), ox = Math.max(q[0] - c[0], 0, c[0] - q[0] - q[2]);   // the side nearest its centre, as a segment
       var d = [Math.hypot(c[0] - q[0], oy), Math.hypot(q[0] + q[2] - c[0], oy), Math.hypot(ox, c[1] - q[1]), Math.hypot(ox, q[1] + q[3] - c[1])], k = d.indexOf(Math.min.apply(null, d));
       var clamp = function (v, lo, hi) { return Math.max(lo, Math.min(v, Math.max(lo, hi))); };
-      if (k < 2) { var y = clamp(c[1] - S / 2, q[1], q[1] + q[3] - S); return [[k ? q[0] + q[2] - L : q[0], y, L, S], k ? 'right' : 'left']; }
+      if (k < 2) { var y = clamp(c[1] - S / 2, q[1], q[1] + q[3] - S); return [[k ? q[0] + q[2] - L : q[0], y, L, S], k ? 'left' : 'right']; }
       var x = clamp(c[0] - S / 2, q[0], q[0] + q[2] - S);
-      return [[x, k === 3 ? q[1] + q[3] - L : q[1], S, L], k === 3 ? 'down' : 'up'];
+      return [[x, k === 3 ? q[1] + q[3] - L : q[1], S, L], k === 3 ? 'up' : 'down'];
+    }
+    // a tag turned spins as a whole (its width and height swapped round its centre between left or right and up or down;
+    // placed: its box already set, as onBorder gives it), and its lines end at its two ports, its point and the middle of its
+    // flat back: a free tag's one line at its point, which faces the line's other end by itself (tagAim); a terminal's line
+    // from outside its submap at its back (on the border), one from inside at its point. Text in, text out, for node i as the map is read now
+    var HORIZ = { left: 1, right: 1 };
+    function tagTurnT(t, i, way, placed) {
+      var n = nodes2[i], id = n.id, b = boxOf(i), now = (sbJs.wayOfR && sbJs.wayOfR(realizerOf(n.el))) || 'right', nb = b;
+      if (!placed && (HORIZ[way] ? b[3] > b[2] : b[2] > b[3])) nb = [b[0] + b[2] / 2 - b[3] / 2, b[1] + b[3] / 2 - b[2] / 2, b[3], b[2]].map(function (v) { return +fmt(v); });   // long across its point's direction
+      if (nb !== b) t = sbJs.resize(t, id, nb);
+      if (way !== now) t = sbJs.way(t, id, way);
+      var tip = { right: [nb[2] / 2, 0], left: [-nb[2] / 2, 0], down: [0, nb[3] / 2], up: [0, -nb[3] / 2] }[way], back = [-tip[0], -tip[1]];
+      var q = n.sub != null ? boxOf(n.sub) : null, es = edges2.filter(function (e) { return e.s === i || e.t === i; });
+      if (!q && es.length !== 1) return t;
+      es.forEach(function (e) {
+        var end = e.t === i, o = boxOf(end ? e.s : e.t), oc = [o[0] + o[2] / 2, o[1] + o[3] / 2];
+        var p = !q ? tip : oc[0] > q[0] && oc[0] < q[0] + q[2] && oc[1] > q[1] && oc[1] < q[1] + q[3] ? tip : back;   // a terminal's: from inside its submap its point, from outside its back
+        var xid = e.id.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        t = t.replace(new RegExp('(<edge id="' + xid + '"(?:(?!</edge>)[\\s\\S])*?<y:Path)([^>]*?)(/?>)'), function (m, a, at, close) {   // its Path in this edge only; a missing offset added
+          [[end ? 'tx' : 'sx', p[0]], [end ? 'ty' : 'sy', p[1]]].forEach(function (k) {
+            var v = ' ' + k[0] + '="' + sbJs.repr(k[1]) + '"', re = new RegExp('\\s' + k[0] + '="[^"]*"');
+            at = re.test(at) ? at.replace(re, v) : at + v;
+          });
+          return a + at + close;
+        });
+      });
+      return t;
+    }
+    function tagAim(ids) {   // the free tags among ids with one line: each turned to face the line's other end
+      var t2 = text;
+      nodes2.forEach(function (n, i) {
+        if (ids.indexOf(n.id) < 0 || n.shape.kind !== 'Tag' || n.sub != null) return;
+        var es = edges2.filter(function (q) { return q.s === i || q.t === i; });
+        if (es.length !== 1) return;
+        var o = es[0].s === i ? es[0].t : es[0].s, b = boxOf(i), q = boxOf(o), dx = q[0] + q[2] / 2 - b[0] - b[2] / 2, dy = q[1] + q[3] / 2 - b[1] - b[3] / 2;
+        t2 = tagTurnT(t2, i, Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 'right' : 'left') : (dy >= 0 ? 'down' : 'up'));
+      });
+      if (t2 !== text) { text = t2; parse(); dirty = true; }
     }
     // after a move (core.js fixMoved) or a submap resized: each terminal back onto its submap's border, its way by its side
     function termsFix(list) {
@@ -757,21 +796,99 @@
         ways.push([nodes2[i].id, on[1]]);
       });
       if (Object.keys(nb).length) setBoxes(nb);
-      var t2 = text;
-      ways.forEach(function (q) { t2 = sbJs.way(t2, q[0], q[1]); });
+      var t2 = text, at = {};
+      nodes2.forEach(function (n, k) { at[n.id] = k; });
+      ways.forEach(function (q) { t2 = tagTurnT(t2, at[q[0]], q[1], true); });   // its lines at its ports (its box set above)
       if (t2 !== text) { text = t2; parse(); dirty = true; }
     }
-    moveFix.push(function (set) {   // a terminal moved without its submap slides along it
-      var list = []; set.forEach(function (i) { if (nodes2[i].sub != null && !set.has(nodes2[i].sub)) list.push(i); });
-      termsFix(list);
+    // a tag moved: a terminal moved without its submap slides along it, and with Shift (alone) dropped with its centre out
+    // of the submap it leaves it, a free tag again; a free tag dropped with its centre inside a submap joins it (as a
+    // glyph joins a compartment), its terminal from then on. Shift keeps a free tag free
+    moveFix.push(function (set, alone) {
+      if (!sbJs || !sbJs.terminal) return;
+      var ids = new Set(), keep = new Set(), out = [], join = [];
+      set.forEach(function (i) { ids.add(nodes2[i].id); });   // by id: terminal() reorders the nodes
+      set.forEach(function (i) {
+        var n = nodes2[i];
+        if (n.shape.kind !== 'Tag') return;
+        if (n.sub != null) {
+          if (set.has(n.sub)) return;
+          if (alone && !centreIn(boxOf(i), boxOf(n.sub))) {   // taken out with Shift: a free tag has one line
+            if (linesAt(i) <= 1) { out.push(n.id); return; }
+            warn('A free tag has one line: take one of this terminal\u2019s two lines off first.');
+          }
+          keep.add(n.id); return;
+        }
+        if (alone) return;
+        var j = subIn(boxOf(i), set);
+        if (j >= 0) join.push([i, j]);
+      });
+      var nb = {};
+      join.forEach(function (q) { nb[q[0]] = onBorder(boxOf(q[0]), boxOf(q[1]))[0]; keep.add(nodes2[q[0]].id); });   // onto its side first, so it is the submap's it touches
+      if (join.length) setBoxes(nb);
+      var t2 = text;
+      out.forEach(function (id) { t2 = sbJs.terminal(t2, id, false); });
+      join.forEach(function (q) { t2 = sbJs.terminal(t2, nodes2[q[0]].id, true); });
+      if (t2 !== text) { text = t2; parse(); dirty = true; }
+      termsFix(nodes2.map(function (m, k) { return keep.has(m.id) ? k : -1; }).filter(function (k) { return k >= 0; }));
+      var aim = [];   // the free tags moved, and those whose line's other end moved
+      edges2.forEach(function (q) { if (q.s != null && q.t != null) [[q.s, q.t], [q.t, q.s]].forEach(function (p) { if (nodes2[p[0]].shape.kind === 'Tag' && (ids.has(nodes2[p[0]].id) || ids.has(nodes2[p[1]].id))) aim.push(nodes2[p[0]].id); }); });
+      tagAim(aim);
     });
+    // the same during the drag (live.js livePose): each tag shown where the release puts it, by the rules above: a terminal
+    // held on its submap's border, sliding along it and turning at its corners (with Shift and its centre out of the
+    // submap, with one line, free); a free tag dragged with its centre into a submap on its border; a free tag with one
+    // line facing the line's other end
+    var TURN = { right: 0, down: 90, left: 180, up: 270 };
+    livePose.push(function (sets, alone, out) {
+      if (!sbJs || !sbJs.terminal) return;
+      var moved = function (k) { var b = boxOf(k); return sets.n.has(k) ? [b[0] + sets.dx, b[1] + sets.dy, b[2], b[3]] : b; };
+      var mid = function (b) { return [b[0] + b[2] / 2, b[1] + b[3] / 2]; };
+      nodes2.forEach(function (n, i) {
+        if (n.shape.kind !== 'Tag' || (n.sub != null && sets.n.has(n.sub))) return;   // a terminal going with its submap
+        var es = edges2.map(function (q, k) { return k; }).filter(function (k) { var q = edges2[k]; return (q.s === i || q.t === i) && q.s != null && q.t != null; });
+        var mine = sets.n.has(i);
+        if (!mine && !(n.sub == null && es.length === 1 && sets.n.has(edges2[es[0]].s === i ? edges2[es[0]].t : edges2[es[0]].s))) return;   // nothing it does follows this move
+        var mb = moved(i), on = null, q = null, now = (sbJs.wayOfR && sbJs.wayOfR(realizerOf(n.el))) || 'right';
+        if (mine && n.sub != null) { if (!(alone && !centreIn(mb, boxOf(n.sub)) && es.length <= 1)) q = boxOf(n.sub); }
+        else if (mine && !alone) { var j = subIn(mb, sets.n); if (j >= 0) q = boxOf(j); }
+        if (q) on = onBorder(mb, q);
+        else {   // free, facing its one line's other end (tagAim)
+          if (es.length !== 1) return;
+          var e = edges2[es[0]], oc = mid(moved(e.s === i ? e.t : e.s)), c = mid(mb), dx = oc[0] - c[0], dy = oc[1] - c[1];
+          var way = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 'right' : 'left') : (dy >= 0 ? 'down' : 'up');
+          on = [!!HORIZ[way] === (mb[2] >= mb[3]) ? mb : [c[0] - mb[3] / 2, c[1] - mb[2] / 2, mb[3], mb[2]], way];   // as tagTurnT: long across its point's direction
+        }
+        var nb = on[0], tip = { right: [nb[2] / 2, 0], left: [-nb[2] / 2, 0], down: [0, nb[3] / 2], up: [0, -nb[3] / 2] }[on[1]], ports = {};
+        es.forEach(function (k) {   // its lines' ports as tagTurnT sets them: a free tag's at its point, a terminal's from inside at its point, from outside at its back
+          var e = edges2[k], oc = mid(moved(e.s === i ? e.t : e.s)), inside = q && oc[0] > q[0] && oc[0] < q[0] + q[2] && oc[1] > q[1] && oc[1] < q[1] + q[3];
+          ports[k] = !q || inside ? tip : [-tip[0], -tip[1]];
+        });
+        out[i] = { box: nb, way: on[1], turn: (TURN[on[1]] - TURN[now] + 360) % 360, ports: ports };
+      });
+    });
+    function centreIn(b, q) { var c = [b[0] + b[2] / 2, b[1] + b[3] / 2]; return c[0] >= q[0] && c[0] <= q[0] + q[2] && c[1] >= q[1] && c[1] <= q[1] + q[3]; }
+    function subIn(b, not) {   // the innermost submap holding b's centre (not one of the set `not`), else -1
+      var j = -1, a = Infinity;
+      nodes2.forEach(function (m, k) { var q = boxOf(k); if (m.shape.kind === 'Submap' && !(not && not.has(k)) && centreIn(b, q) && q[2] * q[3] < a) { a = q[2] * q[3]; j = k; } });
+      return j;
+    }
+    function linesAt(i) { return edges2.filter(function (q) { return q.s === i || q.t === i; }).length; }
+    // a line taking a tag's port (drawn, or an end dragged onto it): a free tag one, a terminal one from outside its
+    // submap and one from inside; a reason, or null. o: the line's other end, k: a line not counted (the one moved)
+    function tagRoom(tg, o, k) {
+      var n = nodes2[tg], es = edges2.filter(function (q, j) { return j !== k && (q.s === tg || q.t === tg); });
+      if (n.sub == null) return es.length ? 'A tag has one line, and this one has it.' : null;
+      var q = boxOf(n.sub), side = function (x) { return centreIn(boxOf(x), q); }, mine = side(o);
+      return es.some(function (e) { return side(e.s === tg ? e.t : e.s) === mine; }) ? 'A terminal has one line from outside its submap, at its back, and one from inside, at its point; this one is taken.' : null;
+    }
     function makeEntity(P, cls) {
       var units = PRESET[cls] ? PRESET[cls][1] : null; cls = baseKind(cls);
       var act = ACT_UNIT[cls], D = defOf(cls), w = D.w, h = D.h, X = P[0] - w / 2, Y2 = P[1] - h / 2;   // act: an activity's unit
       if (gridSet.snap) { X += toGrid(X + w / 2, gridSet.step); Y2 += toGrid(Y2 + h / 2, gridSet.step); }   // its centre on the grid, as a drag puts it
       var bx0 = [+fmt(X), +fmt(Y2), w, h], c = holder(bx0, function () { return false; }, boxOf), id = freeId('glyph_'), onCx = innermost(P, function (n) { return n.shape.kind === 'Complex'; }) >= 0;   // c: the innermost compartment holding its box
       var t2, way = null, sm = cls === 'tag' ? subAt(P, Math.max(w, h) / 2) : -1;
-      if (cls === 'tag') { var on = sm >= 0 ? onBorder([X, Y2, w, h], boxOf(sm)) : null; way = on ? on[1] : 'right'; if (on) { bx0 = on[0].map(function (v) { return +fmt(v); }); c = nodes2[sm].up; } }   // its box onto the submap's side, pointing out, held where its submap is
+      if (cls === 'tag') { var on = sm >= 0 ? onBorder([X, Y2, w, h], boxOf(sm)) : null; way = on ? on[1] : 'right'; if (!on && bx0[3] > bx0[2]) bx0 = [+fmt(P[0] - h / 2), +fmt(P[1] - w / 2), h, w]; if (on) { bx0 = on[0].map(function (v) { return +fmt(v); }); c = nodes2[sm].up; } }   // its box onto the submap's side, pointing in, held where its submap is
       try { t2 = sbJs.add(text, { id: id, cls: act != null ? sbJs.unitClass(act) : cls, activity: act, label: '', box: bx0, parent: c != null ? nodes2[c].id : null, fill: D.fill, line: D.line, width: D.width, multimer: D.multimer, font: D.font, units: units || undefined, way: way }); if (sm >= 0) t2 = sbJs.terminal(t2, id, true); }
       catch (err) { warn('The ' + (act != null ? 'activity' : cls) + ' could not be added: ' + (err && err.message || err) + '.'); return; }
       remember(false); text = t2;
@@ -1405,6 +1522,7 @@
     function svNode() { if (!svSel) return -1; var i = nodes2.findIndex(function (n) { return n.id === svSel.id; }); return i >= 0 && svList(i)[svSel.j] ? i : -1; }
     function svMarks(over) {   // four black squares at the corners of the state variable selected (paint, core.js)
       if (typing) typing.place();   // the text field follows a zoom or a pan
+      cardMarks(over);   // a cardinality selected
       var i = svNode();
       if (i < 0 || !svOn()) { svSel = null; return; }
       var q = svList(i)[svSel.j], c = svDrag && svDrag.to ? svDrag.to : svKey ? svKey.to : q[1], hs = Math.max(2, HANDLE * V.z);
@@ -1416,6 +1534,7 @@
     // top): a click on it selects it, also over its macromolecule, selected or not; true when it takes the press
     function svDown(e, P, h) {
       if (cdNameDown(e, P, h)) return true;   // a CellDesigner compartment's name dragged by itself (cdcreate.js)
+      if (cardDown(e, P)) return true;   // a cardinality, over its line and what lies under it
       var q = svOn() && !tool ? svAt(P) : null;
       if (!q || e.shiftKey || (h && h.p != null)) { if (svSel) { svSel = null; paint(); } return false; }   // Shift or a bend point there: the core's
       V.view.focus({ preventScroll: true });
@@ -1520,6 +1639,137 @@
       if (share) share(); dirty = true; render(); paint(); changed();
       return true;
     }
+    // a cardinality (a consumption's or production's number; SBGN-ML maps): a click selects it with its line (Properties
+    // shows the line's rows, Cardinality last), a press on it selected drags it along its line, to the side the pointer is
+    // on, never past its ends (half its box short of them); with Snap a stop every Grid size from the entity's end and at
+    // the middle; the arrow keys move it along its line (an arrow nearer across it: to that side), Snap's step or 1, Shift
+    // 10; Delete takes it out; Esc during a drag puts it back; a click on it selected puts the cursor in Cardinality. Its
+    // place is kept as sbgn_edit's pos (the GraphML label's ratio and side, the SBGN-ML glyph's bbox), drawn again where
+    // its line runs after a move (sbgn.js sbPlace). A CellDesigner map's: cdcreate.js cdCardDown
+    var cardSel = null, cardDrag = null, cardKey = null, cardMemo = [null, null];
+    function cardAll() { if (cardMemo[0] !== text) cardMemo = [text, sb && sbJs && sbJs.countsAt ? sbJs.countsAt(text) : {}]; return cardMemo[1]; }
+    function cardAt(P) {   // the id of the line whose cardinality's box is under P (map units)
+      if (!sb || !sbJs || !sbJs.countsAt || text.indexOf('<y:EdgeLabel') < 0) return null;
+      var o = cardAll(), pad = 2 / V.z, got = null;
+      Object.keys(o).forEach(function (id) { var b = o[id].box; if (P[0] >= b[0] - pad && P[0] <= b[0] + b[2] + pad && P[1] >= b[1] - pad && P[1] <= b[1] + b[3] + pad) got = id; });
+      return got;
+    }
+    function cardK(id) { return edges2.findIndex(function (q) { return q.id === id; }); }
+    function cardOn() { if (!cardSel) return null; var k = cardK(cardSel.id), c = cardAll()[cardSel.id]; if (k < 0 || !c || selE.length !== 1 || selE[0] !== k || selN.length || selP.length) { cardSel = null; return null; } return c; }
+    function cardLen(line) { return sbJs.countLens(line).reduce(function (t, v) { return t + v; }, 0); }
+    function cardClamp(c, r) {   // r kept half the box's length (and 1) off the line's ends, to 4 decimals
+      var tot = cardLen(c.line), m = tot ? (2.5 * c.text.length + 4) / tot : 0.5;
+      r = m >= 0.5 ? 0.5 : Math.max(m, Math.min(1 - m, r));
+      return Math.round(r * 10000) / 10000;
+    }
+    function cardDir(c, r) {   // the line's way (entity to process) at r
+      var L = c.line, lens = sbJs.countLens(L), d = r * cardLen(L);
+      for (var i = 0; i < lens.length; i++) { if ((d <= lens[i] || i === lens.length - 1) && lens[i]) return [(L[i + 1][0] - L[i][0]) / lens[i], (L[i + 1][1] - L[i][1]) / lens[i]]; d -= lens[i]; }
+      return [1, 0];
+    }
+    function cardSide(c) {   // the side it is drawn on now: 1 left of the line's way, -1 right
+      if (c.pos) return c.pos.s;
+      var b = c.box, q = sbJs.countAlong(c.line, [b[0] + b[2] / 2, b[1] + b[3] / 2]);
+      return q ? q[1] : 1;
+    }
+    function cardParts(c) {   // its drawn box and number in the editor's drawing, hidden while it moves
+      var gs = gE && gE[cardSel.id];
+      if (!gs) return [];
+      var r = V.view.getBoundingClientRect(), k = V.pz(), b = c.box, L = r.left + sx(b[0]) * k - 2, T = r.top + sy(b[1]) * k - 2, R = r.left + sx(b[0] + b[2]) * k + 2, B = r.top + sy(b[1] + b[3]) * k + 2, out = [];
+      gs.forEach(function (g) { Array.prototype.forEach.call(g.querySelectorAll('rect, text'), function (el) {
+        var q = el.getBoundingClientRect();
+        if (q.width + q.height > 0 && q.left >= L && q.right <= R && q.top >= T && q.bottom <= B) out.push(el);
+      }); });
+      return out;
+    }
+    function cardShow(parts, on) { parts.forEach(function (el) { el.style.visibility = on ? '' : 'hidden'; }); }
+    function cardMarks(over) {   // the box where it is or goes, with four black squares at its corners (paint, through svMarks)
+      var c = cardOn();
+      if (!c) return;
+      var to = cardDrag && cardDrag.to || cardKey && cardKey.to, b = to ? sbJs.countOn(c.line, c.text, to) : c.box, hs = Math.max(2, HANDLE * V.z);
+      if (to) over.push('<rect x="' + f1(sx(b[0])) + '" y="' + f1(sy(b[1])) + '" width="' + f1(b[2] * V.z) + '" height="' + f1(b[3] * V.z) + '" fill="#fff" stroke="#9aa0a6" stroke-width="' + f1(0.8 * V.z) + '"/>' +
+        '<text x="' + f1(sx(b[0] + b[2] / 2)) + '" y="' + f1(sy(b[1] + b[3] / 2 + 3.2)) + '" font-family="Arial, Helvetica, sans-serif" font-size="' + f1(9 * V.z) + '" fill="#9aa0a6" text-anchor="middle">' + c.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>');
+      [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(function (d) {
+        over.push('<rect class="m2-ed-handle" x="' + f1(sx(b[0] + d[0] * b[2]) - hs / 2) + '" y="' + f1(sy(b[1] + d[1] * b[3]) - hs / 2) + '" width="' + f1(hs) + '" height="' + f1(hs) + '"/>');
+      });
+    }
+    function cardDown(e, P) {   // a press on a cardinality (svDown, before state variables): true when it takes the press
+      if (tool || e.shiftKey) return false;
+      if (cd) return cdCardDown(e);   // no place in a CellDesigner file (cdcreate.js)
+      var id = cardAt(P), k = id == null ? -1 : cardK(id);
+      if (k < 0) return false;
+      V.view.focus({ preventScroll: true });
+      if (!(cardOn() && cardSel.id === id)) { cardDrag = { pick: k, id: id, x: e.clientX, y: e.clientY }; return true; }   // not selected: a click selects it on release, a drag moves the map
+      e.stopImmediatePropagation(); e.preventDefault();
+      cardDrag = { id: id, x: e.clientX, y: e.clientY, to: null, c: cardAll()[id] };
+      return true;
+    }
+    function cardTo(c, r, s, free) {   // r on Snap's stops (every Grid size from the entity's end, and the middle) unless free
+      if (gridSet.snap && !free) {
+        var tot = cardLen(c.line), st = gridSet.step / (tot || 1), g = Math.round(r / st) * st;
+        r = Math.abs(r - 0.5) < Math.abs(r - g) ? 0.5 : g;
+      }
+      return { r: cardClamp(c, r), s: s };
+    }
+    window.addEventListener('pointermove', function (e) {
+      var d = cardDrag;
+      if (!d) return;
+      var far = Math.hypot(e.clientX - d.x, e.clientY - d.y);
+      if (d.pick != null) { if (!e.buttons || far >= 5) cardDrag = null; return; }   // the map moved: no click
+      if (!e.buttons) { cardUp(); return; }
+      if (!d.to && far < 4) return;
+      var q = sbJs.countAlong(d.c.line, at(e));
+      if (!q) return;
+      if (!d.parts) { d.parts = cardParts(d.c); cardShow(d.parts, false); }
+      d.to = cardTo(d.c, q[0], q[1], e.altKey || e.ctrlKey);
+      paint();
+    }, true);
+    window.addEventListener('pointerup', cardUp, true);
+    function cardUp(e) {
+      var d = cardDrag; cardDrag = null;
+      if (!d) return;
+      if (d.pick != null) {   // a click: selected, with its line
+        if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+        selN = []; selP = []; selE = [d.pick]; part = null; svSel = null; cardSel = { id: d.id }; paint(); return;
+      }
+      if (d.to && cardSel) { cardMove(d.id, d.to); return; }
+      if (d.parts) cardShow(d.parts, true);
+      var f = !d.to && cardOn() && document.getElementById('m2-ed-card');   // a click on it selected: its number typed in Properties
+      if (f && !f.closest('[hidden]')) { f.focus(); f.select(); }
+      paint();
+    }
+    function cardMove(id, pos) {
+      var t2 = sbJs.countMove(text, id, pos);
+      if (t2 === text) { render(); paint(); return; }
+      remember(false); text = t2; parse(); dirty = true; render(); paint(); changed();
+    }
+    window.addEventListener('keydown', function (e) {
+      if (!cardSel || /input|textarea|select/i.test(document.activeElement.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'Escape' && cardDrag && cardDrag.to) { if (cardDrag.parts) cardShow(cardDrag.parts, true); cardDrag = null; e.preventDefault(); e.stopImmediatePropagation(); paint(); return; }
+      var c = cardOn();
+      if (!c) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault(); e.stopImmediatePropagation();
+        var t2 = sbJs.recount(text, cardSel.id, ''); cardSel = null;
+        if (t2 !== text) { remember(false); text = t2; parse(); dirty = true; render(); paint(); changed(); }
+        return;
+      }
+      var d = KEYS[e.key];
+      if (!d) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (!cardKey) cardKey = { id: cardSel.id, at: c.pos ? c.pos.r : 0.5, s: cardSide(c), parts: cardParts(c) };
+      cardShow(cardKey.parts, false);
+      var u = cardDir(c, cardKey.at), a = d[0] * u[0] + d[1] * u[1], n = d[0] * -u[1] + d[1] * u[0], tot = cardLen(c.line) || 1;
+      if (Math.abs(a) >= Math.abs(n)) cardKey.at = cardClamp(c, cardKey.at + Math.sign(a) * (e.shiftKey ? 10 : 1) * (gridSet.snap ? gridSet.step : 1) / tot);
+      else cardKey.s = n > 0 ? 1 : -1;   // nearer across the line: to that side
+      cardKey.to = { r: cardKey.at, s: cardKey.s };
+      paint();
+    }, true);
+    window.addEventListener('keyup', function (e) {
+      if (!KEYS[e.key] || !cardKey) return;
+      var k = cardKey; cardKey = null;
+      if (k.to && cardSel && cardSel.id === k.id) cardMove(k.id, k.to); else { cardShow(k.parts, true); paint(); }
+    }, true);
     function nodesDelete(list, arcs) {   // the glyphs the palette makes, an empty compartment too, deleted with every line at them,
       // and the lines selected with them (one undo step, as cdDelete on a CellDesigner map)
       list = list.concat(nodes2.map(function (n, k) { return n.sub != null && list.indexOf(n.sub) >= 0 && list.indexOf(k) < 0 ? k : -1; }).filter(function (k) { return k >= 0; }));   // a submap's terminals go with it (as Newt)
@@ -1748,6 +1998,7 @@
       if (!end && roleOf(s) === 'gate' && others(s, false)) return 'A logic gate has one line out, and this one has it.';
       if (end && roleOf(t) === 'gate' && /^(NOT|\u03c4)$/.test(word(t)) && others(t, true)) return 'This gate has one input, and it has it.';
       if (MODS.test(a) && nodes2[s].eq) return 'An equivalence\u2019s line goes to an entity.';
+      if (nodes2[i].shape.kind === 'Tag') return a !== 'none' ? 'A tag is joined to an entity by an equivalence arc.' : tagRoom(i, end ? s : t, k);
       if (a === 'none' && roleOf(s) === 'gate' && roleOf(t) === 'gate' && (nodes2[s].eq || nodes2[t].eq)) return 'An equivalence joins entities only.';
       return null;
     }
@@ -1764,6 +2015,8 @@
       if (ra === 'tag' || rb === 'tag') {   // a tag (or terminal) and the entity it stands for: an equivalence arc, a plain line (sbgn_edit.connect writes it from the entity)
         var why = 'A tag is joined to an entity by an equivalence arc.';
         if ((ra === 'tag' ? rb : ra) !== 'epn' || (want && want !== 'consumption' && want !== 'logic arc')) return { no: why };
+        var room = tagRoom(ra === 'tag' ? a : b, ra === 'tag' ? b : a, -1);
+        if (room) return { no: room };
         return has(a, b, 'none') || has(b, a, 'none') ? { no: 'This equivalence arc is there already.' } : { cls: 'equivalence arc' };
       }
       if (ra === 'pheno') return { no: 'Nothing leaves a phenotype: it is modulated by an entity or a logic gate.' };
@@ -1866,7 +2119,8 @@
       if (sbCols() === 'confetti') ids.forEach(function (id) { t2 = sbJs.recolour(t2, id, confettiLine(confettiHues(t2)).toUpperCase()); });   // a new line a colour of its own, as the map's
       if (t2 === text) return;
       remember(false); text = t2;
-      parse(); selN = []; selP = []; part = null;
+      parse(); tagAim([ia, ib]); termsFix(nodes2.map(function (n, k) { return (n.id === ia || n.id === ib) && n.sub != null ? k : -1; }).filter(function (k) { return k >= 0; }));   // a tag's line at its point, a free tag facing it
+      selN = []; selP = []; part = null;
       selE = edges2.map(function (q, k) { return ids.indexOf(q.id) >= 0 ? k : -1; }).filter(function (k) { return k >= 0; });   // the new arcs selected: Delete takes them back at once
       dirty = true; quiet(); render(); paint(); changed();
     }
@@ -1948,21 +2202,22 @@
     props.className = 'm2-ed-props'; props.hidden = true;
     // a line's rows (yEd's Properties View for an edge): its colour and width, its two ports as offsets from its glyph's centre
     // and a consumption's or production's Cardinality (SBGN's, CellDesigner's stoichiometry; empty: 1, none shown)
-    // (a text field: a file's ? is shown as it is; typed, a number above 0 up to 1000)
-    var EROWS = [['ecol', 'Line colour', 'colour'], ['ewid', 'Line width', 'num', ' min="0.25" max="20"'], ['card', 'Cardinality', 'card'], ['sx', 'Source port X', 'num'], ['sy', 'Source port Y', 'num'],
-      ['tx', 'Target port X', 'num'], ['ty', 'Target port Y', 'num']];
+    // (a text field: a file's ? is shown as it is; typed, a number above 0 up to 1000; empty shows the default 1 in grey,
+    // which the file holds by writing nothing)
+    var EROWS = [['ecol', 'Line colour', 'colour'], ['ewid', 'Line width', 'num', ' min="0.25" max="20"'], ['sx', 'Source port X', 'num'], ['sy', 'Source port Y', 'num'],
+      ['tx', 'Target port X', 'num'], ['ty', 'Target port Y', 'num'], ['card', 'Cardinality', 'card']]   // Cardinality last;
     // a reaction's rows, one reaction selected on a map whose format's part has a reaction's answers (PF_CD.rx)
-    var RROWS = [['rev', 'Reversible', 'check'], ['cin', 'Reactant cardinality', 'card'], ['cout', 'Product cardinality', 'card']];   // the main reactant's and product's numbers where the part has them (PF_CD.rx.counts)
+    var RROWS = [['rev', 'Reversible', 'check']];
     function table(rows, cls) { return '<table class="m2-ed-ptab' + cls + '">' + rows.map(function (r) {
       var id = 'm2-ed-' + r[0], f = r[2] === 'check' ? '<input type="checkbox" id="' + id + '">'
-        : r[2] === 'select' ? '<select id="' + id + '">' + r[3].map(function (o) { return '<option value="' + o + '">' + o.charAt(0).toUpperCase() + o.slice(1) + '</option>'; }).join('') + '</select>'
+        : r[2] === 'select' ? '<select id="' + id + '">' + r[3].map(function (o) { return '<option value="' + o + '">' + o + '</option>'; }).join('') + '</select>'
         : r[2] === 'colour' ? '<span class="m2-ed-pc"><input type="color" tabindex="-1" aria-label="' + r[1] + ', picker"><input type="text" id="' + id + '" spellcheck="false" autocomplete="off"' + (r[0] === 'fill' ? ' placeholder="none"' : '') + '></span>'
         : r[2] === 'num' ? '<input type="number" id="' + id + '" step="any"' + (r[3] || (r[0] === 'width' ? ' min="0.25" max="20"' : /^[st][xy]$/.test(r[0]) ? '' : ' min="1" max="5000"')) + '>'
         : r[2] === 'card' ? '<input type="text" inputmode="decimal" class="m2-ed-card" id="' + id + '" placeholder="1" spellcheck="false" autocomplete="off">'
         : '<input type="text" id="' + id + '" spellcheck="false" autocomplete="off">';
       return '<tr data-k="' + r[0] + '"' + (r[4] ? ' title="' + r[4] + '"' : '') + '><th><label for="' + id + '">' + r[1] + '</label></th><td>' + f + '</td></tr>';
     }).join('') + '</table>'; }
-    props.innerHTML = '<p>Properties</p>' + table(ROWS, ' m2-ed-pnode') + table(EROWS, ' m2-ed-pedge') + table(RROWS, ' m2-ed-prx') +
+    props.innerHTML = '<p>Properties</p>' + table(ROWS, ' m2-ed-pnode') + table(EROWS, ' m2-ed-pedge') + table(RROWS, ' m2-ed-prx') + '<table class="m2-ed-ptab m2-ed-pcard" hidden></table>' +
       '<button type="button" class="m2-ed-pdef" title="The next ones of this kind made from the palette take these">Set as default</button>';
     pal.insertAdjacentElement('afterend', props);
     props.insertAdjacentElement('afterend', pmap);
@@ -2014,7 +2269,7 @@
     }
     function propsShow(all) {   // all: every field shown again, the one focused too (Esc)
       var i = propNode(), k = propEdge(), r2 = function (v) { return String(Math.round(v * 100) / 100); }, ns = propNodes();
-      props.querySelector('.m2-ed-prx').hidden = true;
+      props.querySelector('.m2-ed-prx').hidden = true; pcard.hidden = true;
       if (ns.length > 1 || (ns.length && selN.length > 1)) return propsMany(ns, all, r2);
       var rx = propRx();
       if (rx && !propFmt().rx.withNode) {   // one reaction: its Reversible tick box alone (a CellDesigner reaction; an SBGN-ML process shows it under its own rows, below)
@@ -2120,7 +2375,7 @@
         else if (k === 'multimer') t2 = sbJs.multimer(t2, id, v);   // a count, if any, stays the unit of information typed (N:3)
         else if (k === 'width') { var x = parseFloat(v); if (isFinite(x)) t2 = sbJs.restyle(t2, id, { width: Math.min(Math.max(x, 0.25), 20) }); }   // outside 0.25 to 20: the nearest, silently
         else if (k === 'font') { var z = parseFloat(v); if (isFinite(z)) t2 = sbJs.restyle(t2, id, { font: Math.min(Math.max(Math.round(z * 2) / 2, 1), 200) }); }   // in halves, 1 to 200: the nearest, silently
-        else if (k === 'way') { if (is.every(function (i) { return nodes2[i].id !== id || nodes2[i].sub == null; })) t2 = sbJs.way(t2, id, v); }   // a free tag turned (a terminal's follows its side)
+        else if (k === 'way') { var ti = is.filter(function (i) { return nodes2[i].id === id; })[0]; if (ti != null && nodes2[ti].sub == null) t2 = tagTurnT(t2, ti, v); }   // a free tag turned, spinning (a terminal's follows its side)
         else {
           var c = hex(v), o = {};
           if (c !== null && !(c === '' && k === 'line')) { o[k] = c === '#000000' && k === 'line' ? null : c || null; t2 = sbJs.restyle(t2, id, o); }
@@ -2165,7 +2420,7 @@
       off: sbOff,
       look: function (i) {
         var r = realizerOf(nodes2[i].el), o = sbJs.lookOf(r), wf = field('way');
-        if (wf) { wf.disabled = nodes2[i].sub != null; wf.title = wf.disabled ? 'A terminal points out of its submap, set by the side it sits on' : ''; }
+        if (wf) { wf.disabled = nodes2[i].sub != null; wf.title = wf.disabled ? 'A terminal points into its submap, set by the side it sits on' : ''; }
         return { label: nameOf(i), font: o.font, fill: o.fill ? o.fill.slice(0, 7).toLowerCase() : '', line: (o.line || '#000000').slice(0, 7).toLowerCase(), width: o.width, multimer: o.multimer, way: (sbJs.wayOfR && sbJs.wayOfR(r)) || 'right' };
       } };
     // a line's Properties, one line selected on a map whose format's part has a line's answers (PF_SB.line): Line colour
@@ -2174,23 +2429,31 @@
     // A field applies to the line it was typed for (eFor), also when another line was clicked before it was left
     var eFor = null;
     function propRx() { var f = propFmt(); return f && f.rx ? f.rx.of() : null; }   // the reaction Properties is for ({ rid, on }), else null
-    function rxCounts(rx, all) {   // a reaction's main reactant's and product's Cardinality rows, where its part reads them
-      var c = propFmt().rx.counts ? propFmt().rx.counts(rx.rid) : null;
-      ['cin', 'cout'].forEach(function (key, j) {
-        var f = field(key);
-        f.closest('tr').hidden = !c || c[j] === undefined;
-        if (c && c[j] !== undefined && (all || document.activeElement !== f) && f.value !== c[j]) f.value = c[j];
-      });
+    // a reaction's Cardinality, one row per reactant and product by its name (a whole reaction selected: its main line
+    // selects all of it), where its part lists them (PF_CD.rx.counts: [{ line, name, value }])
+    var pcard = props.querySelector('.m2-ed-pcard'), pcardKey = null;
+    function rxCounts(rx, all) {
+      var c = rx && propFmt().rx.counts ? propFmt().rx.counts(rx.rid) : [];
+      pcard.hidden = !c.length;
+      if (!c.length) return;
+      var key = rx.rid + '\u0000' + c.map(function (p) { return p.line + '\u0001' + p.name; }).join('\u0000');
+      if (key !== pcardKey) {
+        pcardKey = key;
+        pcard.innerHTML = '<tr><th colspan="2">Cardinality</th></tr>' + c.map(function (p) {
+          return '<tr><th><label for="m2-ed-pc-' + escAttr(p.line) + '">' + escHtml(p.name) + '</label></th><td><input type="text" inputmode="decimal" class="m2-ed-card" id="m2-ed-pc-' + escAttr(p.line) + '" data-line="' + escAttr(p.line) + '" placeholder="1" spellcheck="false" autocomplete="off"></td></tr>';
+        }).join('');
+      }
+      c.forEach(function (p) { var f = pcard.querySelector('[data-line="' + p.line.replace(/"/g, '\\"') + '"]'); if (f && (all || document.activeElement !== f) && f.value !== p.value) f.value = p.value; });
     }
+    function escHtml(v) { return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function escAttr(v) { return escHtml(v).replace(/"/g, '&quot;'); }
     function cardOf(f) {   // a Cardinality typed: '' for none (1), a number above 0 in hundredths, null for anything else
       var v = f.value.trim(), n = parseFloat(v);
       return v === '' ? '' : n > 0 && n <= 1000 ? String(Math.round(n * 100) / 100) : null;
     }
-    ['cin', 'cout'].forEach(function (key, j) {
-      field(key).addEventListener('change', function (e) {
-        var r = propRx(), pf = propFmt(), v = cardOf(e.target);
-        if (!r || !pf.rx.setCount || v === null || !pf.rx.setCount(r.rid, j, v)) propsShow(true);   // not written: the field shows the file again
-      });
+    pcard.addEventListener('change', function (e) {
+      var f = e.target, r = propRx(), pf = propFmt(), v = f.dataset && f.dataset.line ? cardOf(f) : null;
+      if (!r || !pf.rx.setCount || v === null || !pf.rx.setCount(r.rid, f.dataset.line, v)) propsShow(true);   // not written: the field shows the file again
     });
     field('rev').addEventListener('change', function (e) {
       e.target.blur();   // the editor's keys (undo) work at once
